@@ -1,0 +1,66 @@
+//
+// HELPERS.JAVA
+
+package com.shutdownhook.vdj.vdjlib;
+
+import java.io.Closeable;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import com.shutdownhook.toolbox.Easy;
+
+public class Helpers
+{
+	// +----------------------+
+	// | ResourceStreamReader |
+	// +----------------------+
+	
+	public static class ResourceStreamReader implements Closeable
+	{
+		public ResourceStreamReader(String name) throws IOException {
+			this.stm = getClass().getClassLoader().getResourceAsStream(name);
+			this.rdr = new InputStreamReader(stm);
+		}
+
+		public void close() {
+			try { rdr.close(); } catch(Exception e1) { }
+			try { stm.close(); } catch(Exception e2) { }
+		}
+
+		public InputStreamReader get() { return(rdr); }
+
+		private InputStream stm;
+		private InputStreamReader rdr;
+
+	}
+	
+	// +---------------------+
+	// | TempRepertoireStore |
+	// +---------------------+
+
+	public static class TempRepertoireStore implements Closeable
+	{
+		public TempRepertoireStore() throws IOException {
+			
+			path = Files.createTempDirectory("tsv");
+
+			RepertoireStore_Files.Config cfg = new RepertoireStore_Files.Config();
+			cfg.BasePath = path.toString();
+			store = new RepertoireStore_Files(cfg);
+		}
+
+		public void close() {
+			try { Easy.recursiveDelete(path.toFile()); }
+			catch (Exception e) { }
+		}
+
+		public RepertoireStore get() { return(store); }
+		public Path getPath() { return(path); }
+
+		private Path path;
+		private RepertoireStore_Files store;
+	}
+}
