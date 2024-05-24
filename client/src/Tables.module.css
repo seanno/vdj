@@ -1,0 +1,28 @@
+.rearrangementsTable {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 20px;
+}
+
+.rearrangementsTable caption {
+	caption-side: top;
+	text-align: left;
+	font-size: medium;
+	font-weight: bold;
+}
+
+.rearrangementsTable td, .rearrangementsTable th {
+	border: 1px solid black;
+	padding: 4px;
+	font-size: smaller;
+	white-space: nowrap;
+}
+
+.noResults h1 {
+	font-size: medium;
+	font-weight: bold;
+	margin-bottom: 0px;
+}
+
+
+

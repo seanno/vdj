@@ -23,6 +23,7 @@ import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore_Files;
+import com.shutdownhook.vdj.vdjlib.Searcher;
 import com.shutdownhook.vdj.vdjlib.TsvReader;
 import com.shutdownhook.vdj.vdjlib.TsvReceiver;
 
@@ -43,8 +44,17 @@ public class Server implements Closeable
 
 		public Integer DefaultGetCount = 50;
 		public Integer MaxGetCount = 250;
+
+		public Boolean DefaultAAForSearch = false;
+		public Integer DefaultMutsForSearch = 0;
+		public Integer MinimumNucleotideLengthForSearch = 10;
+		public Integer MaximumNucleotideMutationsForSearch = 5;
+		public Integer MinimumAALengthForSearch = 5;
+		public Integer MaximumAAMutationsForSearch = 2;
 		
-		public String ContextsUrl = "/api/contexts";
+		public String ApiBase = "/api";
+		public String ContextScope = "contexts";
+		public String SearchScope = "search";
 
 		public String ClientSiteZip = "@clientSite.zip";
 		public Boolean StaticPagesRouteHtmlWithoutExtension = false;
@@ -74,7 +84,7 @@ public class Server implements Closeable
 
 		server = WebServer.create(cfg.WebServer);
 
-		registerContexts();
+		registerApi();
 	}
 
 	// +----------------+
@@ -85,75 +95,81 @@ public class Server implements Closeable
 	public void runSync() throws Exception { server.runSync(); }
 	public void close() { server.close(); }
 
-	// +------------------+
-	// | registerContexts |
-	// +------------------+
+	// +-------------+
+	// | registerApi |
+	// +-------------+
 
 	// GET    /api/contexts         => list contexts
 	// GET    /api/contexts/CTX     => return repertoires in context CTX
-	// GET    /api/contexts/CTX/REP => return repertoire REP in context CTX
+	// GET    /api/contexts/CTX/REP => return repertoire REP in context CTX (QS start/count)
 	// POST   /api/contexts/CTX/REP => save repertoire from body into REP context CTX
 	// DELETE /api/contexts/CTX/REP => delete repertoire REP in context CTX
 
-	static class ApiInfo
-	{
-		public Request Request;
-		public Response Response;
-		public String UserId;
-		public String ContextName;
-		public String RepertoireName;
-	}
-	
-	private void registerContexts() throws Exception {
+	// GET    /api/search/CTX/REPS  => search REPS in CTX for (QS motif/isaa/muts)
 
-		final int baseCount = cfg.ContextsUrl.split("/").length;
-			
-		server.registerHandler(cfg.ContextsUrl, new WebServer.Handler() {
+	private void registerApi() throws Exception {
+
+		server.registerHandler(cfg.ApiBase, new WebServer.Handler() {
 			public void handle(Request request, Response response) throws Exception {
 
-				ApiInfo info = new ApiInfo();
-				info.Request = request;
-				info.Response = response;
-				info.UserId = getAuthUser(request);
+				ApiInfo info = getApiInfo(request, response);
+
+				boolean handled = false;
 				
-				String[] components = request.Path.split("/");
-				if (components.length > baseCount) {
+				if (info.Scope.equals(cfg.ContextScope)) {
 					
-					String contextName = Easy.urlDecode(components[baseCount]);
-					if (!contextName.equals("")) info.ContextName = contextName;
-					
-					if (components.length > baseCount + 1) {
-						String repertoireName = Easy.urlDecode(components[baseCount+1]);
-						if (!repertoireName.equals("")) info.RepertoireName = repertoireName;
+					switch (request.Method) {
+						case "GET":
+							handled = true;
+
+							if (info.ContextName != null && info.RepertoireName != null) {
+								// get contents of repertoire
+								getRepertoire(info);
+							}
+							else if (info.ContextName != null) {
+								// list all repertoires in context
+								listRepertoires(info);
+							}
+							else {
+								// list all contexts for user
+								listContexts(info);
+							}
+							break;
+
+						case "POST":
+							if (info.ContextName != null && info.RepertoireName != null) {
+								// save repertoire
+								handled = true;
+								saveRepertoire(info);
+							}
+							break;
+
+						case "DELETE":
+							if (info.ContextName != null && info.RepertoireName != null) {
+								// delete repertoire
+								handled = true;
+								deleteRepertoire(info);
+							}
+							break;
 					}
 				}
+				else if (info.Scope.equals(cfg.SearchScope)) {
 
-				switch (request.Method) {
-					case "GET":
-						if (info.ContextName == null || info.RepertoireName == null) {
-							listContexts(info);
-						}
-						else if (info.RepertoireName == null) {
-							listRepertoires(info);
-						}
-						else {
-							getRepertoire(info);
-						}
-						break;
+					if (request.Method.equals("GET") &&
+						info.ContextName != null &&
+						info.RepertoireNames != null) {
 
-					case "POST":
-						saveRepertoire(info);
-						break;
-
-					case "DELETE":
-						deleteRepertoire(info);
-						break;
-
-					default:
-						response.Status = 500;
-						break;
+						// search within repertoire
+						searchRepertoires(info);
+						handled = true;
+					}
+					
 				}
 
+				if (!handled) {
+					response.Status = 500;
+					response.Body = "Malformed request";
+				}
 			}
 		});
 	}
@@ -202,6 +218,9 @@ public class Server implements Closeable
 
 		if (count > cfg.MaxGetCount) count = cfg.MaxGetCount;
 
+		log.info(String.format("GR: %d %d / %s / %s", start, count,
+							   info.ContextName, info.RepertoireName));
+		
 		// fetch
 
 		InputStream stm = null;
@@ -267,6 +286,89 @@ public class Server implements Closeable
 	
 	private void deleteRepertoire(ApiInfo info) throws Exception {
 		// nyi
+		info.Response.setText("NYI");
+	}
+
+	// +-------------------+
+	// | searchRepertoires |
+	// +-------------------+
+	
+	private void searchRepertoires(ApiInfo info) throws Exception {
+		
+		String strIsAA = info.Request.QueryParams.get("isaa");
+		boolean isAA = (Easy.nullOrEmpty(strIsAA) ? cfg.DefaultAAForSearch : Boolean.parseBoolean(strIsAA));
+		
+		String strMuts = info.Request.QueryParams.get("muts");
+		int muts = (Easy.nullOrEmpty(strMuts) ? cfg.DefaultMutsForSearch : Integer.parseInt(strMuts));
+		
+		String motif = info.Request.QueryParams.get("motif");
+		if (Easy.nullOrEmpty(motif)) throw new IllegalArgumentException("motif required");
+		motif = motif.toUpperCase();
+		
+		if ((!isAA && (motif.length() < cfg.MinimumNucleotideLengthForSearch)) ||
+			(!isAA && (muts < 0 || muts > cfg.MaximumNucleotideMutationsForSearch)) ||
+			(isAA && (motif.length() < cfg.MinimumAALengthForSearch)) ||
+			(isAA && (muts < 0 || muts > cfg.MaximumAAMutationsForSearch))) {
+			
+			throw new IllegalArgumentException("Motif or Mutations out of configured limits");
+		}
+
+		Searcher.SearchParams params = new Searcher.SearchParams();
+		params.Store = store;
+		params.UserId = info.UserId;
+		params.Context = info.ContextName;
+		params.Repertoires = info.RepertoireNames;
+		params.Motif = motif;
+		params.MotifIsAA = isAA;
+		params.AllowedMutations = muts;
+
+		Searcher.RepertoireResult[] results = Searcher.searchAsync(params).get();
+		info.Response.setJson(Searcher.resultsToJson(results));
+	}
+
+	// +---------+
+	// | ApiInfo |
+	// +---------+
+
+	static class ApiInfo
+	{
+		public Request Request;
+		public Response Response;
+		public String UserId;
+		public String Scope;
+		public String ContextName;
+		public String RepertoireName;
+		public String[] RepertoireNames;
+	}
+	
+	private ApiInfo getApiInfo(Request request, Response response) throws Exception {
+		
+		ApiInfo info = new ApiInfo();
+		info.Request = request;
+		info.Response = response;
+		info.UserId = getAuthUser(request);
+
+		// trim off the common start of the path and any query string
+		int ichMac = request.Path.indexOf("?");
+		if (ichMac == -1) ichMac = request.Path.length();
+		String[] components = request.Path.substring(cfg.ApiBase.length() + 1, ichMac).split("/");
+
+		info.Scope = Easy.urlDecode(components[0]);
+		
+		if (components.length > 1) {
+			String contextName = Easy.urlDecode(components[1]);
+			if (!contextName.isEmpty()) info.ContextName = contextName;
+		}
+		
+		if (components.length > 2) {
+			String repertoireNamesCsv = Easy.urlDecode(components[2]);
+			if (!repertoireNamesCsv.isEmpty()) {
+				info.RepertoireNames = repertoireNamesCsv.split(",");
+				if (info.RepertoireNames.length == 1) info.RepertoireName = info.RepertoireNames[0];
+			}
+		}
+
+		return(info);
 	}
 
 	// +---------+

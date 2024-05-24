@@ -57,6 +57,7 @@ public class SideLoadedTsv
 
 	public static int TEST_V2_TCRB = 0;
 	public static int TEST_V3_TCRB = 1;
+	public static int TEST_V2_IGH = 2;
 
 	public static SideLoadedTsv getTsv(int which) throws Exception {
 		ensureTestTsvs();
@@ -67,9 +68,10 @@ public class SideLoadedTsv
 		
 		if (tsvs != null) return;
 
-		tsvs = new SideLoadedTsv[2];
+		tsvs = new SideLoadedTsv[3];
 		tsvs[TEST_V2_TCRB] = new SideLoadedTsv("subject9-v2.tsv", V2);
 		tsvs[TEST_V3_TCRB] = new SideLoadedTsv("subject9-v3.tsv", V3);
+		tsvs[TEST_V2_IGH] = new SideLoadedTsv("02583-02BH.tsv", V2);
 	}
 
 	private static SideLoadedTsv[] tsvs = null;
@@ -98,7 +100,7 @@ public class SideLoadedTsv
 		Assert.assertEquals(truth[cols[12]], Integer.toString(r.N1Index));
 		Assert.assertEquals(truth[cols[13]], Integer.toString(r.N2Index));
 
-		Assert.assertEquals(locusFromJ(r.JResolved), r.Locus);
+		Assert.assertEquals(locusFromGene(r.VResolved, r.DResolved, r.JResolved), r.Locus);
 		
 		int[] vSHMIndices = r.VSHMIndices;
 		if (vSHMIndices != null) {
@@ -161,9 +163,11 @@ public class SideLoadedTsv
 					}
 				}
 				
+				String v = fields[COLS[ver][5]];
+				String d = fields[COLS[ver][6]];
 				String j = fields[COLS[ver][7]];
 				long c = Long.parseLong(fields[COLS[ver][3]]);
-				repertoire.accumulateCount(locusFromJ(j), c);
+				repertoire.accumulateCount(locusFromGene(v,d,j), c);
 			}
 		}
 		
@@ -176,7 +180,12 @@ public class SideLoadedTsv
 	// | Helpers |
 	// +---------+
 	
-	private static Locus locusFromJ(String gene) {
+	private static Locus locusFromGene(String v, String d, String j) {
+
+		String gene = j;
+		if (gene.isEmpty()) gene = d;
+		if (gene.isEmpty()) gene = v;
+		
 		if (gene.startsWith("TCRB")) return(Locus.TCRB);
 		if (gene.startsWith("TCRG")) return(Locus.TCRG);
 		if (gene.startsWith("TCRAD")) return(Locus.TCRAD);

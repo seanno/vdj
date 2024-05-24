@@ -60,6 +60,12 @@ public class Helpers
 		public RepertoireStore get() { return(store); }
 		public Path getPath() { return(path); }
 
+		public void addFromResource(String userId, String context, String name) throws Exception {
+			Helpers.ResourceStreamReader rdr = new Helpers.ResourceStreamReader(name);
+			if (!TsvReceiver.receive(rdr.get(), store, userId, context, name).get()) throw new Exception("crap");
+			rdr.close();
+		}
+
 		private Path path;
 		private RepertoireStore_Files store;
 	}

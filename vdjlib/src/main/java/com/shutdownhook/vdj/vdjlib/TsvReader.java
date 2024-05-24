@@ -139,7 +139,7 @@ public class TsvReader implements Closeable
 		r.N1Index = Integer.parseInt(strN1Index);
 		r.N2Index = Integer.parseInt(strN2Index);
 
-		r.Locus = Locus.fromJGene(r.JResolved);
+		r.Locus = Locus.fromGene(r.VResolved, r.DResolved, r.JResolved);
 
 		r.VSHMIndices = null;
 		if (!Easy.nullOrEmpty(strVSHMIndices)) {

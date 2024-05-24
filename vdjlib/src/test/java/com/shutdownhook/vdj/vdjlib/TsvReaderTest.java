@@ -25,6 +25,11 @@ public class TsvReaderTest
 	}
 
 	@Test
+    public void basicV2IGH() throws Exception {
+		basic(SideLoadedTsv.TEST_V2_IGH, 1234);
+	}
+
+	@Test
     public void basicV3() throws Exception {
 		basic(SideLoadedTsv.TEST_V3_TCRB, 852);
 	}
