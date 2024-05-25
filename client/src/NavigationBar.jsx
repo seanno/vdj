@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Button, ButtonGroup, Modal, TextField } from '@mui/material';
+import { Button, Modal, TextField } from '@mui/material';
 import ContextPicker from './ContextPicker.jsx';
 import RepertoirePicker from './RepertoirePicker.jsx';
 
@@ -83,7 +83,7 @@ export default function NavigationBar({ addTab, showError }) {
 		<>
 		  <Button
 			variant='contained'
-			sx={{ mr: 1, mb: 1 }}
+			sx={{ mr: 1, mb: 1, display: 'block' }}
 			disabled={selectionCount() !== 1}
 			onClick={openDetails}>
 			Details
@@ -91,7 +91,7 @@ export default function NavigationBar({ addTab, showError }) {
 		  
 		  <Button
 			variant='contained'
-			sx={{ mr: 1, mb: 1 }}
+			sx={{ mr: 1, mb: 1, display: 'block'  }}
 			disabled={selectionCount() < 1}
 			onClick={openSearch}>
 			Search
@@ -99,7 +99,7 @@ export default function NavigationBar({ addTab, showError }) {
 
 		  <Button
 			variant='contained'
-			sx={{ mr: 1, mb: 1 }}
+			sx={{ mr: 1, mb: 1, display: 'block'  }}
 			disabled={selectionCount() !== 2}
 			onClick={openOverlap}>
 			Overlap
