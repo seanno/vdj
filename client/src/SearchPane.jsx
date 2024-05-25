@@ -82,6 +82,7 @@ export default memo(function SearchPane({ context, repertoires, rkey }) {
 
 		<div className={styles.dialogTxt}>
 		  <TextField
+			autoFocus
 			error={!lengthOK}
 			label={seqLabel}
 			variant='outlined'
@@ -128,7 +129,8 @@ export default memo(function SearchPane({ context, repertoires, rkey }) {
   // +---------------+
 
   function renderResults() {
-	return(results.map((result, irow) => {
+
+	const tables = results.map((result, irow) => {
 	  return(
 		<RearrangementsTable
 		  rearrangements={result.Rearrangements}
@@ -136,7 +138,17 @@ export default memo(function SearchPane({ context, repertoires, rkey }) {
 		  key={`${rkey}-${irow}`}
 		/>
 	  );
-	}));
+	});
+
+	return(
+	  <>
+		<div className={styles.hdr}>
+		  { searchIsAA ? 'Amino Acid' : 'Nucleotide' } { searchText }<br/>
+		  {searchMuts} mutation{ searchMuts == 1 ? '' : 's'} allowed
+		</div>
+		{ tables }
+	  </>
+	);
   }
   
   // +--------+

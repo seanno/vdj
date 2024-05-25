@@ -17,7 +17,7 @@ export function colorizeRearrangement(r) {
 	}
   }
 
-  console.log("BEFORE: " + JSON.stringify(indices));
+  // console.log("BEFORE: " + JSON.stringify(indices));
   
   // fix up broken calls
   var runningMax = 0;
@@ -32,7 +32,7 @@ export function colorizeRearrangement(r) {
 	}
   }
   
-  console.log(" AFTER: " + JSON.stringify(indices));
+  // console.log(" AFTER: " + JSON.stringify(indices));
 
   for (var i = 1; i < indices.length; ++i) {
 	if (indices[i] < indices[i-1]) indices[i] = -1;
