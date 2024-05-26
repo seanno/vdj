@@ -7,6 +7,7 @@ import NavigationBar from "./NavigationBar.jsx";
 import DetailsPane from "./DetailsPane.jsx";
 import OverlapPane from "./OverlapPane.jsx";
 import SearchPane from "./SearchPane.jsx";
+import UploadPane from "./UploadPane.jsx";
 
 import styles from './App.module.css'
 
@@ -30,6 +31,11 @@ export default function App() {
 
 	setTabs([t, ...tabs]);
 	setTabValue(t);
+  }
+
+  function clearTabs() {
+	setTabs([]);
+	setTabValue(undefined);
   }
 
   function removeTab(t) {
@@ -111,6 +117,10 @@ export default function App() {
 											context={t.context}
 											repertoires={t.repertoires} 
 											rkey={`p-${t.name}`} /> }
+
+				{ t.view === 'upload' && <UploadPane
+											context={t.context}
+											rkey={`p-${t.name}`} /> }
 			  </div>
 			);
 		  })
@@ -125,7 +135,7 @@ export default function App() {
     <div className={styles.main}>
 
 	  <div className={styles.nav}>
-		<NavigationBar addTab={addTab} showError={showError} />
+		<NavigationBar addTab={addTab} clearTabs={clearTabs} showError={showError} />
 	  </div>
 
 	  <div className={styles.tabs}>

@@ -4,7 +4,7 @@ import { Button, Modal, TextField } from '@mui/material';
 import ContextPicker from './ContextPicker.jsx';
 import RepertoirePicker from './RepertoirePicker.jsx';
 
-export default function NavigationBar({ addTab, showError }) {
+export default function NavigationBar({ addTab, clearTabs, showError }) {
 
   const [selectedContext, setSelectedContext] = useState(undefined);
   const [selectedRepertoires,setSelectedRepertoires] = useState([]);
@@ -12,6 +12,7 @@ export default function NavigationBar({ addTab, showError }) {
   function onContextChange(newContext) {
 	setSelectedContext(newContext);
 	setSelectedRepertoires([]);
+	clearTabs();
   }
 
   function onRepertoiresChange(newRepertoires) {
@@ -34,18 +35,6 @@ export default function NavigationBar({ addTab, showError }) {
 	addTab(newTab);
   }
 
-  function openOverlap() {
-
-	const newTab = {
-	  view: 'overlap',
-	  name: 'Overlap',
-	  context: selectedContext,
-	  repertoires: selectedRepertoires
-	};
-
-	addTab(newTab);
-  }
-
   function openSearch() {
 
 	const newTab = {
@@ -58,6 +47,29 @@ export default function NavigationBar({ addTab, showError }) {
 	addTab(newTab);
   }
   
+  function openOverlap() {
+
+	const newTab = {
+	  view: 'overlap',
+	  name: 'Overlap',
+	  context: selectedContext,
+	  repertoires: selectedRepertoires
+	};
+
+	addTab(newTab);
+  }
+
+  function openUpload() {
+
+	const newTab = {
+	  view: 'upload',
+	  name: 'Upload',
+	  context: selectedContext
+	};
+
+	addTab(newTab);
+  }
+
   // +--------+
   // | Render |
   // +--------+
@@ -107,6 +119,13 @@ export default function NavigationBar({ addTab, showError }) {
 
 		</>
 	  }
+
+	  <Button
+		variant='contained'
+		sx={{ mt: 4, mr: 1, mb: 1, display: 'block'  }}
+		onClick={openUpload}>
+		Upload
+	  </Button>
 		
 	</div>
 	

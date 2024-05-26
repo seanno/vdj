@@ -3,6 +3,10 @@
 // | Wrappers |
 // +----------+
 
+export async function serverFetchUser() {
+  return(await serverFetch('/user'));
+}
+
 export async function serverFetchContexts() {
   return(await serverFetch('/contexts/'));
 }
@@ -33,11 +37,26 @@ export async function serverFetchSearch(ctx, reps, isAA, seq, muts) {
   return(await serverFetch(url));
 }
 
+export async function serverFetchUpload(userId, context, repertoire, file) {
+
+  const url =
+		'/contexts/' + encodeURIComponent(context) +
+		'/' + encodeURIComponent(repertoire) +
+		(userId ? '&user=' + encodeURIComponent(userId) : '');
+
+  const nameLower = file.name.toLowerCase();
+  const contentType = (nameLower.endsWith(".gz") ? "application/gzip" :
+					   (nameLower.endsWith(".zip") ? "application/zip" :
+						"application/octet-stream"))
+
+  
+  return(await serverFetch(url, file, contentType));
+}
 // +-------------+
 // | serverFetch |
 // +-------------+
 
-export async function serverFetch(relativeUrl, body) {
+export async function serverFetch(relativeUrl, body, contentType = 'application/json') {
 
   const url = window.serverBase + 'api' + relativeUrl;
     // don't think we need this but will save just in case
@@ -50,7 +69,7 @@ export async function serverFetch(relativeUrl, body) {
   }
 
   if (body) {
-	options.headers['Content-Type'] = 'application/json';
+	options.headers['Content-Type'] = contentType;
 	options.body = body;
   }
 

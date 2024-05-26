@@ -9,6 +9,7 @@ import java.io.Closeable;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -33,10 +34,21 @@ public class Server implements Closeable
 	// | Config & Setup |
 	// +----------------+
 
+	public static class UserInfo
+	{
+		public String AssumeUserId = null;
+		public Boolean CanUploadToAnyUserId = false;
+	}
+	
 	public static class Config
 	{
 		public WebServer.Config WebServer = new WebServer.Config();
 
+		// if we decide to keep a standalone version of this running; this
+		// will be replaced with a more dynamic setup that doesn't pollute
+		// config and require a restart! Key is UserId.
+		public Map<String,UserInfo> UserInfos;
+		
 		// for now just hardcode in a RepertoireStore_Files
 		public RepertoireStore_Files.Config RepertoireStore;
 
@@ -55,6 +67,7 @@ public class Server implements Closeable
 		public String ApiBase = "/api";
 		public String ContextScope = "contexts";
 		public String SearchScope = "search";
+		public String UserScope = "user";
 
 		public String ClientSiteZip = "@clientSite.zip";
 		public Boolean StaticPagesRouteHtmlWithoutExtension = false;
@@ -102,10 +115,12 @@ public class Server implements Closeable
 	// GET    /api/contexts         => list contexts
 	// GET    /api/contexts/CTX     => return repertoires in context CTX
 	// GET    /api/contexts/CTX/REP => return repertoire REP in context CTX (QS start/count)
-	// POST   /api/contexts/CTX/REP => save repertoire from body into REP context CTX
+	// POST   /api/contexts/CTX/REP => save repertoire from body into REP context CTX (QS user)
 	// DELETE /api/contexts/CTX/REP => delete repertoire REP in context CTX
 
 	// GET    /api/search/CTX/REPS  => search REPS in CTX for (QS motif/isaa/muts)
+
+	// GET    /api/user             => return user info (for AUTH user)
 
 	private void registerApi() throws Exception {
 
@@ -161,6 +176,16 @@ public class Server implements Closeable
 
 						// search within repertoire
 						searchRepertoires(info);
+						handled = true;
+					}
+					
+				}
+				else if (info.Scope.equals(cfg.UserScope)) {
+
+					if (request.Method.equals("GET")) {
+						
+						// user info
+						getUser(info);
 						handled = true;
 					}
 					
@@ -255,23 +280,45 @@ public class Server implements Closeable
 
 	private void saveRepertoire(ApiInfo info) throws Exception {
 
+		// param for uploading to alternative user store
+		
+		String saveUserId = info.Request.QueryParams.get("user");
+		
+		if (Easy.nullOrEmpty(saveUserId)) {
+			// no override provided, use effective user id
+			saveUserId = info.UserId;
+		}
+		else {
+			// authorized? Note we look this up by AUTH user id
+			UserInfo ui = findUserInfo(info.AuthUserId);
+			
+			if (ui == null || !ui.CanUploadToAnyUserId) {
+				log.warning(String.format("User %s tried to upload to %s without auth!",
+										  info.AuthUserId, saveUserId));
+				info.Response.Status = 401;
+				return;
+			}
+
+			log.info(String.format("User %s uploading to %s", info.AuthUserId, saveUserId));
+		}
+
 		InputStreamReader rdr = null;
 
 		try {
 			rdr = new InputStreamReader(info.Request.BodyStream);
 
 			Boolean success = TsvReceiver.receive(rdr, store,
-												  info.UserId, info.ContextName,
+												  saveUserId, info.ContextName,
 												  info.RepertoireName).get();
 
 			if (!success) {
 				log.warning(String.format("Failed receiving TSV body %s/%s/%s",
-										  info.UserId, info.ContextName, info.RepertoireName));
+										  saveUserId, info.ContextName, info.RepertoireName));
 				
 				info.Response.Status = 500;
 			}
 			else {
-				Repertoire r = findRepertoire(info.UserId, info.ContextName, info.RepertoireName);
+				Repertoire r = findRepertoire(saveUserId, info.ContextName, info.RepertoireName);
 				info.Response.setJson(r.toJson());
 			}
 		}
@@ -327,6 +374,22 @@ public class Server implements Closeable
 	}
 
 	// +---------+
+	// | getUser |
+	// +---------+
+	
+	private void getUser(ApiInfo info) throws Exception {
+		
+		UserInfo ui = findUserInfo(info.AuthUserId);
+		
+		if (ui == null) {
+			ui = new UserInfo();
+			ui.AssumeUserId = info.UserId;
+		}
+		
+		info.Response.setJson(gson.toJson(ui));
+	}
+
+	// +---------+
 	// | ApiInfo |
 	// +---------+
 
@@ -334,7 +397,10 @@ public class Server implements Closeable
 	{
 		public Request Request;
 		public Response Response;
-		public String UserId;
+		
+		public String AuthUserId; // the actual logged-in user
+		public String UserId; // the "effective" logged-in user
+		
 		public String Scope;
 		public String ContextName;
 		public String RepertoireName;
@@ -346,8 +412,10 @@ public class Server implements Closeable
 		ApiInfo info = new ApiInfo();
 		info.Request = request;
 		info.Response = response;
-		info.UserId = getAuthUser(request);
-
+		
+		info.AuthUserId = getAuthUser(request);
+		info.UserId = getAssumeUserId(info.AuthUserId);
+		
 		// trim off the common start of the path and any query string
 		int ichMac = request.Path.indexOf("?");
 		if (ichMac == -1) ichMac = request.Path.length();
@@ -375,6 +443,17 @@ public class Server implements Closeable
 	// | Helpers |
 	// +---------+
 
+	private String getAssumeUserId(String authUserId) {
+		UserInfo info = findUserInfo(authUserId);
+		if (info == null) return(authUserId);
+		if (Easy.nullOrEmpty(info.AssumeUserId)) return(authUserId);
+		return(info.AssumeUserId);
+	}
+	
+	private UserInfo findUserInfo(String userId) {
+		return(cfg.UserInfos == null ? null : cfg.UserInfos.get(userId));
+	}
+	
 	private Repertoire findRepertoire(String userId, String context, String rep) {
 
 		for (Repertoire repertoire : store.getContextRepertoires(userId, context)) {
