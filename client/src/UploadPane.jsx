@@ -169,7 +169,7 @@ export default memo(function UploadPane({ context, rkey }) {
 	
 	<div className={styles.container}>
 
-	  { userInfo && renderUploadForm() }
+	  { userInfo && !confirmation && renderUploadForm() }
 	  { startUpload && !confirmation && renderUploading() }
 	  { confirmation && renderConfirmation() }
 
