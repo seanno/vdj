@@ -45,9 +45,14 @@ public class TsvReceiver
 					streams.Buf.newLine();
 				}
 			});
+
+			boolean success = false;
+			boolean openedSaveStreamOK = false;
 				
 			try {
 				streams.Stm = store.getRepertoireSaveStream(userId, ctx, rep);
+				openedSaveStreamOK = true;
+				
 				streams.Writer = new OutputStreamWriter(streams.Stm);
 				streams.Buf = new BufferedWriter(streams.Writer);
 
@@ -66,20 +71,20 @@ public class TsvReceiver
 				}
 
 				store.commitRepertoireToContext(userId, ctx, repertoire);
-
-				future.complete(true);
+				success = true;
 			}
 			catch (Exception e) {
 				log.warning(Easy.exMsg(e, "receive", true));
-				future.complete(false);
 			}
 			finally {
 				if (streams.Buf != null) Easy.safeClose(streams.Buf);
 				if (streams.Writer != null) Easy.safeClose(streams.Writer);
 				if (streams.Stm != null) Easy.safeClose(streams.Stm);
 				if (tsvReader != null) Easy.safeClose(tsvReader);
+				if (!success && openedSaveStreamOK) store.deleteRepertoire(userId, ctx, rep);
 			}
 			
+			future.complete(success);
 		});
 
 		return(future);

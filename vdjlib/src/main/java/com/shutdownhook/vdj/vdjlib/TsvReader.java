@@ -196,7 +196,26 @@ public class TsvReader implements Closeable
 			
 			if (line == null) break;
 			String trimmed = line.trim();
-			if (trimmed.isEmpty() || trimmed.startsWith("#")) continue;
+			if (trimmed.isEmpty()) continue;
+
+			if (trimmed.startsWith("#")) {
+				
+				String[] nv = trimmed.substring(1).split("=");
+				
+				if (nv[0].equalsIgnoreCase("estTotalNucleatedCells")) {
+					cellCount = (long) Math.round(Double.parseDouble(nv[1]));
+				}
+				else if (cellCount == null && nv[0].equalsIgnoreCase("productionPCRAmountofTemplate")) {
+					double amt = Double.parseDouble(nv[1]);
+					if (amt >= MIN_VALID_AMT_FOR_ESTIMATE) {
+						// amt is in nanograms. Each cell has approximately
+						// 6.5 picograms of DNA ... so this calculation gets
+						// us to an estimate of cells based on input amount.
+						cellCount = (long) (amt / 6.5 * 1000.0);
+					}
+				}
+				continue;
+			}
 
 			headerIndices = new int[HEADER_COUNT];
 			for (int i = 0; i < headerIndices.length; ++i) {
@@ -219,7 +238,10 @@ public class TsvReader implements Closeable
 		
 		switch (header) {
 
-			// V2
+			// Pipeline (only those differing from Analyzer)
+			case "count": index = IHDR_COUNT; break;
+			
+			// Analyzer V2
 			case "nucleotide":  index = IHDR_REARRANGEMENT; break;
 			case "aminoacid": index = IHDR_AMINOACID; break;
 			case "sequencestatus": index = IHDR_FRAMETYPE; break;
@@ -235,7 +257,7 @@ public class TsvReader implements Closeable
 			case "n2index": index = IHDR_N2INDEX; break;
 			case "valignsubstitutionindexes": index = IHDR_VSHMINDICES; break;
 
-			// V3
+			// Analyzer V3
 			case "rearrangement":  index = IHDR_REARRANGEMENT; break;
 			case "amino_acid": index = IHDR_AMINOACID; break;
 			case "frame_type": index = IHDR_FRAMETYPE; break;
@@ -295,6 +317,8 @@ public class TsvReader implements Closeable
 	// +----------------------+
 	// | TSV Header Constants |
 	// +----------------------+
+
+	private static double MIN_VALID_AMT_FOR_ESTIMATE = 0.0; // fix me!
 
 	private static String TSV_SEP = "\t";
 

@@ -19,24 +19,22 @@ export function colorizeRearrangement(r) {
 
   // console.log("BEFORE: " + JSON.stringify(indices));
   
-  // fix up broken calls
-  var runningMax = 0;
-  for (var i = 0; i < indices.length; ++i) {
-	if (indices[i] !== -1) {
-	  if (indices[i] < runningMax) {
-		indices[i] = -1; // can't be true
-	  }
-	  else {
-		runningMax = indices[i];
-	  }
+  // fix up broken calls. in convo with Lik Wee & Lanny, it seems that our
+  // J calls are "more trustable" that D/N1... so we do this correction right
+  // to left which encapsulates that. May have to keep playing with this!
+
+  var runningMin = indices[indices.length-1];
+  for (var i = indices.length - 2; i >=0; i--) {
+	if (indices[i] == -1) continue;
+	if (indices[i] > runningMin) {
+	  indices[i] = -1; // must be wrong
+	}
+	else {
+	  runningMin = indices[i];
 	}
   }
-  
+	
   // console.log(" AFTER: " + JSON.stringify(indices));
-
-  for (var i = 1; i < indices.length; ++i) {
-	if (indices[i] < indices[i-1]) indices[i] = -1;
-  }
 
   var jsx = [];
 

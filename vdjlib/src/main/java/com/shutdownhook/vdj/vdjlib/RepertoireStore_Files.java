@@ -149,9 +149,51 @@ public class RepertoireStore_Files implements RepertoireStore
 	// | deleteRepertoire |
 	// +------------------+
 
-	public boolean deleteRepertoire(String usreId, String ctx, String rep) {
-		// nyi
-		return(false);
+	public boolean deleteRepertoire(String userId, String ctx, String rep) {
+
+		removeRepertoireFromContext(userId, ctx, rep);
+
+		boolean success = false;
+		
+		try {
+			getRepertoireFile(userId, ctx, rep).delete();
+			success = true;
+		}
+		catch (Exception e) {
+			log.warning(String.format("Exception deleting rep %s/%s/%s", userId, ctx, rep));
+		}
+				
+		return(success);
+	}
+
+	private void removeRepertoireFromContext(String userId, String ctx, String rep) {
+
+		Repertoire[] oldReps = getContextRepertoires(userId, ctx);
+
+		int irepFound;
+		for (irepFound = 0; irepFound < oldReps.length; ++irepFound) {
+			if (oldReps[irepFound].Name.equals(rep)) break;
+		}
+
+		if (irepFound == oldReps.length) return;
+
+		Repertoire[] newReps = new Repertoire[oldReps.length - 1];
+
+		int irepNew = 0;
+		for (int irep = 0; irep < oldReps.length; ++irep) {
+			if (irep != irepFound) newReps[irepNew++] = oldReps[irep];
+		}
+
+		String newJson = Repertoire.toJsonArray(newReps);
+
+		try {
+			File contextFile = getContextFile(userId, ctx);
+			Easy.stringToFile(contextFile.getAbsolutePath(), newJson);
+		}
+		catch (IOException e) {
+			String msg = String.format("removeRepertoireFromContext %s/%s", userId, ctx);
+			log.warning(Easy.exMsg(e, msg, true));
+		}
 	}
 
 	// +---------+
