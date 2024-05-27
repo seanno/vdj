@@ -2,7 +2,7 @@
 import { memo, useState, useEffect } from 'react';
 
 import { Button, FormControl, FormLabel, FormControlLabel,
-		 Radio, RadioGroup, Snackbar, TextField } from '@mui/material';
+		 Radio, RadioGroup, TextField } from '@mui/material';
 
 import { serverFetchUser, serverFetchUpload } from './lib/server.js';
 
@@ -144,21 +144,17 @@ export default memo(function UploadPane({ context, rkey }) {
 	return(<div className={styles.msg}>Uploading...</div>);
   }
 
-  // +--------------------+
-  // | renderConfirmation |
-  // +--------------------+
+  // +-----------+
+  // | renderMsg |
+  // +-----------+
 
-  function renderConfirmation() {
+  function renderMsg(msg, showClose) {
 	return(
 	  <>
-		<div className={styles.msg}>
-		  Successfully uploaded {confirmation.TotalUniques} unique sequences<br/>
-		  to repertoire {confirmation.Name}.
-		</div>
-		<div className={styles.msg}>
-		  Close this tab with the [X] icon.
-		</div>
-	  </>);
+		<div className={styles.msg}>{msg}</div>
+		{ showClose && <div className={styles.msg}>Close this tab with the [X] icon above.</div> }
+	  </>
+	);
   }
 
   // +--------+
@@ -169,17 +165,19 @@ export default memo(function UploadPane({ context, rkey }) {
 	
 	<div className={styles.container}>
 
-	  { userInfo && !confirmation && renderUploadForm() }
-	  { startUpload && !confirmation && renderUploading() }
-	  { confirmation && renderConfirmation() }
+	  { userInfo && !confirmation && !error &&
+		renderUploadForm() }
+	  
+	  { startUpload && !confirmation && !error &&
+		renderMsg('Uploading...', false) }
 
-	  <Snackbar
-		open={error !== undefined}
-		autoHideDuration={ 2500 }
-		message={error}
-		anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-		onClose={ () => setError(undefined) }
-	  />
+	  { error &&
+		renderMsg(`An error occurred: ${error}.`, true) }
+	  
+	  { confirmation &&
+		renderMsg(`Successfully uploaded ${confirmation.TotalUniques} ` +
+				  `unique sequences to repertoire ${confirmation.Name}.`, true) }
+
 	</div>
 	
   );

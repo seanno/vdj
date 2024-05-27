@@ -12,9 +12,15 @@ public enum Locus
 	IGH,
 	IGKL;
 
-	public static Locus fromGene(String v, String d, String j) throws IllegalArgumentException {
+	public static Locus fromGene(String v, String d, String j,
+								 String vTies, String dTies, String jTies) throws IllegalArgumentException {
 
-		String gene = (!j.isEmpty() ? j : (!d.isEmpty() ? d : v));
+		String gene = (!j.isEmpty() ? j
+					   : (!d.isEmpty() ? d
+						  : (!v.isEmpty() ? v
+							 : (!jTies.isEmpty() ? jTies
+								: (!dTies.isEmpty() ? dTies
+								   : vTies)))));
 
 		if (gene.startsWith("TCR")) {
 			switch (gene.substring(3, 4)) {

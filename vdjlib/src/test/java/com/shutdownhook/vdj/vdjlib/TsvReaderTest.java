@@ -30,6 +30,11 @@ public class TsvReaderTest
 	}
 
 	@Test
+    public void basicPipelineTCRG() throws Exception {
+		basic(SideLoadedTsv.TEST_PIPELINE_TCRG, 500);
+	}
+
+	@Test
     public void basicV3() throws Exception {
 		basic(SideLoadedTsv.TEST_V3_TCRB, 852);
 	}

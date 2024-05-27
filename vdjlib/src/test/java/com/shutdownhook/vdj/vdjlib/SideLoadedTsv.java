@@ -21,16 +21,19 @@ public class SideLoadedTsv
 {
 	public final static int V2 = 0;
 	public final static int V3 = 1;
+	public final static int PIPELINE = 2;
 
 	public static int[][] COLS = {
 		// in assertRearrangement order
-		{ 0, 1, 38, 2, 3, 5, 12, 19, 4, 32, 34, 36, 33, 35, 49 },
-		{ 52, 53, 54, 56, 58, 96, 97, 98, 60, 76, 79, 80, 77, 78, 92 }
+		{ 0, 1, 38, 2, 5, 12, 19, 4, 32, 34, 36, 33, 35, 49, 9, 16, 23 },
+		{ 52, 53, 54, 56, 96, 97, 98, 60, 76, 79, 80, 77, 78, 92, 81, 84, 87 },
+		{ 0, 1, 42, 4, 43, 45, 46, 8, 33, 35, 37, 36, 34, 69, 12, 18, 24 }
 	};
 
 	public static int[][] CELL_COLS = {
 		{ -1, -1 },
-		{ 37, 35 }
+		{ 37, 35 },
+		{ -1, -1 }
 	};
 
 	public SideLoadedTsv(String resourceName, int ver) throws IOException {
@@ -58,6 +61,7 @@ public class SideLoadedTsv
 	public static int TEST_V2_TCRB = 0;
 	public static int TEST_V3_TCRB = 1;
 	public static int TEST_V2_IGH = 2;
+	public static int TEST_PIPELINE_TCRG = 3;
 
 	public static SideLoadedTsv getTsv(int which) throws Exception {
 		ensureTestTsvs();
@@ -68,10 +72,11 @@ public class SideLoadedTsv
 		
 		if (tsvs != null) return;
 
-		tsvs = new SideLoadedTsv[3];
+		tsvs = new SideLoadedTsv[4];
 		tsvs[TEST_V2_TCRB] = new SideLoadedTsv("subject9-v2.tsv", V2);
 		tsvs[TEST_V3_TCRB] = new SideLoadedTsv("subject9-v3.tsv", V3);
 		tsvs[TEST_V2_IGH] = new SideLoadedTsv("02583-02BH.tsv", V2);
+		tsvs[TEST_PIPELINE_TCRG] = new SideLoadedTsv("A_TCRG_ID.tsv", PIPELINE);
 	}
 
 	private static SideLoadedTsv[] tsvs = null;
@@ -90,21 +95,22 @@ public class SideLoadedTsv
 		Assert.assertEquals(truth[cols[2]], r.FrameType.toString());
 		Assert.assertEquals(truth[cols[3]], Long.toString(r.Count));
 
-		Assert.assertEquals(truth[cols[5]], r.VResolved);
-		Assert.assertEquals(truth[cols[6]], r.DResolved);
-		Assert.assertEquals(truth[cols[7]], r.JResolved);
-		Assert.assertEquals(truth[cols[8]], Integer.toString(r.Cdr3Length));
-		Assert.assertEquals(truth[cols[9]], Integer.toString(r.VIndex));
-		Assert.assertEquals(truth[cols[10]], Integer.toString(r.DIndex));
-		Assert.assertEquals(truth[cols[11]], Integer.toString(r.JIndex));
-		Assert.assertEquals(truth[cols[12]], Integer.toString(r.N1Index));
-		Assert.assertEquals(truth[cols[13]], Integer.toString(r.N2Index));
+		Assert.assertEquals(truth[cols[4]], r.VResolved);
+		Assert.assertEquals(truth[cols[5]], r.DResolved);
+		Assert.assertEquals(truth[cols[6]], r.JResolved);
+		Assert.assertEquals(truth[cols[7]], Integer.toString(r.Cdr3Length));
+		Assert.assertEquals(truth[cols[8]], Integer.toString(r.VIndex));
+		Assert.assertEquals(truth[cols[9]], Integer.toString(r.DIndex));
+		Assert.assertEquals(truth[cols[10]], Integer.toString(r.JIndex));
+		Assert.assertEquals(truth[cols[11]], Integer.toString(r.N1Index));
+		Assert.assertEquals(truth[cols[12]], Integer.toString(r.N2Index));
 
-		Assert.assertEquals(locusFromGene(r.VResolved, r.DResolved, r.JResolved), r.Locus);
+		Assert.assertEquals(locusFromGene(r.VResolved, r.DResolved, r.JResolved,
+										  truth[cols[14]], truth[cols[15]], truth[cols[16]]), r.Locus);
 		
 		int[] vSHMIndices = r.VSHMIndices;
 		if (vSHMIndices != null) {
-			String[] csv = truth[cols[14]].trim().split(",");
+			String[] csv = truth[cols[13]].trim().split(",");
 			Assert.assertEquals(csv.length, vSHMIndices.length);
 			for (int i = 0; i < csv.length; ++i) {
 				Assert.assertEquals(csv[i].trim(), Integer.toString(vSHMIndices[i]));
@@ -145,7 +151,28 @@ public class SideLoadedTsv
 		String line;
 
 		while ((line = resBufferedReader.readLine()) != null) {
+
+			if (line.isEmpty()) continue;
+
+			if (line.startsWith("#")) {
+
+				if (line.startsWith("#estTotalNucleatedCells")) {
+					int ich = line.indexOf("=");
+					repertoire.TotalCells = (long) Double.parseDouble(line.substring(ich+1));
+				}
+				else if (line.startsWith("#productionPCRAmountofTemplate") &&
+						 repertoire.TotalCells == 0L) {
+
+					int ich = line.indexOf("=");
+					double amt = Double.parseDouble(line.substring(ich+1));
+					if (amt >= 12.5) repertoire.TotalCells = (long) (amt * 6.5 / 1000.0);
+				}
+				
+				continue;
+			}
+			
 			String[] fields = line.split("\t");
+
 			matrix.add(fields);
 
 			// skip the header row
@@ -163,11 +190,16 @@ public class SideLoadedTsv
 					}
 				}
 				
-				String v = fields[COLS[ver][5]];
-				String d = fields[COLS[ver][6]];
-				String j = fields[COLS[ver][7]];
+				String v = fields[COLS[ver][4]];
+				String d = fields[COLS[ver][5]];
+				String j = fields[COLS[ver][6]];
+
+				String vTies = fields[COLS[ver][14]];
+				String dTies = fields[COLS[ver][15]];
+				String jTies = fields[COLS[ver][16]];
+				
 				long c = Long.parseLong(fields[COLS[ver][3]]);
-				repertoire.accumulateCount(locusFromGene(v,d,j), c);
+				repertoire.accumulateCount(locusFromGene(v,d,j,vTies,dTies,jTies), c);
 			}
 		}
 		
@@ -180,11 +212,15 @@ public class SideLoadedTsv
 	// | Helpers |
 	// +---------+
 	
-	private static Locus locusFromGene(String v, String d, String j) {
+	private static Locus locusFromGene(String v, String d, String j,
+									   String vTies, String dTies, String jTies) {
 
 		String gene = j;
 		if (gene.isEmpty()) gene = d;
 		if (gene.isEmpty()) gene = v;
+		if (gene.isEmpty()) gene = jTies;
+		if (gene.isEmpty()) gene = dTies;
+		if (gene.isEmpty()) gene = vTies;
 		
 		if (gene.startsWith("TCRB")) return(Locus.TCRB);
 		if (gene.startsWith("TCRG")) return(Locus.TCRG);

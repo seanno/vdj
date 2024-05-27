@@ -139,8 +139,11 @@ public class TsvReader implements Closeable
 		r.N1Index = Integer.parseInt(strN1Index);
 		r.N2Index = Integer.parseInt(strN2Index);
 
-		r.Locus = Locus.fromGene(r.VResolved, r.DResolved, r.JResolved);
-
+		r.Locus = Locus.fromGene(r.VResolved, r.DResolved, r.JResolved,
+								 fields[headerIndices[IHDR_VFAMILY_TIES]].trim(),
+								 fields[headerIndices[IHDR_DFAMILY_TIES]].trim(),
+								 fields[headerIndices[IHDR_JFAMILY_TIES]].trim());
+								 
 		r.VSHMIndices = null;
 		if (!Easy.nullOrEmpty(strVSHMIndices)) {
 			String[] csvVSHMIndices = strVSHMIndices.split(",");
@@ -256,6 +259,9 @@ public class TsvReader implements Closeable
 			case "n1index": index = IHDR_N1INDEX; break;
 			case "n2index": index = IHDR_N2INDEX; break;
 			case "valignsubstitutionindexes": index = IHDR_VSHMINDICES; break;
+			case "vfamilyties": index = IHDR_VFAMILY_TIES; break;
+			case "dfamilyties": index = IHDR_DFAMILY_TIES; break;
+			case "jfamilyties": index = IHDR_JFAMILY_TIES; break;
 
 			// Analyzer V3
 			case "rearrangement":  index = IHDR_REARRANGEMENT; break;
@@ -274,6 +280,9 @@ public class TsvReader implements Closeable
 			case "v_shm_indexes": index = IHDR_VSHMINDICES; break;
 			case "sample_cells": index = IHDR_CELLS; break;
 			case "sample_cells_mass_estimate": index = IHDR_CELLS_EST; break;
+			case "v_family_ties": index = IHDR_VFAMILY_TIES; break;
+			case "d_family_ties": index = IHDR_DFAMILY_TIES; break;
+			case "j_family_ties": index = IHDR_JFAMILY_TIES; break;
 		}
 
 		if (index != -1) headerIndices[index] = i;
@@ -318,7 +327,8 @@ public class TsvReader implements Closeable
 	// | TSV Header Constants |
 	// +----------------------+
 
-	private static double MIN_VALID_AMT_FOR_ESTIMATE = 0.0; // fix me!
+	// matches AGate per JJONES
+	private static double MIN_VALID_AMT_FOR_ESTIMATE = 12.5;
 
 	private static String TSV_SEP = "\t";
 
@@ -341,6 +351,10 @@ public class TsvReader implements Closeable
 
 	private static int IHDR_CELLS = 14;
 	private static int IHDR_CELLS_EST = 15;
+
+	private static int IHDR_VFAMILY_TIES = 16;
+	private static int IHDR_DFAMILY_TIES = 17;
+	private static int IHDR_JFAMILY_TIES = 18;
 	
-	private static int HEADER_COUNT = 16; // KEEP ME UPDATED!
+	private static int HEADER_COUNT = 19; // KEEP ME UPDATED!
 }
