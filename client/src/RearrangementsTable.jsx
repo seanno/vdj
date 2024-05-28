@@ -34,10 +34,10 @@ export default function RearrangementsTable({ rearrangements, rkey, caption }) {
 	  <thead>
 		<tr>
 		  <th>Locus</th>
-		  <th>Rearrangement</th>
 		  <th>Count</th>
 		  <th>% Locus</th>
 		  <th>% Cells</th>
+		  <th>Rearrangement</th>
 		  <th>Amino Acid</th>
 		  <th>V Resolved</th>
 		  <th>D Resolved</th>
@@ -50,10 +50,10 @@ export default function RearrangementsTable({ rearrangements, rkey, caption }) {
 			return(
 			  <tr key={`${rkey}-rt-${irow}`}>
 				<td>{r.Locus}</td>
+				<td style={{textAlign: 'right'}}>{r.Count}</td>
+				<td style={{textAlign: 'right'}}>{(r.FractionOfLocus * 100).toFixed(3)}</td>
+				<td style={{textAlign: 'right'}}>{(r.FractionOfCells * 100).toFixed(3)}</td>
 				<td style={{textAlign: 'right'}}>{colorizeRearrangement(r)}</td>
-				<td>{r.Count}</td>
-				<td>{(r.FractionOfLocus * 100).toFixed(3)}</td>
-				<td>{(r.FractionOfCells * 100).toFixed(3)}</td>
 				<td>{r.AminoAcid}</td>
 				<td>{r.VResolved}</td>
 				<td>{r.DResolved}</td>

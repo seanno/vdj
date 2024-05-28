@@ -19,16 +19,6 @@ import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 
 public class Searcher
 {
-	// +------------------+
-	// | RepertoireResult |
-	// +------------------+
-
-	public static class RepertoireResult
-	{
-		public Repertoire Repertoire;
-		public List<Rearrangement> Rearrangements;
-	}
-
 	// +--------------+
 	// | SearchParams |
 	// +--------------+
@@ -205,29 +195,5 @@ public class Searcher
 		return(false);
 	}
 	
-	// +---------------+
-	// | resultsToJson |
-	// +---------------+
-
-	public static String resultsToJson(RepertoireResult[] results) {
-		
-		StringBuilder sb = new StringBuilder();
-		sb.append("[");
-
-		for (int i = 0; i < results.length; ++i) {
-			if (i > 0) sb.append(",");
-			sb.append("{");
-			sb.append("\"Repertoire\": ");
-			sb.append(results[i].Repertoire.toJson());
-			sb.append(",");
-			sb.append("\"Rearrangements\": ");
-			sb.append(Rearrangement.toJsonArray(results[i].Repertoire, results[i].Rearrangements));
-			sb.append("}");
-		}
-		
-		sb.append("]");
-		return(sb.toString());
-	}
-
 	private final static Logger log = Logger.getLogger(Searcher.class.getName());
 }

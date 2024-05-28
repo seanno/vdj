@@ -27,7 +27,7 @@ export default function NavigationBar({ addTab, clearTabs, showError }) {
 
 	const newTab = {
 	  view: 'details',
-	  name: selectedRepertoires[0].Name,
+	  name: `Details - ${selectedRepertoires[0].Name}`,
 	  context: selectedContext,
 	  repertoire: selectedRepertoires[0]
 	};
@@ -47,6 +47,18 @@ export default function NavigationBar({ addTab, clearTabs, showError }) {
 	addTab(newTab);
   }
   
+  function openTopX() {
+
+	const newTab = {
+	  view: 'topx',
+	  name: `Top 100 - ${selectedRepertoires[0].Name}`,
+	  context: selectedContext,
+	  repertoire: selectedRepertoires[0]
+	};
+
+	addTab(newTab);
+  }
+
   function openOverlap() {
 
 	const newTab = {
@@ -93,29 +105,41 @@ export default function NavigationBar({ addTab, clearTabs, showError }) {
 	  { selectedContext &&
 
 		<>
-		  <Button
-			variant='contained'
-			sx={{ mr: 1, mb: 1, display: 'block' }}
-			disabled={selectionCount() !== 1}
-			onClick={openDetails}>
-			Details
-		  </Button>
-		  
-		  <Button
-			variant='contained'
-			sx={{ mr: 1, mb: 1, display: 'block'  }}
-			disabled={selectionCount() < 1}
-			onClick={openSearch}>
-			Search
-		  </Button>
+		  <div>
+			<Button
+			  variant='contained'
+			  sx={{ mr: 1, mb: 1 }}
+			  disabled={selectionCount() !== 1}
+			  onClick={openTopX}>
+			  Top 100
+			</Button>
 
-		  <Button
-			variant='contained'
-			sx={{ mr: 1, mb: 1, display: 'block'  }}
-			disabled={selectionCount() !== 2}
-			onClick={openOverlap}>
-			Overlap
-		  </Button>
+			<Button
+			  variant='contained'
+			  sx={{ mr: 1, mb: 1 }}
+			  disabled={selectionCount() !== 1}
+			  onClick={openDetails}>
+			  Details
+			</Button>
+		  </div>
+
+		  <div>
+			<Button
+			  variant='contained'
+			  sx={{ mr: 1, mb: 1 }}
+			  disabled={selectionCount() < 1}
+			  onClick={openSearch}>
+			  Search
+			</Button>
+
+			<Button
+			  variant='contained'
+			  sx={{ mr: 1, mb: 1 }}
+			  disabled={selectionCount() !== 2}
+			  onClick={openOverlap}>
+			  Overlap
+			</Button>
+		  </div>
 
 		</>
 	  }

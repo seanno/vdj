@@ -37,6 +37,17 @@ export async function serverFetchSearch(ctx, reps, isAA, seq, muts) {
   return(await serverFetch(url));
 }
 
+export async function serverFetchTopX(ctx, rep, sort) {
+
+  const url =
+		'/topx/' + encodeURIComponent(ctx) +
+		'/' + encodeURIComponent(rep) +
+		'?sort=' + encodeURIComponent(sort) +
+		'&count=' + window.topXCount.toString();
+
+  return(await serverFetch(url));
+}
+
 export async function serverFetchUpload(userId, context, repertoire, file) {
 
   const url =
@@ -52,6 +63,7 @@ export async function serverFetchUpload(userId, context, repertoire, file) {
   
   return(await serverFetch(url, file, contentType));
 }
+
 // +-------------+
 // | serverFetch |
 // +-------------+

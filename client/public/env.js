@@ -9,4 +9,6 @@ window.searchNucMutsMax = 5;
 window.searchAASeqMin = 5;
 window.searchAAMutsMax = 2;
 
+window.topXDefaultSort = 'FractionOfLocus';
+window.topXCount = 100;
 

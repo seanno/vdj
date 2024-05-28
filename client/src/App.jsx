@@ -8,6 +8,7 @@ import DetailsPane from "./DetailsPane.jsx";
 import OverlapPane from "./OverlapPane.jsx";
 import SearchPane from "./SearchPane.jsx";
 import UploadPane from "./UploadPane.jsx";
+import TopXPane from "./TopXPane.jsx";
 
 import styles from './App.module.css'
 
@@ -114,13 +115,18 @@ export default function App() {
 											rkey={`p-${t.name}`} /> }
 
 				{ t.view === 'search' && <SearchPane
-											context={t.context}
-											repertoires={t.repertoires} 
-											rkey={`p-${t.name}`} /> }
+										   context={t.context}
+										   repertoires={t.repertoires} 
+										   rkey={`p-${t.name}`} /> }
+
+				{ t.view === 'topx' && <TopXPane
+										 context={t.context}
+										 repertoire={t.repertoire} 
+										 rkey={`p-${t.name}`} /> }
 
 				{ t.view === 'upload' && <UploadPane
-											context={t.context}
-											rkey={`p-${t.name}`} /> }
+										   context={t.context}
+										   rkey={`p-${t.name}`} /> }
 			  </div>
 			);
 		  })

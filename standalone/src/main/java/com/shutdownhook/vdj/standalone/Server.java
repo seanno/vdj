@@ -22,9 +22,11 @@ import com.shutdownhook.toolbox.WebServer.Response;
 
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
+import com.shutdownhook.vdj.vdjlib.RepertoireResult;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore_Files;
 import com.shutdownhook.vdj.vdjlib.Searcher;
+import com.shutdownhook.vdj.vdjlib.TopXRearrangements;
 import com.shutdownhook.vdj.vdjlib.TsvReader;
 import com.shutdownhook.vdj.vdjlib.TsvReceiver;
 
@@ -63,11 +65,16 @@ public class Server implements Closeable
 		public Integer MaximumNucleotideMutationsForSearch = 5;
 		public Integer MinimumAALengthForSearch = 5;
 		public Integer MaximumAAMutationsForSearch = 2;
+
+		public Integer DefaultCountForTopX = 100;
+		public Integer MaxCountForTopX = 100;
+		public String DefaultSortForTopX = TopXRearrangements.TopXSort.FractionOfCells.toString();
 		
 		public String ApiBase = "/api";
 		public String ContextScope = "contexts";
 		public String SearchScope = "search";
 		public String UserScope = "user";
+		public String TopXScope = "topx";
 
 		public String ClientSiteZip = "@clientSite.zip";
 		public Boolean StaticPagesRouteHtmlWithoutExtension = false;
@@ -119,6 +126,9 @@ public class Server implements Closeable
 	// DELETE /api/contexts/CTX/REP => delete repertoire REP in context CTX
 
 	// GET    /api/search/CTX/REPS  => search REPS in CTX for (QS motif/isaa/muts)
+
+	// GET    /api/topx/CTX/REP     => return top COUNT rearrangements from REP in CTX sorted 
+	//                                 descending by SORT (QS sort/count)
 
 	// GET    /api/user             => return user info (for AUTH user)
 
@@ -189,6 +199,15 @@ public class Server implements Closeable
 						handled = true;
 					}
 					
+				}
+				else if (info.Scope.equals(cfg.TopXScope)) {
+
+					if (request.Method.equals("GET")) {
+
+						// get topx rearrangements
+						getTopX(info);
+						handled = true;
+					}
 				}
 
 				if (!handled) {
@@ -369,8 +388,8 @@ public class Server implements Closeable
 		params.MotifIsAA = isAA;
 		params.AllowedMutations = muts;
 
-		Searcher.RepertoireResult[] results = Searcher.searchAsync(params).get();
-		info.Response.setJson(Searcher.resultsToJson(results));
+		RepertoireResult[] results = Searcher.searchAsync(params).get();
+		info.Response.setJson(RepertoireResult.resultsToJson(results));
 	}
 
 	// +---------+
@@ -387,6 +406,32 @@ public class Server implements Closeable
 		}
 		
 		info.Response.setJson(gson.toJson(ui));
+	}
+
+	// +---------+
+	// | getTopX |
+	// +---------+
+	
+	private void getTopX(ApiInfo info) throws Exception {
+		
+		String strCount = info.Request.QueryParams.get("count");
+		int count = (Easy.nullOrEmpty(strCount) ? cfg.DefaultCountForTopX : Integer.parseInt(strCount));
+		if (count > cfg.MaxCountForTopX) count = cfg.MaxCountForTopX;
+
+		String strSort = info.Request.QueryParams.get("sort");
+		TopXRearrangements.TopXSort sort =
+			TopXRearrangements.TopXSort.valueOf(Easy.nullOrEmpty(strSort) ? cfg.DefaultSortForTopX : strSort);
+
+		TopXRearrangements.TopXParams params = new TopXRearrangements.TopXParams();
+		params.Store = store;
+		params.UserId = info.UserId;
+		params.Context = info.ContextName;
+		params.Repertoire = info.RepertoireName;
+		params.Sort = sort;
+		params.Count = count;
+
+		RepertoireResult result = TopXRearrangements.getAsync(params).get();
+		info.Response.setJson(result.toJson());
 	}
 
 	// +---------+

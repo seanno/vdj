@@ -17,8 +17,8 @@ import com.shutdownhook.vdj.vdjlib.model.Locus;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 
+import com.shutdownhook.vdj.vdjlib.RepertoireResult;
 import com.shutdownhook.vdj.vdjlib.Searcher.SearchParams;
-import com.shutdownhook.vdj.vdjlib.Searcher.RepertoireResult;
 
 public class SearcherTest 
 {
