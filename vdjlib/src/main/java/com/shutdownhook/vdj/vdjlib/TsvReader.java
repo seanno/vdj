@@ -13,8 +13,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
-import com.shutdownhook.toolbox.Easy;
-
 import com.shutdownhook.vdj.vdjlib.model.FrameType;
 import com.shutdownhook.vdj.vdjlib.model.Locus;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
@@ -44,7 +42,7 @@ public class TsvReader implements Closeable
 
 		// we don't own stm so leave it alone
 
-		if (rdr != null) Easy.safeClose(rdr);
+		if (rdr != null) Utility.safeClose(rdr);
 	}
 
 	// +-----------------+
@@ -76,7 +74,7 @@ public class TsvReader implements Closeable
 				results = readBatch(maxCount);
 			}
 			catch (Exception e) {
-				log.warning(Easy.exMsg(e, "readNextBatchAsync", true));
+				log.warning(Utility.exMsg(e, "readNextBatchAsync", true));
 			}
 			
 			future.complete(results);
@@ -145,7 +143,7 @@ public class TsvReader implements Closeable
 								 fields[headerIndices[IHDR_JFAMILY_TIES]].trim());
 								 
 		r.VSHMIndices = null;
-		if (!Easy.nullOrEmpty(strVSHMIndices)) {
+		if (!Utility.nullOrEmpty(strVSHMIndices)) {
 			String[] csvVSHMIndices = strVSHMIndices.split(",");
 			r.VSHMIndices = new int[csvVSHMIndices.length];
 			for (int i = 0; i < csvVSHMIndices.length; ++i) {

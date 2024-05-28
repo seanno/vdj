@@ -12,8 +12,6 @@ import java.io.OutputStreamWriter;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
-import com.shutdownhook.toolbox.Easy;
-
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 
@@ -74,13 +72,13 @@ public class TsvReceiver
 				success = true;
 			}
 			catch (Exception e) {
-				log.warning(Easy.exMsg(e, "receive", true));
+				log.warning(Utility.exMsg(e, "receive", true));
 			}
 			finally {
-				if (streams.Buf != null) Easy.safeClose(streams.Buf);
-				if (streams.Writer != null) Easy.safeClose(streams.Writer);
-				if (streams.Stm != null) Easy.safeClose(streams.Stm);
-				if (tsvReader != null) Easy.safeClose(tsvReader);
+				if (streams.Buf != null) Utility.safeClose(streams.Buf);
+				if (streams.Writer != null) Utility.safeClose(streams.Writer);
+				if (streams.Stm != null) Utility.safeClose(streams.Stm);
+				if (tsvReader != null) Utility.safeClose(tsvReader);
 				if (!success && openedSaveStreamOK) store.deleteRepertoire(userId, ctx, rep);
 			}
 			

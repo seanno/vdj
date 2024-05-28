@@ -12,8 +12,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
-import com.shutdownhook.toolbox.Easy;
-
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 
@@ -54,7 +52,7 @@ public class TopXRearrangements
 				result = get(params);
 			}
 			catch (Exception e) {
-				log.warning(Easy.exMsg(e, "getAsync", true));
+				log.warning(Utility.exMsg(e, "getAsync", true));
 			}
 			
 			future.complete(result);
@@ -97,9 +95,9 @@ public class TopXRearrangements
 			return(result);
 		}
 		finally {
-			if (tsv != null) Easy.safeClose(tsv);
-			if (rdr != null) Easy.safeClose(rdr);
-			if (stm != null) Easy.safeClose(stm);
+			if (tsv != null) Utility.safeClose(tsv);
+			if (rdr != null) Utility.safeClose(rdr);
+			if (stm != null) Utility.safeClose(stm);
 		}
 	}
 

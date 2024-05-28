@@ -10,8 +10,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import com.shutdownhook.toolbox.Easy;
-
 public class Helpers
 {
 	// +----------------------+
@@ -53,7 +51,7 @@ public class Helpers
 		}
 
 		public void close() {
-			try { Easy.recursiveDelete(path.toFile()); }
+			try { Utility.recursiveDelete(path.toFile()); }
 			catch (Exception e) { }
 		}
 

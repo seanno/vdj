@@ -7,15 +7,15 @@ package com.shutdownhook.vdj.vdjlib;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.util.logging.Logger;
 
 import com.google.gson.Gson;
-import com.shutdownhook.toolbox.Easy;
 
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 
@@ -63,16 +63,16 @@ public class RepertoireStore_Files implements RepertoireStore
 
 		try {
 			File contextFile = getContextFile(userId, ctx);
-			String contextJson = Easy.stringFromFile(contextFile.getAbsolutePath());
+			String contextJson = Files.readString(contextFile.toPath());
 			return(Repertoire.fromJsonArray(contextJson));
 		}
-		catch (FileNotFoundException eNotFound) {
+		catch (NoSuchFileException eNotFound) {
 			return(new Repertoire[0]);
 		}
 		catch (IOException e) {
 			
 			String msg = String.format("getContextRepertoires %s/%s", userId, ctx);
-			log.severe(Easy.exMsg(e, msg, true));
+			log.severe(Utility.exMsg(e, msg, true));
 			return(null);
 		}
 	}
@@ -89,7 +89,7 @@ public class RepertoireStore_Files implements RepertoireStore
 		catch (IOException e) {
 
 			String msg = String.format("getRepertoireStream %s/%s/%s", userId, ctx, rep);
-			log.severe(Easy.exMsg(e, msg, true));
+			log.severe(Utility.exMsg(e, msg, true));
 			return(null);
 		}
 	}
@@ -114,7 +114,7 @@ public class RepertoireStore_Files implements RepertoireStore
 		catch (IOException e) {
 
 			String msg = String.format("getRepertoireSaveStream %s/%s/%s", userId, ctx, rep);
-			log.severe(Easy.exMsg(e, msg, true));
+			log.severe(Utility.exMsg(e, msg, true));
 			return(null);
 		}
 	}
@@ -135,12 +135,12 @@ public class RepertoireStore_Files implements RepertoireStore
 
 		try {
 			File contextFile = getContextFile(userId, ctx);
-			Easy.stringToFile(contextFile.getAbsolutePath(), newJson);
+			Utility.stringToFile(contextFile.getAbsolutePath(), newJson);
 			return(true);
 		}
 		catch (IOException e) {
 			String msg = String.format("commitRepertoireToContext %s/%s", userId, ctx);
-			log.severe(Easy.exMsg(e, msg, true));
+			log.severe(Utility.exMsg(e, msg, true));
 			return(false);
 		}
 	}
@@ -188,11 +188,11 @@ public class RepertoireStore_Files implements RepertoireStore
 
 		try {
 			File contextFile = getContextFile(userId, ctx);
-			Easy.stringToFile(contextFile.getAbsolutePath(), newJson);
+			Utility.stringToFile(contextFile.getAbsolutePath(), newJson);
 		}
 		catch (IOException e) {
 			String msg = String.format("removeRepertoireFromContext %s/%s", userId, ctx);
-			log.warning(Easy.exMsg(e, msg, true));
+			log.warning(Utility.exMsg(e, msg, true));
 		}
 	}
 
@@ -204,7 +204,7 @@ public class RepertoireStore_Files implements RepertoireStore
 	// to ensure similar userIds (se:an se_an) don't resolve to the same directory.
 
 	private File getUserDir(String userId) {
-		File userDir = new File(baseDir, clean(userId) + "_" + Easy.sha256(userId));
+		File userDir = new File(baseDir, clean(userId) + "_" + Utility.sha256(userId));
 		userDir.mkdirs();
 		return(userDir);
 	}

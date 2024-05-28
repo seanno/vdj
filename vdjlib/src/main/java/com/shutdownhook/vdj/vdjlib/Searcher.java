@@ -12,8 +12,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
-import com.shutdownhook.toolbox.Easy;
-
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 
@@ -51,7 +49,7 @@ public class Searcher
 				results = search(params);
 			}
 			catch (Exception e) {
-				log.warning(Easy.exMsg(e, "searchAsync", true));
+				log.warning(Utility.exMsg(e, "searchAsync", true));
 			}
 			
 			future.complete(results);
@@ -115,7 +113,7 @@ public class Searcher
 				results = searchOneRepertoire(params, repertoire);
 			}
 			catch (Exception e) {
-				log.warning(Easy.exMsg(e, "searchOneRepertoireAsync", true));
+				log.warning(Utility.exMsg(e, "searchOneRepertoireAsync", true));
 			}
 			
 			future.complete(results);
@@ -152,9 +150,9 @@ public class Searcher
 			return(rearrangements);
 		}
 		finally {
-			if (tsv != null) Easy.safeClose(tsv);
-			if (rdr != null) Easy.safeClose(rdr);
-			if (stm != null) Easy.safeClose(stm);
+			if (tsv != null) Utility.safeClose(tsv);
+			if (rdr != null) Utility.safeClose(rdr);
+			if (stm != null) Utility.safeClose(stm);
 		}
 	}
 
@@ -164,8 +162,8 @@ public class Searcher
 
 	public static boolean matches(String input, String motif, int allowedMutations) {
 
-		if (Easy.nullOrEmpty(input)) return(false);
-		if (Easy.nullOrEmpty(motif)) return(false);
+		if (Utility.nullOrEmpty(input)) return(false);
+		if (Utility.nullOrEmpty(motif)) return(false);
 		
 		int ichStart = 0;
 		int cchMotif = motif.length();
