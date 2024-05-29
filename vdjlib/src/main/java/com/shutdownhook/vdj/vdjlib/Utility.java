@@ -1,6 +1,6 @@
 //
 // UTILITY.JAVA
-// 
+//
 
 package com.shutdownhook.vdj.vdjlib;
 
