@@ -53,7 +53,7 @@ export async function serverFetchUpload(userId, context, repertoire, file) {
   const url =
 		'/contexts/' + encodeURIComponent(context) +
 		'/' + encodeURIComponent(repertoire) +
-		(userId ? '&user=' + encodeURIComponent(userId) : '');
+		(userId ? '?user=' + encodeURIComponent(userId) : '');
 
   const nameLower = file.name.toLowerCase();
   const contentType = (nameLower.endsWith(".gz") ? "application/gzip" :

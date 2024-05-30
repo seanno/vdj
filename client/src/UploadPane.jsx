@@ -41,6 +41,7 @@ export default memo(function UploadPane({ context, rkey }) {
 	  serverFetchUser() 
 		.then(result => {
 		  setUserInfo(result);
+		  if (result.CanUploadToAnyUserId) setUserId(result.AssumeUserId);
 		})
 		.catch(error => {
 		  console.error(error);

@@ -399,11 +399,10 @@ public class Server implements Closeable
 	private void getUser(ApiInfo info) throws Exception {
 		
 		UserInfo ui = findUserInfo(info.AuthUserId);
-		
-		if (ui == null) {
-			ui = new UserInfo();
-			ui.AssumeUserId = info.UserId;
-		}
+		if (ui == null) ui = new UserInfo();
+
+		if (ui.AssumeUserId == null) ui.AssumeUserId = info.UserId;
+		if (ui.CanUploadToAnyUserId == null) ui.CanUploadToAnyUserId = false;
 		
 		info.Response.setJson(gson.toJson(ui));
 	}
