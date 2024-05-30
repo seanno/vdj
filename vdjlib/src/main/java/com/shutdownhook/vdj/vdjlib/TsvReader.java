@@ -202,7 +202,8 @@ public class TsvReader implements Closeable
 			if (trimmed.startsWith("#")) {
 				
 				String[] nv = trimmed.substring(1).split("=");
-				
+				if (nv.length < 2) continue;
+
 				if (nv[0].equalsIgnoreCase("estTotalNucleatedCells")) {
 					cellCount = (long) Math.round(Double.parseDouble(nv[1]));
 				}
