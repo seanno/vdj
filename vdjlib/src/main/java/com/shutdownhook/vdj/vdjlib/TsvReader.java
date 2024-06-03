@@ -141,15 +141,8 @@ public class TsvReader implements Closeable
 								 fields[headerIndices[IHDR_VFAMILY_TIES]].trim(),
 								 fields[headerIndices[IHDR_DFAMILY_TIES]].trim(),
 								 fields[headerIndices[IHDR_JFAMILY_TIES]].trim());
-								 
-		r.VSHMIndices = null;
-		if (!Utility.nullOrEmpty(strVSHMIndices)) {
-			String[] csvVSHMIndices = strVSHMIndices.split(",");
-			r.VSHMIndices = new int[csvVSHMIndices.length];
-			for (int i = 0; i < csvVSHMIndices.length; ++i) {
-				r.VSHMIndices[i] = Integer.parseInt(csvVSHMIndices[i]);
-			}
-		}
+
+		r.VSHMIndices = Rearrangement.VSHMCsvToIndices(strVSHMIndices);
 
 		if (cellCount == null) {
 

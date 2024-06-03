@@ -12,6 +12,19 @@ import java.nio.file.Path;
 
 public class Helpers
 {
+	// +------+
+	// | init |
+	// +------+
+	
+	public static void init() {
+
+        System.setProperty("java.util.logging.config.file",
+						   ClassLoader.getSystemResource("test-logging.properties").getPath());
+
+		System.setProperty("java.util.logging.SimpleFormatter.format",
+						   "[%1$tF %1$tT] [%4$-7s] %5$s %n");
+    }
+	
 	// +----------------------+
 	// | ResourceStreamReader |
 	// +----------------------+
@@ -19,6 +32,7 @@ public class Helpers
 	public static class ResourceStreamReader implements Closeable
 	{
 		public ResourceStreamReader(String name) throws IOException {
+			Helpers.init();
 			this.stm = getClass().getClassLoader().getResourceAsStream(name);
 			this.rdr = new InputStreamReader(stm);
 		}
@@ -42,6 +56,8 @@ public class Helpers
 	public static class TempRepertoireStore implements Closeable
 	{
 		public TempRepertoireStore() throws IOException {
+
+			Helpers.init();
 			
 			path = Files.createTempDirectory("tsv");
 
