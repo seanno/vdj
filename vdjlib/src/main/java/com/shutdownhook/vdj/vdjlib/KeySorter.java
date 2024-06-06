@@ -1,5 +1,5 @@
 //
-// OVERLAPSORTER.JAVA
+// KEYSORTER.JAVA
 // 
 
 // TODO: seems like these might like to be cached, but let's see
@@ -30,26 +30,18 @@ import com.shutdownhook.vdj.vdjlib.model.FrameType;
 import com.shutdownhook.vdj.vdjlib.model.Locus;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 
-public class OverlapSorter implements Closeable
+public class KeySorter implements Closeable
 {
-	// +---------------+
-	// | OverlapParams |
-	// +---------------+
+	// +-----------------+
+	// | KeySorterParams |
+	// +-----------------+
 
-	public static enum OverlapByType
-	{
-		AminoAcid,
-		CDR3
+	public interface KeyExtractor {
+		public String extract(Rearrangement r);
 	}
 
-	public static class OverlapSorterParams
+	public static class KeySorterParams 
 	{
-		public RepertoireStore Store;
-		public String UserId;
-		public String Context;
-		public String Repertoire;
-		public OverlapByType SortBy;
-		
 		public int InitialChunkSize = 500000;
 		public String WorkingPath = "/tmp";
 	}
@@ -58,14 +50,32 @@ public class OverlapSorter implements Closeable
 	// | Setup & Teardown |
 	// +------------------+
 
-	public OverlapSorter(OverlapSorterParams params) {
+	public KeySorter(ContextRepertoireStore crs, String repertoireName,
+					 KeyExtractor extractor, KeySorterParams params) {
+		
+		this.crs = crs;
+		this.repertoireName = repertoireName;
+		this.extractor = extractor;
 		this.params = params;
 		this.workingPath = Paths.get(params.WorkingPath);
-		this.extractor = getKeyExtractor(params.SortBy);
 	}
 
 	public void close() {
+		if (reader != null) reader.close();
 		cleanupFiles(files);
+	}
+
+	// +-------------+
+	// | getNextItem |
+	// +-------------+
+
+	public void initReader() throws Exception {
+		if (files.size() != 1) throw new Exception("KeySorter not ready");
+		reader = new KeyReader(files.get(0));
+	}
+	
+	public KeyItem readNext() throws IOException {
+		return(reader.readNext());
 	}
 	
 	// +-----------+
@@ -178,28 +188,21 @@ public class OverlapSorter implements Closeable
 		
 		log.finest(String.format("mergeFilePair: f1=%s, f2=%s", f1.getName(), f2.getName()));
 
-		FileReader rdr1 = null;
-		FileReader rdr2 = null;
-		BufferedReader buf1 = null;
-		BufferedReader buf2 = null;
-		FileWriter wtr = null;
-		BufferedWriter bufWrite = null;
+		KeyReader rdr1 = null;
+		KeyReader rdr2 = null;
+		KeyWriter wtr = null;
 
 		try {
 
-			rdr1 = new FileReader(f1);
-			rdr2 = new FileReader(f2);
-			buf1 = new BufferedReader(rdr1);
-			buf2 = new BufferedReader(rdr2);
+			rdr1 = new KeyReader(f1);
+			rdr2 = new KeyReader(f2);
 
 			File fileMerged = Files.createTempFile(workingPath, "vdj", ".txt").toFile();
 			fileMerged.deleteOnExit();
+			wtr = new KeyWriter(fileMerged);
 
-			wtr = new FileWriter(fileMerged);
-			bufWrite = new BufferedWriter(wtr);
-
-			OverlapItem item1 = nextItem(buf1);
-			OverlapItem item2 = nextItem(buf2);
+			KeyItem item1 = rdr1.readNext();
+			KeyItem item2 = rdr2.readNext();
 
 			// write out in order, de-duping
 			while (item1 != null && item2 != null) {
@@ -208,22 +211,22 @@ public class OverlapSorter implements Closeable
 				
 				if (icmp == 0) {
 					item1.accumulateCount(item2.getCount());
-					item2 = nextItem(buf2);
+					item2 = rdr2.readNext();
 				}
 				else if (icmp < 0) {
-					writeTo(bufWrite, item1);
-					item1 = nextItem(buf1);
+					wtr.write(item1);
+					item1 = rdr1.readNext();
 				}
 				else {
-					writeTo(bufWrite, item2);
-					item2 = nextItem(buf2);
+					wtr.write(item2);
+					item2 = rdr2.readNext();
 				}
 			}
 
 			// spit out the balance
 			
-			while (item1 != null) { writeTo(bufWrite, item1); item1 = nextItem(buf1); }
-			while (item2 != null) {	writeTo(bufWrite, item2); item2 = nextItem(buf2); }
+			while (item1 != null) { wtr.write(item1); item1 = rdr1.readNext(); }
+			while (item2 != null) {	wtr.write(item2); item2 = rdr2.readNext(); }
 
 			// and done!
 
@@ -231,31 +234,18 @@ public class OverlapSorter implements Closeable
 			addFile(fileMerged);
 		}
 		finally {
-			if (buf2 != null) Utility.safeClose(buf2);
-			if (buf1 != null) Utility.safeClose(buf1);
 			if (rdr2 != null) Utility.safeClose(rdr2);
 			if (rdr1 != null) Utility.safeClose(rdr1);
-			if (bufWrite != null) Utility.safeClose(bufWrite);
 			if (wtr != null) Utility.safeClose(wtr);
 		}
 	}
 
-	private void writeTo(BufferedWriter buf, OverlapItem item) throws IOException {
-		buf.write(item.toString());
-		buf.newLine();
-	}
-
-	private OverlapItem nextItem(BufferedReader buf) throws IOException {
-		String line = buf.readLine();
-		return(line == null ? null : OverlapItem.fromString(line));
-	}
-	
 	// +-------------+
 	// | initialSort |
 	// +-------------+
 
 	// Fills this.files with a list of files. Each file is a chunk of the original
-	// TSV content, deduped and counted.
+	// TSV content, keyed, deduped and counted.
 	
 	private void initialSort() throws Exception {
 
@@ -264,11 +254,12 @@ public class OverlapSorter implements Closeable
 		TsvReader tsv = null;
 		
 		try {
-			stm = params.Store.getRepertoireStream(params.UserId, params.Context, params.Repertoire);
+
+			stm = crs.getRepertoireStream(repertoireName);
 			rdr = new InputStreamReader(stm);
 			tsv = new TsvReader(rdr, 0);
-
-			OverlapItem[] overlaps = new OverlapItem[params.InitialChunkSize];
+			
+			KeyItem[] items = new KeyItem[params.InitialChunkSize];
 			Rearrangement r;
 
 			while (true) {
@@ -278,7 +269,7 @@ public class OverlapSorter implements Closeable
 				while ((r = tsv.readNext()) != null) {
 					String key = extractor.extract(r);
 					if (!Utility.nullOrEmpty(key)) {
-						overlaps[count++] = new OverlapItem(key, r.Count);
+						items[count++] = new KeyItem(key, r.Count);
 						if (count == params.InitialChunkSize) break;
 					}
 				}
@@ -286,70 +277,65 @@ public class OverlapSorter implements Closeable
 				if (count == 0) break;
 				
 				// sort it
-				Arrays.sort(overlaps, 0, count);
+				Arrays.sort(items, 0, count);
 
 				// and write it out
-				File file = writeToInitialSortFile(overlaps, count);
+				File file = writeToInitialSortFile(items, count);
 				log.finest(String.format("initialSort: adding file %s with count %d",
 										 file.getName(), count));
 				addFile(file);
 			}
 		}
 		finally {
+			
 			if (tsv != null) Utility.safeClose(tsv);
 			if (rdr != null) Utility.safeClose(rdr);
 			if (stm != null) Utility.safeClose(stm);
 		}
 	}
 
-	private File writeToInitialSortFile(OverlapItem[] overlaps, int count) throws Exception {
+	private File writeToInitialSortFile(KeyItem[] items, int count) throws Exception {
 
-		FileWriter wtr = null;
-		BufferedWriter buf = null;
+		KeyWriter wtr = null;
 
-		if (count == 0) throw new Exception("0 count file in overlap");
+		if (count == 0) throw new Exception("0 count file in key sorter");
 			
 		try {
 			File file = Files.createTempFile(workingPath, "vdj", ".txt").toFile();
 			file.deleteOnExit();
-			
-			wtr = new FileWriter(file);
-			buf = new BufferedWriter(wtr);
+			wtr = new KeyWriter(file);
 
-			OverlapItem lastItem = overlaps[0];
+			KeyItem lastItem = items[0];
 			for (int i = 1; i < count; ++i) {
 				
-				OverlapItem curItem = overlaps[i];
+				KeyItem curItem = items[i];
 				
 				if (lastItem.compareTo(curItem) == 0) {
 					lastItem.accumulateCount(curItem.getCount());
 				}
 				else {
-					buf.write(lastItem.toString());
-					buf.newLine();
+					wtr.write(lastItem);
 					lastItem = curItem;
 				}
 			}
 
-			buf.write(lastItem.toString());
-			buf.newLine();
+			wtr.write(lastItem);
 
 			return(file);
 		}
 		finally {
 
-			if (buf != null) Utility.safeClose(buf);
 			if (wtr != null) Utility.safeClose(wtr);
 		}
 	}
 
-	// +-------------+
-	// | OverlapItem |
-	// +-------------+
+	// +---------+
+	// | KeyItem |
+	// +---------+
 
-	public static class OverlapItem implements Comparable<OverlapItem>
+	public static class KeyItem implements Comparable<KeyItem>
 	{
-		public OverlapItem(String key, long initialCount) {
+		public KeyItem(String key, long initialCount) {
 			this.key = key;
 			this.count = initialCount;
 		}
@@ -359,7 +345,7 @@ public class OverlapSorter implements Closeable
 
 		public void accumulateCount(long addCount) { count += addCount; }
 		
-		public int compareTo(OverlapItem item) {
+		public int compareTo(KeyItem item) {
 			return(key.compareTo(item.getKey()));
 		}
 
@@ -367,38 +353,14 @@ public class OverlapSorter implements Closeable
 			return(String.format("%s\t%d", key, count));
 		}
 
-		public static OverlapItem fromString(String input) {
+		public static KeyItem fromString(String input) {
 			int ich = input.indexOf("\t");
-			return(new OverlapItem(input.substring(0, ich),
-								   Long.parseLong(input.substring(ich+1))));
+			return(new KeyItem(input.substring(0, ich),
+							   Long.parseLong(input.substring(ich+1))));
 		}
 
 		String key;
 		long count;
-	}
-
-	// +---------------------+
-	// | OverlapKeyExtractor |
-	// +---------------------+
-
-	public interface OverlapKeyExtractor {
-		public String extract(Rearrangement r);
-	}
-
-	public OverlapKeyExtractor getKeyExtractor(OverlapByType overlapBy) {
-
-		switch (overlapBy) {
-			case CDR3:
-				return(new OverlapKeyExtractor() {
-					public String extract(Rearrangement r) { return(r.getCDR3()); } });
-				
-			case AminoAcid:
-				return(new OverlapKeyExtractor() {
-					public String extract(Rearrangement r) { return(r.AminoAcid); } });
-				
-			default:
-				return(null);
-		}
 	}
 
 	// +---------------------------------+
@@ -434,16 +396,72 @@ public class OverlapSorter implements Closeable
 		}
 	}
 
+	// +-----------+
+	// | KeyReader |
+	// +-----------+
+
+	public static class KeyReader implements Closeable
+	{
+		public KeyReader(File file) throws IOException {
+			
+			rdr = new FileReader(file);
+			buf = new BufferedReader(rdr);
+		}
+
+		public KeyItem readNext() throws IOException {
+			String line = buf.readLine();
+			return(line == null ? null : KeyItem.fromString(line));
+		}
+
+		public void close() {
+			if (buf != null) Utility.safeClose(buf);
+			if (rdr != null) Utility.safeClose(rdr);
+		}
+
+		private FileReader rdr;
+		private BufferedReader buf;
+	}
+
+	// +-----------+
+	// | KeyWriter |
+	// +-----------+
+
+	public static class KeyWriter implements Closeable
+	{
+		public KeyWriter(File file) throws IOException {
+			
+			wtr = new FileWriter(file);
+			buf = new BufferedWriter(wtr);
+		}
+
+		public void write(KeyItem item) throws IOException {
+			buf.write(item.toString());
+			buf.newLine();
+		}
+
+		public void close() {
+			if (buf != null) Utility.safeClose(buf);
+			if (wtr != null) Utility.safeClose(wtr);
+		}
+
+		public FileWriter wtr;
+		public BufferedWriter buf;
+	}
+
 	// +---------+
 	// | Members |
 	// +---------+
 
-	private OverlapSorterParams params;
+	private ContextRepertoireStore crs;
+	private String repertoireName;
+	private KeyExtractor extractor;
+	private KeySorterParams params;
 	private Path workingPath;
-	private OverlapKeyExtractor extractor;
 
 	private List<File> files;
+
+	private KeyReader reader;
 	
-	private final static Logger log = Logger.getLogger(OverlapSorter.class.getName());
+	private final static Logger log = Logger.getLogger(KeySorter.class.getName());
 }
 

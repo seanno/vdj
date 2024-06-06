@@ -29,5 +29,5 @@ public interface RepertoireStore
 		commitRepertoireToContext(String userId, String ctx, Repertoire r) { return(false); }
 	
 	default public boolean
-		deleteRepertoire(String usreId, String ctx, String rep) { return(false); }
+		deleteRepertoire(String userId, String ctx, String rep) { return(false); }
 }

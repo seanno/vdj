@@ -22,9 +22,11 @@ import com.shutdownhook.toolbox.WebServer.Response;
 
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
+import com.shutdownhook.vdj.vdjlib.ContextRepertoireStore;
 import com.shutdownhook.vdj.vdjlib.RepertoireResult;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore_Files;
+import com.shutdownhook.vdj.vdjlib.Overlap;
 import com.shutdownhook.vdj.vdjlib.Searcher;
 import com.shutdownhook.vdj.vdjlib.TopXRearrangements;
 import com.shutdownhook.vdj.vdjlib.TsvReader;
@@ -66,6 +68,9 @@ public class Server implements Closeable
 		public Integer MinimumAALengthForSearch = 5;
 		public Integer MaximumAAMutationsForSearch = 2;
 
+		public Boolean DefaultAAForOverlap = false;
+		public Overlap.OverlapParams OverlapParams = new Overlap.OverlapParams();
+
 		public Integer DefaultCountForTopX = 100;
 		public Integer MaxCountForTopX = 100;
 		public String DefaultSortForTopX = TopXRearrangements.TopXSort.FractionOfCells.toString();
@@ -73,6 +78,7 @@ public class Server implements Closeable
 		public String ApiBase = "/api";
 		public String ContextScope = "contexts";
 		public String SearchScope = "search";
+		public String OverlapScope = "overlap";
 		public String UserScope = "user";
 		public String TopXScope = "topx";
 
@@ -119,18 +125,20 @@ public class Server implements Closeable
 	// | registerApi |
 	// +-------------+
 
-	// GET    /api/contexts         => list contexts
-	// GET    /api/contexts/CTX     => return repertoires in context CTX
-	// GET    /api/contexts/CTX/REP => return repertoire REP in context CTX (QS start/count)
-	// POST   /api/contexts/CTX/REP => save repertoire from body into REP context CTX (QS user)
-	// DELETE /api/contexts/CTX/REP => delete repertoire REP in context CTX
+	// GET    /api/contexts          => list contexts
+	// GET    /api/contexts/CTX      => return repertoires in context CTX
+	// GET    /api/contexts/CTX/REP  => return repertoire REP in context CTX (QS start/count)
+	// POST   /api/contexts/CTX/REP  => save repertoire from body into REP context CTX (QS user)
+	// DELETE /api/contexts/CTX/REP  => delete repertoire REP in context CTX
 
-	// GET    /api/search/CTX/REPS  => search REPS in CTX for (QS motif/isaa/muts)
+	// GET    /api/search/CTX/REPS   => search REPS in CTX for (QS motif/isaa/muts)
 
-	// GET    /api/topx/CTX/REP     => return top COUNT rearrangements from REP in CTX sorted 
-	//                                 descending by SORT (QS sort/count)
+	// GET    /api/overlap/CTX/REPS  => find overlaps in REPS in CTX (QS isaa)
 
-	// GET    /api/user             => return user info (for AUTH user)
+	// GET    /api/topx/CTX/REP      => return top COUNT rearrangements from REP in CTX sorted 
+	//                                  descending by SORT (QS sort/count)
+
+	// GET    /api/user              => return user info (for AUTH user)
 
 	private void registerApi() throws Exception {
 
@@ -186,6 +194,18 @@ public class Server implements Closeable
 
 						// search within repertoire
 						searchRepertoires(info);
+						handled = true;
+					}
+					
+				}
+				else if (info.Scope.equals(cfg.OverlapScope)) {
+
+					if (request.Method.equals("GET") &&
+						info.ContextName != null &&
+						info.RepertoireNames != null) {
+
+						// compute overlaps across repertoires
+						overlapRepertoires(info);
 						handled = true;
 					}
 					
@@ -390,6 +410,21 @@ public class Server implements Closeable
 
 		RepertoireResult[] results = Searcher.searchAsync(params).get();
 		info.Response.setJson(RepertoireResult.resultsToJson(results));
+	}
+
+	// +--------------------+
+	// | overlapRepertoires |
+	// +--------------------+
+	
+	private void overlapRepertoires(ApiInfo info) throws Exception {
+		
+		String strIsAA = info.Request.QueryParams.get("isaa");
+		boolean isAA = (Easy.nullOrEmpty(strIsAA) ? cfg.DefaultAAForOverlap : Boolean.parseBoolean(strIsAA));
+		Overlap.OverlapByType overlapBy = (isAA ? Overlap.OverlapByType.AminoAcid : Overlap.OverlapByType.CDR3);
+
+		ContextRepertoireStore crs = new ContextRepertoireStore(store, info.UserId, info.ContextName);
+		Overlap.OverlapResult result = Overlap.overlapAsync(crs, info.RepertoireNames, overlapBy, cfg.OverlapParams).get();
+		info.Response.setJson(gson.toJson(result));
 	}
 
 	// +---------+
