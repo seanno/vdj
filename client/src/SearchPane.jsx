@@ -9,13 +9,19 @@ import { serverFetchSearch } from './lib/server.js';
 
 import styles from './Search.module.css'
 
-export default memo(function SearchPane({ context, repertoires, rkey }) {
+export default memo(function SearchPane({ context, repertoires, params, rkey }) {
 
-  const [searchText, setSearchText] = useState('');
-  const [searchMuts, setSearchMuts] = useState(window.searchMutsDefault);
-  const [searchType, setSearchType] = useState(window.searchTypeDefault);
-  const [searchFull, setSearchFull] = useState(window.searchFullDefault);
-  const [startSearch, setStartSearch] = useState(false);
+  const textDefault = (params && params.motif !== undefined  ? params.motif : '');
+  const mutsDefault = (params && params.muts !== undefined ? params.muts : window.searchMutsDefault);
+  const typeDefault = (params && params.type !== undefined ? params.type : window.searchTypeDefault);
+  const fullDefault = (params && params.full !== undefined ? params.full : window.searchFullDefault);
+  const startDefault = (params && params.start !== undefined ? params.start : false);
+  
+  const [searchText, setSearchText] = useState(textDefault);
+  const [searchMuts, setSearchMuts] = useState(mutsDefault);
+  const [searchType, setSearchType] = useState(typeDefault);
+  const [searchFull, setSearchFull] = useState(fullDefault);
+  const [startSearch, setStartSearch] = useState(startDefault);
 
   const [results, setResults] = useState(undefined);
   const [error,setError] = useState(undefined);

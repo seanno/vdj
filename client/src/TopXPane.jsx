@@ -69,9 +69,7 @@ export default memo(function TopXPane({ context, repertoire, rkey }) {
 	  }
 
 	  { error &&
-		<div className={styles.hdr}>
-		  
-		</div>
+		<div className={styles.hdr}>{error}</div>
 	  }
 
 	</div>

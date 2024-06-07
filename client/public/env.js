@@ -7,6 +7,10 @@ window.serverBase = 'https://spndev.mshome.net:3001/';
 
 window.detailsPageSize = 100;
 
+// OVERLAP
+
+window.overlapTypeDefault = 'CDR3';
+
 // SEARCH
 
 window.searchTypeDefault = 'Rearrangement';

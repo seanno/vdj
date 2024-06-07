@@ -25,6 +25,16 @@ export async function serverFetchRepertoire(ctx, rep, start, count) {
   return(await serverFetch(url));
 }
 
+export async function serverFetchOverlap(ctx, reps, type) {
+
+  const url =
+		'/overlap/' + encodeURIComponent(ctx) +
+		'/' + encodeURIComponent(reps.map((r) => r.Name).join(',')) +
+		'?type=' + encodeURIComponent(type);
+
+  return(await serverFetch(url));
+}
+
 export async function serverFetchSearch(ctx, reps, seq, type, muts, full) {
 
   const url =

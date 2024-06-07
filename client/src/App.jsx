@@ -112,11 +112,13 @@ export default function App() {
 				{ t.view === 'overlap' && <OverlapPane
 											context={t.context}
 											repertoires={t.repertoires} 
+											addTab={addTab}
 											rkey={`p-${t.name}`} /> }
 
 				{ t.view === 'search' && <SearchPane
 										   context={t.context}
 										   repertoires={t.repertoires} 
+										   params={t.params}
 										   rkey={`p-${t.name}`} /> }
 
 				{ t.view === 'topx' && <TopXPane
