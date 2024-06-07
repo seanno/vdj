@@ -13,6 +13,7 @@ public class RepertoireResult
 {
 	public Repertoire Repertoire;
 	public List<Rearrangement> Rearrangements;
+	public Boolean Truncated;
 
 	public String toJson() {
 		
@@ -24,6 +25,12 @@ public class RepertoireResult
 		sb.append(",");
 		sb.append("\"Rearrangements\": ");
 		sb.append(Rearrangement.toJsonArray(Repertoire, Rearrangements));
+
+		if (Truncated != null) {
+			sb.append(",");
+			sb.append("\"Truncated\": " + Truncated.toString());
+		}
+		
 		sb.append("}");
 
 		return(sb.toString());

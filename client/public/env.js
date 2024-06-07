@@ -1,13 +1,43 @@
 
+// API LOCATION
+
 window.serverBase = 'https://spndev.mshome.net:3001/';
+
+// DETAILS
 
 window.detailsPageSize = 100;
 
-window.searchNucSeqMin = 10;
-window.searchNucMutsMax = 5;
+// SEARCH
 
-window.searchAASeqMin = 5;
-window.searchAAMutsMax = 2;
+window.searchTypeDefault = 'Rearrangement';
+window.searchFullDefault = false;
+window.searchMutsDefault = 0;
+
+window.searchTypeConfig = {
+  
+  'Rearrangement': {
+	'minLength': 10,
+	'maxMuts': 5,
+	'unit': 'bases',
+	'label': 'Nucleotide'
+  },
+  
+  'AminoAcid': {
+	'minLength': 5,
+	'maxMuts': 2,
+	'unit': 'acids',
+	'label': 'Amino Acid'
+  },
+  
+  'CDR3': {
+	'minLength': 5,
+	'maxMuts': 2,
+	'unit': 'bases',
+	'label': 'CDR3'
+  }
+};
+
+// TOPX
 
 window.topXDefaultSort = 'FractionOfLocus';
 window.topXCount = 100;

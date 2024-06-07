@@ -35,6 +35,9 @@ public class ContextRepertoireStore
 		for (int i = 0; i < repertoires.length; ++i) {
 			if (repertoires[i].Name.equals(rep)) return(repertoires[i]);
 		}
+
+		log.warning(String.format("Repertoire %s not found in %s/%s",
+								  rep, userId, context));
 		
 		return(null);
 	}
@@ -47,6 +50,10 @@ public class ContextRepertoireStore
 		return(store.getRepertoireStream(userId, context, rep));
 	}
 	
+	public InputStream getRepertoireStream(Repertoire rep) throws IOException {
+		return(store.getRepertoireStream(userId, context, rep.Name));
+	}
+
 	// +---------+
 	// | Helpers |
 	// +---------+

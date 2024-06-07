@@ -11,29 +11,38 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
-import com.shutdownhook.vdj.vdjlib.KeySorter.KeyExtractor;
+import com.shutdownhook.vdj.vdjlib.RearrangementKey.Extractor;
+import com.shutdownhook.vdj.vdjlib.KeySorter;
 import com.shutdownhook.vdj.vdjlib.KeySorter.KeyItem;
-import com.shutdownhook.vdj.vdjlib.KeySorter.KeySorterParams;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 
 public class Overlap
 {
+	// +--------+
+	// | Config |
+	// +--------+
+
+	public static class Config
+	{
+		public Integer MaxOverlaps = 1000;
+		public Integer MaxRepertoires = 6;
+		public KeySorter.Config KeySorter = new KeySorter.Config();
+	}
+
+	public Overlap(Config cfg) {
+		this.cfg = cfg;
+	}
+
 	// +---------------+
 	// | OverlapParams |
 	// +---------------+
 
-	public static enum OverlapByType
+	public static class Params
 	{
-		AminoAcid,
-		CDR3
-	}
-
-	public static class OverlapParams
-	{
-		public Integer MaxOverlaps = 1000;
-		public Integer MaxRepertoires = 6;
-		public KeySorterParams KeySorter = new KeySorterParams();
+		public ContextRepertoireStore CRS;
+		public String[] RepertoireNames;
+		public Extractor Extractor;
 	}
 
 	// +---------------+
@@ -74,10 +83,7 @@ public class Overlap
 	// | overlap      |
 	// +--------------+
 
-	public static CompletableFuture<OverlapResult> overlapAsync(ContextRepertoireStore crs,
-																String[] repertoireNames,
-																OverlapByType overlapBy,
-																OverlapParams params) {
+	public CompletableFuture<OverlapResult> overlapAsync(Params params) {
 		
 		CompletableFuture<OverlapResult> future = new CompletableFuture<OverlapResult>();
 
@@ -86,7 +92,7 @@ public class Overlap
 			OverlapResult result = null;
 			
 			try {
-				result = overlap(crs, repertoireNames, overlapBy, params);
+				result = overlap(params);
 			}
 			catch (Exception e) {
 				log.warning(Utility.exMsg(e, "overlapAsync", true));
@@ -98,12 +104,9 @@ public class Overlap
 		return(future);
 	}
 
-	public static OverlapResult overlap(ContextRepertoireStore crs,
-										String[] repertoireNames,
-										OverlapByType overlapBy,
-										OverlapParams params) throws Exception {
+	public OverlapResult overlap(Params params) throws Exception {
 
-		if (repertoireNames.length > params.MaxRepertoires) {
+		if (params.RepertoireNames.length > cfg.MaxRepertoires) {
 			throw new Exception("Too many repertoires provided for Overlap");
 		}
 
@@ -115,8 +118,8 @@ public class Overlap
 
 			// 1. Look up repertoires
 		
-			for (String name : repertoireNames) {
-				Repertoire rep = crs.findRepertoire(name);
+			for (String name : params.RepertoireNames) {
+				Repertoire rep = params.CRS.findRepertoire(name);
 				if (rep == null) throw new Exception(String.format("Repertoire %s not found", name));
 				result.Repertoires.add(rep);
 			}
@@ -127,10 +130,9 @@ public class Overlap
 			
 			sorters = new ArrayList<KeySorter>();
 			List<CompletableFuture<File>> futures = new ArrayList<CompletableFuture<File>>();
-			KeyExtractor extractor = getKeyExtractor(overlapBy);
 			
 			for (Repertoire rep : result.Repertoires) {
-				KeySorter sorter = new KeySorter(crs, rep.Name, extractor, params.KeySorter);
+				KeySorter sorter = new KeySorter(params.CRS, rep.Name, params.Extractor, cfg.KeySorter);
 				sorters.add(sorter);
 				futures.add(sorter.sortAsync());
 			}
@@ -146,14 +148,14 @@ public class Overlap
 			}
 		
 			// 3. Merge sorted repertoires into results
-			findOverlaps(sorters, result, params);
+			findOverlaps(sorters, result);
 			Collections.sort(result.Items);
 			
-			if (result.Items.size() > params.MaxOverlaps) {
+			if (result.Items.size() > cfg.MaxOverlaps) {
 				// sh*tter's full! Unfortunately we had to find ALL the overlaps
 				// so that we could sort the goodest ones to the top, but at least
 				// we can save some bandwidth and browser memory
-				result.Items = result.Items.subList(0, params.MaxOverlaps);
+				result.Items = result.Items.subList(0, cfg.MaxOverlaps);
 				result.Truncated = true;
 			}
 				
@@ -181,8 +183,7 @@ public class Overlap
 		public int ActiveRepertoires;
 	}
 	
-	private static void findOverlaps(List<KeySorter> sorters, OverlapResult result,
-									 OverlapParams params) throws Exception {
+	private void findOverlaps(List<KeySorter> sorters, OverlapResult result) throws Exception {
 
 		log.finest("finding overlaps");
 		for (KeySorter sorter : sorters) sorter.initReader();
@@ -271,29 +272,11 @@ public class Overlap
 		}
 	}
 
-	// +-----------------+
-	// | getKeyExtractor |
-	// +-----------------+
-
-	public static KeyExtractor getKeyExtractor(OverlapByType overlapBy) {
-
-		switch (overlapBy) {
-			case CDR3:
-				return(new KeyExtractor() {
-					public String extract(Rearrangement r) { return(r.getCDR3()); } });
-				
-			case AminoAcid:
-				return(new KeyExtractor() {
-					public String extract(Rearrangement r) { return(r.AminoAcid); } });
-				
-			default:
-				return(null);
-		}
-	}
-
 	// +---------+
 	// | Members |
 	// +---------+
+
+	private Config cfg;
 	
 	private final static Logger log = Logger.getLogger(Overlap.class.getName());
 }

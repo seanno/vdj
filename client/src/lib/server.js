@@ -25,14 +25,15 @@ export async function serverFetchRepertoire(ctx, rep, start, count) {
   return(await serverFetch(url));
 }
 
-export async function serverFetchSearch(ctx, reps, isAA, seq, muts) {
+export async function serverFetchSearch(ctx, reps, seq, type, muts, full) {
 
   const url =
 		'/search/' + encodeURIComponent(ctx) +
 		'/' + encodeURIComponent(reps.map((r) => r.Name).join(',')) +
-		'?isaa=' + (isAA ? 'true' : 'false') +
-		'&motif=' + encodeURIComponent(seq) +
-		'&muts=' + muts.toString();
+		'?motif=' + encodeURIComponent(seq) +
+		'&type=' + encodeURIComponent(type) +
+		'&muts=' + muts.toString() +
+		'&full=' + (full ? 'true' : 'false');
 
   return(await serverFetch(url));
 }

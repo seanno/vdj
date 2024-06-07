@@ -26,21 +26,18 @@ import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
+import com.shutdownhook.vdj.vdjlib.RearrangementKey.Extractor;
 import com.shutdownhook.vdj.vdjlib.model.FrameType;
 import com.shutdownhook.vdj.vdjlib.model.Locus;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 
 public class KeySorter implements Closeable
 {
-	// +-----------------+
-	// | KeySorterParams |
-	// +-----------------+
+	// +--------+
+	// | Config |
+	// +--------+
 
-	public interface KeyExtractor {
-		public String extract(Rearrangement r);
-	}
-
-	public static class KeySorterParams 
+	public static class Config
 	{
 		public int InitialChunkSize = 500000;
 		public String WorkingPath = "/tmp";
@@ -51,13 +48,13 @@ public class KeySorter implements Closeable
 	// +------------------+
 
 	public KeySorter(ContextRepertoireStore crs, String repertoireName,
-					 KeyExtractor extractor, KeySorterParams params) {
+					 Extractor extractor, Config cfg) {
 		
 		this.crs = crs;
 		this.repertoireName = repertoireName;
 		this.extractor = extractor;
-		this.params = params;
-		this.workingPath = Paths.get(params.WorkingPath);
+		this.cfg = cfg;
+		this.workingPath = Paths.get(cfg.WorkingPath);
 	}
 
 	public void close() {
@@ -259,7 +256,7 @@ public class KeySorter implements Closeable
 			rdr = new InputStreamReader(stm);
 			tsv = new TsvReader(rdr, 0);
 			
-			KeyItem[] items = new KeyItem[params.InitialChunkSize];
+			KeyItem[] items = new KeyItem[cfg.InitialChunkSize];
 			Rearrangement r;
 
 			while (true) {
@@ -270,7 +267,7 @@ public class KeySorter implements Closeable
 					String key = extractor.extract(r);
 					if (!Utility.nullOrEmpty(key)) {
 						items[count++] = new KeyItem(key, r.Count);
-						if (count == params.InitialChunkSize) break;
+						if (count == cfg.InitialChunkSize) break;
 					}
 				}
 
@@ -454,8 +451,8 @@ public class KeySorter implements Closeable
 
 	private ContextRepertoireStore crs;
 	private String repertoireName;
-	private KeyExtractor extractor;
-	private KeySorterParams params;
+	private Extractor extractor;
+	private Config cfg;
 	private Path workingPath;
 
 	private List<File> files;

@@ -23,12 +23,15 @@ import com.shutdownhook.toolbox.WebServer.Response;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 import com.shutdownhook.vdj.vdjlib.ContextRepertoireStore;
+import com.shutdownhook.vdj.vdjlib.RearrangementKey;
+import com.shutdownhook.vdj.vdjlib.RearrangementKey.KeyType;
 import com.shutdownhook.vdj.vdjlib.RepertoireResult;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore_Files;
 import com.shutdownhook.vdj.vdjlib.Overlap;
 import com.shutdownhook.vdj.vdjlib.Searcher;
 import com.shutdownhook.vdj.vdjlib.TopXRearrangements;
+import com.shutdownhook.vdj.vdjlib.TopXRearrangements.TopXSort;
 import com.shutdownhook.vdj.vdjlib.TsvReader;
 import com.shutdownhook.vdj.vdjlib.TsvReceiver;
 
@@ -59,21 +62,23 @@ public class Server implements Closeable
 		public String LoggingConfigPath = "@logging.properties";
 
 		public Integer DefaultGetCount = 50;
+
 		public Integer MaxGetCount = 250;
 
-		public Boolean DefaultAAForSearch = false;
-		public Integer DefaultMutsForSearch = 0;
-		public Integer MinimumNucleotideLengthForSearch = 10;
-		public Integer MaximumNucleotideMutationsForSearch = 5;
-		public Integer MinimumAALengthForSearch = 5;
-		public Integer MaximumAAMutationsForSearch = 2;
+		// Search
+		public Searcher.Config Searcher = new Searcher.Config();
+		public KeyType DefaultSearchType = KeyType.Rearrangement;
+		public Integer DefaultSearchMuts = 0;
+		public Boolean DefaultSearchFullMatch = false;
 
-		public Boolean DefaultAAForOverlap = false;
-		public Overlap.OverlapParams OverlapParams = new Overlap.OverlapParams();
+		// Overlap
+		public Overlap.Config Overlap = new Overlap.Config();
+		public KeyType DefaultOverlapType = KeyType.CDR3;
 
-		public Integer DefaultCountForTopX = 100;
-		public Integer MaxCountForTopX = 100;
-		public String DefaultSortForTopX = TopXRearrangements.TopXSort.FractionOfCells.toString();
+		// TopX
+		public TopXRearrangements.Config TopX = new TopXRearrangements.Config();
+		public Integer DefaultTopXCount = 100;
+		public TopXSort DefaultTopXSort = TopXSort.FractionOfCells;
 		
 		public String ApiBase = "/api";
 		public String ContextScope = "contexts";
@@ -102,6 +107,10 @@ public class Server implements Closeable
 		this.gson = new Gson();
 
 		store = new RepertoireStore_Files(cfg.RepertoireStore);
+
+		searcher = new Searcher(cfg.Searcher);
+		topx = new TopXRearrangements(cfg.TopX);
+		overlap = new Overlap(cfg.Overlap);
 		
 		setupWebServer();
 	}
@@ -131,9 +140,9 @@ public class Server implements Closeable
 	// POST   /api/contexts/CTX/REP  => save repertoire from body into REP context CTX (QS user)
 	// DELETE /api/contexts/CTX/REP  => delete repertoire REP in context CTX
 
-	// GET    /api/search/CTX/REPS   => search REPS in CTX for (QS motif/isaa/muts)
+	// GET    /api/search/CTX/REPS   => search REPS in CTX for (QS motif/type/muts/full)
 
-	// GET    /api/overlap/CTX/REPS  => find overlaps in REPS in CTX (QS isaa)
+	// GET    /api/overlap/CTX/REPS  => find overlaps in REPS in CTX (QS type)
 
 	// GET    /api/topx/CTX/REP      => return top COUNT rearrangements from REP in CTX sorted 
 	//                                  descending by SORT (QS sort/count)
@@ -378,37 +387,30 @@ public class Server implements Closeable
 	// +-------------------+
 	// | searchRepertoires |
 	// +-------------------+
-	
+
 	private void searchRepertoires(ApiInfo info) throws Exception {
-		
-		String strIsAA = info.Request.QueryParams.get("isaa");
-		boolean isAA = (Easy.nullOrEmpty(strIsAA) ? cfg.DefaultAAForSearch : Boolean.parseBoolean(strIsAA));
+
+		String typeStr = info.Request.QueryParams.get("type");
+		KeyType keyType = (Easy.nullOrEmpty(typeStr) ? cfg.DefaultSearchType : KeyType.valueOf(typeStr));
 		
 		String strMuts = info.Request.QueryParams.get("muts");
-		int muts = (Easy.nullOrEmpty(strMuts) ? cfg.DefaultMutsForSearch : Integer.parseInt(strMuts));
+		int muts = (Easy.nullOrEmpty(strMuts) ? cfg.DefaultSearchMuts : Integer.parseInt(strMuts));
+		
+		String strFull = info.Request.QueryParams.get("full");
+		Boolean full = (Easy.nullOrEmpty(strFull) ? cfg.DefaultSearchFullMatch : Boolean.parseBoolean(strFull));
 		
 		String motif = info.Request.QueryParams.get("motif");
 		if (Easy.nullOrEmpty(motif)) throw new IllegalArgumentException("motif required");
 		motif = motif.toUpperCase();
-		
-		if ((!isAA && (motif.length() < cfg.MinimumNucleotideLengthForSearch)) ||
-			(!isAA && (muts < 0 || muts > cfg.MaximumNucleotideMutationsForSearch)) ||
-			(isAA && (motif.length() < cfg.MinimumAALengthForSearch)) ||
-			(isAA && (muts < 0 || muts > cfg.MaximumAAMutationsForSearch))) {
-			
-			throw new IllegalArgumentException("Motif or Mutations out of configured limits");
-		}
 
-		Searcher.SearchParams params = new Searcher.SearchParams();
-		params.Store = store;
-		params.UserId = info.UserId;
-		params.Context = info.ContextName;
+		Searcher.Params params = new Searcher.Params();
+		params.CRS = new ContextRepertoireStore(store, info.UserId, info.ContextName);
 		params.Repertoires = info.RepertoireNames;
 		params.Motif = motif;
-		params.MotifIsAA = isAA;
-		params.AllowedMutations = muts;
+		params.Extractor = RearrangementKey.getExtractor(keyType);
+		params.Matcher = RearrangementKey.getMatcher(keyType, muts, full);
 
-		RepertoireResult[] results = Searcher.searchAsync(params).get();
+		RepertoireResult[] results = searcher.searchAsync(params).get();
 		info.Response.setJson(RepertoireResult.resultsToJson(results));
 	}
 
@@ -418,12 +420,15 @@ public class Server implements Closeable
 	
 	private void overlapRepertoires(ApiInfo info) throws Exception {
 		
-		String strIsAA = info.Request.QueryParams.get("isaa");
-		boolean isAA = (Easy.nullOrEmpty(strIsAA) ? cfg.DefaultAAForOverlap : Boolean.parseBoolean(strIsAA));
-		Overlap.OverlapByType overlapBy = (isAA ? Overlap.OverlapByType.AminoAcid : Overlap.OverlapByType.CDR3);
+		String typeStr = info.Request.QueryParams.get("type");
+		KeyType keyType = (Easy.nullOrEmpty(typeStr) ? cfg.DefaultOverlapType : KeyType.valueOf(typeStr));
 
-		ContextRepertoireStore crs = new ContextRepertoireStore(store, info.UserId, info.ContextName);
-		Overlap.OverlapResult result = Overlap.overlapAsync(crs, info.RepertoireNames, overlapBy, cfg.OverlapParams).get();
+		Overlap.Params params = new Overlap.Params();
+		params.CRS = new ContextRepertoireStore(store, info.UserId, info.ContextName);
+		params.RepertoireNames = info.RepertoireNames;
+		params.Extractor = RearrangementKey.getExtractor(keyType);
+		
+		Overlap.OverlapResult result = overlap.overlapAsync(params).get();
 		info.Response.setJson(gson.toJson(result));
 	}
 
@@ -449,22 +454,18 @@ public class Server implements Closeable
 	private void getTopX(ApiInfo info) throws Exception {
 		
 		String strCount = info.Request.QueryParams.get("count");
-		int count = (Easy.nullOrEmpty(strCount) ? cfg.DefaultCountForTopX : Integer.parseInt(strCount));
-		if (count > cfg.MaxCountForTopX) count = cfg.MaxCountForTopX;
+		int count = (Easy.nullOrEmpty(strCount) ? cfg.DefaultTopXCount : Integer.parseInt(strCount));
 
 		String strSort = info.Request.QueryParams.get("sort");
-		TopXRearrangements.TopXSort sort =
-			TopXRearrangements.TopXSort.valueOf(Easy.nullOrEmpty(strSort) ? cfg.DefaultSortForTopX : strSort);
+		TopXSort sort = (Easy.nullOrEmpty(strSort) ? cfg.DefaultTopXSort : TopXSort.valueOf(strSort));
 
-		TopXRearrangements.TopXParams params = new TopXRearrangements.TopXParams();
-		params.Store = store;
-		params.UserId = info.UserId;
-		params.Context = info.ContextName;
+		TopXRearrangements.Params params = new TopXRearrangements.Params();
+		params.CRS = new ContextRepertoireStore(store, info.UserId, info.ContextName);
 		params.Repertoire = info.RepertoireName;
 		params.Sort = sort;
 		params.Count = count;
 
-		RepertoireResult result = TopXRearrangements.getAsync(params).get();
+		RepertoireResult result = topx.getAsync(params).get();
 		info.Response.setJson(result.toJson());
 	}
 
@@ -558,6 +559,10 @@ public class Server implements Closeable
 	private Gson gson;
 
 	private RepertoireStore store;
+
+	private Searcher searcher;
+	private TopXRearrangements topx;
+	private Overlap overlap;
 
 	private final static Logger log = Logger.getLogger(Server.class.getName());
 }

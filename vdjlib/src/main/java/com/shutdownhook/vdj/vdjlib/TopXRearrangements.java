@@ -17,6 +17,23 @@ import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 
 public class TopXRearrangements
 {
+	// +------------------+
+	// | Setup & Teardown |
+	// +------------------+
+
+	public static class Config
+	{
+		public Integer MaxCount = 500;
+	}
+	
+	public TopXRearrangements(Config cfg) {
+		this.cfg = cfg;
+	}
+
+	// +--------+
+	// | Params |
+	// +--------+
+	
 	public static enum TopXSort
 	{
 		Count,
@@ -25,11 +42,9 @@ public class TopXRearrangements
 		FractionOfCount
 	}
 
-	public static class TopXParams
+	public static class Params
 	{
-		public RepertoireStore Store;
-		public String UserId;
-		public String Context;
+		public ContextRepertoireStore CRS;
 		public String Repertoire;
 		public TopXSort Sort;
 		public Integer Count;
@@ -40,7 +55,7 @@ public class TopXRearrangements
 	// | get      |
 	// +----------+
 
-	public static CompletableFuture<RepertoireResult> getAsync(TopXParams params) {
+	public CompletableFuture<RepertoireResult> getAsync(Params params) {
 
 		CompletableFuture<RepertoireResult> future = new CompletableFuture<RepertoireResult>();
 
@@ -61,15 +76,15 @@ public class TopXRearrangements
 		return(future);
 	}
 
-	private static RepertoireResult get(TopXParams params) throws Exception {
+	private RepertoireResult get(Params params) throws Exception {
 
-		Repertoire[] repertoires = params.Store.getContextRepertoires(params.UserId, params.Context);
-		Repertoire rep = find(repertoires, params.Repertoire);
-
-		if (rep == null) {
-			throw new Exception(String.format("Repertoire not found %s/%s/%s",
-											  params.UserId, params.Context, params.Repertoire));
+		if (params.Count > cfg.MaxCount) {
+			throw new Exception(String.format("TopX count %d above cfg max %d",
+											  params.Count, cfg.MaxCount));
 		}
+		
+		Repertoire rep = params.CRS.findRepertoire(params.Repertoire);
+		if (rep == null) throw new Exception("Repertoire " + params.Repertoire + " not found");
 
 		Comparator<Rearrangement> cmp = getComparator(params.Sort, rep);
 
@@ -78,7 +93,7 @@ public class TopXRearrangements
 		TsvReader tsv = null;
 
 		try {
-			stm = params.Store.getRepertoireStream(params.UserId, params.Context, rep.Name);
+			stm = params.CRS.getRepertoireStream(rep);
 			rdr = new InputStreamReader(stm);
 			tsv = new TsvReader(rdr, 0);
 
@@ -155,14 +170,11 @@ public class TopXRearrangements
 		return(cmp);
 	}
 
-	private static Repertoire find(Repertoire[] repertoires, String name) {
-		
-		for (Repertoire r : repertoires) {
-			if (r.Name.equals(name)) return(r);
-		}
-		
-		return(null);
-	}
+	// +---------+
+	// | Members |
+	// +---------+
+
+	private Config cfg;
 	
 	private final static Logger log = Logger.getLogger(TopXRearrangements.class.getName());
 }

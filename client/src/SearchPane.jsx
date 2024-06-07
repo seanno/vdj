@@ -1,6 +1,7 @@
 
 import { memo, useState, useEffect } from 'react';
 import { Button, FormControl, FormLabel, FormControlLabel,
+		 ListItem, ListItemButton, ListItemIcon, Checkbox, ListItemText,
 		 Radio, RadioGroup, Snackbar, TextField } from '@mui/material';
 
 import RearrangementsTable from './RearrangementsTable.jsx';
@@ -11,18 +12,23 @@ import styles from './Search.module.css'
 export default memo(function SearchPane({ context, repertoires, rkey }) {
 
   const [searchText, setSearchText] = useState('');
-  const [searchMuts, setSearchMuts] = useState(0);
-  const [searchIsAA, setSearchIsAA] = useState(false);
+  const [searchMuts, setSearchMuts] = useState(window.searchMutsDefault);
+  const [searchType, setSearchType] = useState(window.searchTypeDefault);
+  const [searchFull, setSearchFull] = useState(window.searchFullDefault);
   const [startSearch, setStartSearch] = useState(false);
 
   const [results, setResults] = useState(undefined);
   const [error,setError] = useState(undefined);
 
   function updateSearchType(newValue) {
-	setSearchIsAA(newValue === 'true'); // RadioGroup value is always text, seems weird but ok
+	setSearchType(newValue);
 	setSearchText(''); // if we're changing type whatever was there must be invalid
   }
   
+  function toggleFullCheckbox() {
+	setSearchFull(!searchFull);
+  }
+
   // +-----------+
   // | useEffect |
   // +-----------+
@@ -33,7 +39,7 @@ export default memo(function SearchPane({ context, repertoires, rkey }) {
 	
 	const loadResults = async () => {
 
-	  serverFetchSearch(context, repertoires, searchIsAA, searchText, searchMuts) 
+	  serverFetchSearch(context, repertoires, searchText, searchType, searchMuts, searchFull) 
 		.then(result => {
 		  setResults(result);
 		})
@@ -45,9 +51,7 @@ export default memo(function SearchPane({ context, repertoires, rkey }) {
 
 	loadResults();
 	
-  }, [context, repertoires, searchText, searchMuts, startSearch]);
-
-
+  }, [context, repertoires, searchText, searchType, searchMuts, searchFull, startSearch]);
 
   // +--------------+
   // | renderSearch |
@@ -55,13 +59,13 @@ export default memo(function SearchPane({ context, repertoires, rkey }) {
 
   function renderSearch() {
 
-	const [seqMin, mutsMax, seqType, seqLabel] = searchIsAA
-		  ? [ window.searchAASeqMin, window.searchAAMutsMax, 'acids', 'Amino Acid Sequence' ]
-		  : [ window.searchNucSeqMin, window.searchNucMutsMax, 'bases', 'Nucleotide Sequence' ];
+	const lengthOK = ((searchText.length >= searchConfig.minLength) || (searchText.length > 0 && searchFull));
+	const mutsOK = (searchMuts >= 0 && searchMuts <= searchConfig.maxMuts);
 
-	const lengthOK = (searchText.length >= seqMin);
-	const mutsOK = (searchMuts >= 0 && searchMuts <= mutsMax);
-	
+	const lengthHelper = (searchFull
+						  ? 'sequence required'
+						  : `at least ${searchConfig.minLength} ${searchConfig.unit} required`);
+
 	return(
 	  <>
 		<div className={styles.hdr}>
@@ -72,10 +76,11 @@ export default memo(function SearchPane({ context, repertoires, rkey }) {
 		  <FormControl>
 			<RadioGroup
 			  row
-			  value={searchIsAA}
+			  value={searchType}
 			  onChange={(evt) => updateSearchType(evt.target.value)} >
-			  <FormControlLabel value={false} control={<Radio/>} label='Nucleotide' />
-			  <FormControlLabel value={true} control={<Radio/>} label ='Amino Acid' />
+			  <FormControlLabel value='Rearrangement' control={<Radio/>} label='Nucleotide' />
+			  <FormControlLabel value='CDR3' control={<Radio/>} label='CDR3' />
+			  <FormControlLabel value='AminoAcid' control={<Radio/>} label ='Amino Acid' />
 			</RadioGroup>
 		  </FormControl>
 		</div>
@@ -84,13 +89,38 @@ export default memo(function SearchPane({ context, repertoires, rkey }) {
 		  <TextField
 			autoFocus
 			error={!lengthOK}
-			label={seqLabel}
+			label={`${searchConfig.label} Sequence`}
 			variant='outlined'
 			value={searchText}
 			sx={{ width: '100%' }}
 			onChange={(evt) => setSearchText(evt.target.value)}
-			helperText={lengthOK ? undefined : `at least ${seqMin} ${seqType} required`}
+			helperText={lengthOK ? undefined : lengthHelper }
 		  />
+		</div>
+
+		<div className={styles.dialogTxt}>
+		  <ListItem disablePadding>
+			<ListItemButton
+			  rule={undefined}
+			  onClick={() => toggleFullCheckbox()}>
+			  <ListItemIcon sx={{ minWidth: '20px' }}>
+				<Checkbox
+				  edge='start'
+				  checked={searchFull}
+				  tabIndex={-1}
+				  disableRipple
+				  inputProps={{ 'aria-labelledby': `${rkey}-full` }}
+				  sx={{ padding: '0px' }}
+				/>
+			  </ListItemIcon>
+
+			  <ListItemText
+				sx={{ margin: '0px' }}
+				id={`${rkey}-full`}
+				primary='Match full sequence'
+			  />
+			</ListItemButton>
+		  </ListItem>
 		</div>
 
 		<div className={styles.dialogTxt}>
@@ -101,9 +131,9 @@ export default memo(function SearchPane({ context, repertoires, rkey }) {
 			type='number'
 			value={searchMuts}
 			onChange={(evt) => setSearchMuts(evt.target.value)}
-			helperText={mutsOK ? undefined : `0 to ${mutsMax} mutations allowed`}
+			helperText={mutsOK ? undefined : `0 to ${searchConfig.maxMuts} mutations allowed`}
 		  />
-		  </div>
+		</div>
 
 		<Button
 		  variant='outlined'
@@ -143,8 +173,9 @@ export default memo(function SearchPane({ context, repertoires, rkey }) {
 	return(
 	  <>
 		<div className={styles.hdr}>
-		  { searchIsAA ? 'Amino Acid' : 'Nucleotide' } { searchText }<br/>
-		  {searchMuts} mutation{ searchMuts == 1 ? '' : 's'} allowed
+		  { searchConfig.label }: { searchText }<br/>
+		  { searchMuts } mutation{ searchMuts == 1 ? '' : 's'} allowed;
+		  { searchFull ? ' full sequence match' : ' substring match' }
 		</div>
 		{ tables }
 	  </>
@@ -155,6 +186,8 @@ export default memo(function SearchPane({ context, repertoires, rkey }) {
   // | render |
   // +--------+
 
+  const searchConfig = window.searchTypeConfig[searchType];
+	
   return(
 
 	<div className={styles.container}>

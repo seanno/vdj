@@ -11,8 +11,8 @@ import org.junit.Ignore;
 
 import com.google.gson.GsonBuilder;
 	
-import com.shutdownhook.vdj.vdjlib.Overlap.OverlapByType;
-import com.shutdownhook.vdj.vdjlib.Overlap.OverlapParams;
+import com.shutdownhook.vdj.vdjlib.RearrangementKey;
+import com.shutdownhook.vdj.vdjlib.RearrangementKey.KeyType;
 import com.shutdownhook.vdj.vdjlib.Overlap.OverlapResult;
 
 public class OverlapTest
@@ -47,7 +47,7 @@ public class OverlapTest
 
 	@Test
 	public void basicAmino() throws Exception {
-		OverlapResult result = basicHelper(OverlapByType.AminoAcid, 1000);
+		OverlapResult result = basicHelper(KeyType.AminoAcid, 1000);
 		System.out.println(String.format("----- Amino 1000 (%d)", result.Items.size()));
 		Assert.assertEquals(64, result.Items.size());
 		Assert.assertEquals("CQQYNSYPPPSG", result.Items.get(0).Key);
@@ -59,7 +59,7 @@ public class OverlapTest
 
 	@Test
 	public void basicCDR3() throws Exception {
-		OverlapResult result = basicHelper(OverlapByType.CDR3, 1000);
+		OverlapResult result = basicHelper(KeyType.CDR3, 1000);
 		System.out.println(String.format("----- CDR3 1000 (%d)", result.Items.size()));
 		Assert.assertEquals(98, result.Items.size());
 		Assert.assertEquals("TGTCTACAACATGATAATTTCGC", result.Items.get(0).Key);
@@ -71,7 +71,7 @@ public class OverlapTest
 
 	@Test
 	public void basicTrunc() throws Exception {
-		OverlapResult result = basicHelper(OverlapByType.CDR3, 10);
+		OverlapResult result = basicHelper(KeyType.CDR3, 10);
 		System.out.println(String.format("----- CDR3 10 (%d)", result.Items.size()));
 		Assert.assertEquals(10, result.Items.size());
 		Assert.assertEquals("TGTCTACAACATGATAATTTCGC", result.Items.get(0).Key);
@@ -81,14 +81,18 @@ public class OverlapTest
 		Assert.assertEquals(0, result.Items.get(0).Counts[2]);
 	}
 
-	private OverlapResult basicHelper(OverlapByType overlapBy, int maxOverlaps) throws Exception {
+	private OverlapResult basicHelper(KeyType keyType, int maxOverlaps) throws Exception {
 
-		OverlapParams params = new OverlapParams();
-		params.MaxOverlaps = maxOverlaps;
+		Overlap.Config cfg = new Overlap.Config();
+		cfg.MaxOverlaps = maxOverlaps;
+		Overlap overlap = new Overlap(cfg);
 
-		String [] reps = new String[] { "A_BCell_ID.tsv", "A_BCell_MRD.tsv", "02583-02BH.tsv" };
+		Overlap.Params params = new Overlap.Params();
+		params.CRS = crs;
+		params.RepertoireNames = new String[] { "A_BCell_ID.tsv", "A_BCell_MRD.tsv", "02583-02BH.tsv" };
+		params.Extractor = RearrangementKey.getExtractor(keyType);
 		
-		return(Overlap.overlapAsync(crs, reps, overlapBy, params).get());
+		return(overlap.overlapAsync(params).get());
 	}
 
 	// +---------+
@@ -97,5 +101,4 @@ public class OverlapTest
 
 	private static Helpers.TempRepertoireStore store;
 	private static ContextRepertoireStore crs;
-
 }

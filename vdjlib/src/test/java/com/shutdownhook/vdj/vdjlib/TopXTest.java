@@ -17,7 +17,6 @@ import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 
 import com.shutdownhook.vdj.vdjlib.RepertoireResult;
 import com.shutdownhook.vdj.vdjlib.TopXRearrangements.TopXSort;
-import com.shutdownhook.vdj.vdjlib.TopXRearrangements.TopXParams;
 
 public class TopXTest 
 {
@@ -38,6 +37,9 @@ public class TopXTest
 		store.addFromResource(TEST_USER, TEST_CONTEXT, REP_1);
 		store.addFromResource(TEST_USER, TEST_CONTEXT, REP_2);
 		store.addFromResource(TEST_USER, TEST_CONTEXT, REP_3);
+
+		crs = new ContextRepertoireStore(store.get(), TEST_USER, TEST_CONTEXT);
+		topx = new TopXRearrangements(new TopXRearrangements.Config());
 	}
 	
 	@AfterClass
@@ -52,12 +54,13 @@ public class TopXTest
 	@Test
 	public void testByCount() throws Exception {
 
-		TopXParams params = initParams();
+		TopXRearrangements.Params params = new TopXRearrangements.Params();
+		params.CRS = crs;
 		params.Repertoire = REP_1;
 		params.Sort = TopXSort.Count;
 		params.Count = 100;
 
-		RepertoireResult result = TopXRearrangements.getAsync(params).get();
+		RepertoireResult result = topx.getAsync(params).get();
 
 		Assert.assertEquals(100, result.Rearrangements.size());
 		
@@ -71,12 +74,13 @@ public class TopXTest
 	@Test
 	public void testByCells() throws Exception {
 
-		TopXParams params = initParams();
+		TopXRearrangements.Params params = new TopXRearrangements.Params();
+		params.CRS = crs;
 		params.Repertoire = REP_2;
 		params.Sort = TopXSort.FractionOfCells;
 		params.Count = 10;
 
-		RepertoireResult result = TopXRearrangements.getAsync(params).get();
+		RepertoireResult result = topx.getAsync(params).get();
 
 		Assert.assertEquals(10, result.Rearrangements.size());
 		
@@ -97,14 +101,8 @@ public class TopXTest
 	// | Helpers |
 	// +---------+
 
-	private TopXParams initParams() {
-		TopXParams params = new TopXParams();
-		params.Store = store.get();
-		params.UserId = TEST_USER;
-		params.Context = TEST_CONTEXT;
-		return(params);
-	}
-	
 	private static Helpers.TempRepertoireStore store;
+	private static ContextRepertoireStore crs;
+	private static TopXRearrangements topx;
 
 }

@@ -18,13 +18,14 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.Ignore;
 
+import com.shutdownhook.vdj.vdjlib.RearrangementKey.Extractor;
+import com.shutdownhook.vdj.vdjlib.RearrangementKey.KeyType;
 import com.shutdownhook.vdj.vdjlib.model.Locus;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 
-import com.shutdownhook.vdj.vdjlib.KeySorter.KeyExtractor;
+import com.shutdownhook.vdj.vdjlib.KeySorter;
 import com.shutdownhook.vdj.vdjlib.KeySorter.KeyItem;
-import com.shutdownhook.vdj.vdjlib.KeySorter.KeySorterParams;
 
 public class KeySorterTest
 {
@@ -39,7 +40,7 @@ public class KeySorterTest
 	{
 		public String Name;
 		public int Uniques;
-		public KeyExtractor Extractor;
+		public Extractor Extractor;
 	}
 
 	private static TestRepertoireInfo[] TEST_INFOS;
@@ -57,12 +58,12 @@ public class KeySorterTest
 
 		TEST_INFOS[0] = new TestRepertoireInfo();
 		TEST_INFOS[0].Name = "subject9-v2.tsv";
-		TEST_INFOS[0].Extractor = Overlap.getKeyExtractor(Overlap.OverlapByType.AminoAcid);
+		TEST_INFOS[0].Extractor = RearrangementKey.getExtractor(KeyType.AminoAcid);
 		TEST_INFOS[0].Uniques = 5692;
 
 		TEST_INFOS[1] = new TestRepertoireInfo();
 		TEST_INFOS[1].Name = "subject9-v2.tsv";
-		TEST_INFOS[1].Extractor = Overlap.getKeyExtractor(Overlap.OverlapByType.CDR3);
+		TEST_INFOS[1].Extractor = RearrangementKey.getExtractor(KeyType.CDR3);
 		TEST_INFOS[1].Uniques = 5692;
 	}
 	
@@ -83,17 +84,17 @@ public class KeySorterTest
 	}
 
 	private void basicTestRepertoireInfo(TestRepertoireInfo info) throws Exception {
-		KeySorterParams params = new KeySorterParams();
-		params.InitialChunkSize = info.Uniques + 1; basicTestHelper(info, params);
-		params.InitialChunkSize = info.Uniques / 2; basicTestHelper(info, params);
-		params.InitialChunkSize = (int) ((double)info.Uniques / 3.5); basicTestHelper(info, params);
+		KeySorter.Config cfg = new KeySorter.Config();
+		cfg.InitialChunkSize = info.Uniques + 1; basicTestHelper(info, cfg);
+		cfg.InitialChunkSize = info.Uniques / 2; basicTestHelper(info, cfg);
+		cfg.InitialChunkSize = (int) ((double)info.Uniques / 3.5); basicTestHelper(info, cfg);
 	}
 	
-	private void basicTestHelper(TestRepertoireInfo info, KeySorterParams params) throws Exception {
+	private void basicTestHelper(TestRepertoireInfo info, KeySorter.Config cfg) throws Exception {
 		
-		System.out.println(String.format("basicTestHelper: %s, %d", info.Name, params.InitialChunkSize));
+		System.out.println(String.format("basicTestHelper: %s, %d", info.Name, cfg.InitialChunkSize));
 
-		KeySorter ks = new KeySorter(crs, info.Name, info.Extractor, params);
+		KeySorter ks = new KeySorter(crs, info.Name, info.Extractor, cfg);
 		File sorted = ks.sortAsync().get();
 		ks.initReader();
 		
@@ -126,7 +127,7 @@ public class KeySorterTest
 
 	private static Map<String,List<KeyItem>> sideLoadedTruths = new HashMap<String,List<KeyItem>>();
 	
-	private static List<KeyItem> getSideLoadedTruth(String name, KeyExtractor extractor) throws Exception {
+	private static List<KeyItem> getSideLoadedTruth(String name, Extractor extractor) throws Exception {
 
 		// this is bogus but will work for our testing purposes
 		String k = name + Integer.toString(System.identityHashCode(extractor));
@@ -138,7 +139,7 @@ public class KeySorterTest
 		return(sideLoadedTruths.get(k));
 	}
 		
-	private static List<KeyItem> sideLoadKeySort(String name, KeyExtractor extractor) throws Exception {
+	private static List<KeyItem> sideLoadKeySort(String name, Extractor extractor) throws Exception {
 
 		InputStream stm = crs.getRepertoireStream(name);
 		InputStreamReader rdr = new InputStreamReader(stm);

@@ -12,24 +12,37 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
+import com.shutdownhook.vdj.vdjlib.RearrangementKey;
+import com.shutdownhook.vdj.vdjlib.RearrangementKey.KeyType;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 
 public class Searcher
 {
-	// +--------------+
-	// | SearchParams |
-	// +--------------+
+	// +------------------+
+	// | Setup & Teardown |
+	// +------------------+
 
-	public static class SearchParams
+	public static class Config
 	{
-		public RepertoireStore Store;
-		public String UserId;
-		public String Context;
+		public Integer MaxResults = 2000; // 0 == no max
+	}
+
+	public Searcher(Config cfg) {
+		this.cfg = cfg;
+	}
+	
+	// +--------+
+	// | Params |
+	// +--------+
+
+	public static class Params
+	{
+		public ContextRepertoireStore CRS;
 		public String[] Repertoires;
 		public String Motif;
-		public Boolean MotifIsAA = false;
-		public Integer AllowedMutations = 0;
+		public RearrangementKey.Extractor Extractor;
+		public RearrangementKey.Matcher Matcher;
 	}
 
 	// +-------------+
@@ -37,7 +50,7 @@ public class Searcher
 	// | search      |
 	// +-------------+
 
-	public static CompletableFuture<RepertoireResult[]> searchAsync(SearchParams params) {
+	public CompletableFuture<RepertoireResult[]> searchAsync(Params params) {
 
 		CompletableFuture<RepertoireResult[]> future = new CompletableFuture<RepertoireResult[]>();
 
@@ -58,71 +71,52 @@ public class Searcher
 		return(future);
 	}
 
-	private static RepertoireResult[] search(SearchParams params) throws Exception {
-
-		Repertoire[] repertoires = params.Store.getContextRepertoires(params.UserId, params.Context);
+	private RepertoireResult[] search(Params params) throws Exception {
 
 		RepertoireResult[] results = new RepertoireResult[params.Repertoires.length];
 		
-		List<CompletableFuture<List<Rearrangement>>> futures =
-			new ArrayList<CompletableFuture<List<Rearrangement>>>();
+		List<CompletableFuture<RepertoireResult>> futures =
+			new ArrayList<CompletableFuture<RepertoireResult>>();
 
 		for (int i = 0; i < params.Repertoires.length; ++i) {
-
-			results[i] = new RepertoireResult();
-			results[i].Repertoire = find(repertoires, params.Repertoires[i]);
-
-			if (results[i].Repertoire == null) {
-				throw new Exception(String.format("Repertoire %s not found", params.Repertoires[i]));
-			}
-			
-			futures.add(searchOneRepertoireAsync(params, params.Repertoires[i]));
+			Repertoire rep = params.CRS.findRepertoire(params.Repertoires[i]);
+			if (rep == null) throw new Exception(String.format("rep %s not found", params.Repertoires[i]));
+			futures.add(searchOneRepertoireAsync(params, rep));
 		}
 
 		CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()])).join();
 
 		for (int i = 0; i < params.Repertoires.length; ++i) {
-			results[i].Rearrangements = futures.get(i).get();
+			results[i] = futures.get(i).get();
 		}
 
 		return(results);
 	}
 
-	private static Repertoire find(Repertoire[] repertoires, String name) {
-		
-		for (Repertoire r : repertoires) {
-			if (r.Name.equals(name)) return(r);
-		}
-		
-		return(null);
-	}
-	
 	// +---------------------+
 	// | searchOneRepertoire |
 	// +---------------------+
 
-	public static CompletableFuture<List<Rearrangement>>
-		searchOneRepertoireAsync(SearchParams params, String repertoire) {
+	public CompletableFuture<RepertoireResult>
+		searchOneRepertoireAsync(Params params, Repertoire repertoire) {
 
-		CompletableFuture<List<Rearrangement>> future = 
-			new CompletableFuture<List<Rearrangement>>();
+		CompletableFuture<RepertoireResult> future = new CompletableFuture<RepertoireResult>();
 
 		Exec.getPool().submit(() -> {
-			List<Rearrangement> results = null;
+
 			try {
-				results = searchOneRepertoire(params, repertoire);
+				future.complete(searchOneRepertoire(params, repertoire));
 			}
 			catch (Exception e) {
 				log.warning(Utility.exMsg(e, "searchOneRepertoireAsync", true));
+				future.complete(null);
 			}
-			
-			future.complete(results);
 		});
 
 		return(future);
 	}
 
-	private static List<Rearrangement> searchOneRepertoire(SearchParams params, String repertoire)
+	private RepertoireResult searchOneRepertoire(Params params, Repertoire repertoire)
 		throws IOException {
 
 		InputStream stm = null;
@@ -130,24 +124,32 @@ public class Searcher
 		TsvReader tsv = null;
 
 		try {
-			stm = params.Store.getRepertoireStream(params.UserId, params.Context, repertoire);
+			stm = params.CRS.getRepertoireStream(repertoire);
 			rdr = new InputStreamReader(stm);
 			tsv = new TsvReader(rdr, 0);
 
-			List<Rearrangement> rearrangements = new ArrayList<Rearrangement>();
-
+			RepertoireResult result = new RepertoireResult();
+			result.Repertoire = repertoire;
+			result.Rearrangements = new ArrayList<Rearrangement>();
+			result.Truncated = false;
+			
 			Rearrangement r;
 			
 			while ((r = tsv.readNext()) != null) {
-				
-				if (matches(params.MotifIsAA ? r.AminoAcid : r.Rearrangement,
-							params.Motif, params.AllowedMutations)) {
-					
-					rearrangements.add(r);
+
+				String key = params.Extractor.extract(r);
+				if (params.Matcher.matches(params.Motif, key)) {
+
+					if (cfg.MaxResults != 0 && result.Rearrangements.size() == cfg.MaxResults) {
+						result.Truncated = true;
+						break;
+					}
+
+					result.Rearrangements.add(r);
 				}
 			}
 
-			return(rearrangements);
+			return(result);
 		}
 		finally {
 			if (tsv != null) Utility.safeClose(tsv);
@@ -157,41 +159,10 @@ public class Searcher
 	}
 
 	// +---------+
-	// | matches |
+	// | Members |
 	// +---------+
 
-	public static boolean matches(String input, String motif, int allowedMutations) {
-
-		if (Utility.nullOrEmpty(input)) return(false);
-		if (Utility.nullOrEmpty(motif)) return(false);
-		
-		int ichStart = 0;
-		int cchMotif = motif.length();
-		int ichInputMac = input.length() - cchMotif + 1;
-
-		if (ichInputMac <= 0) return(false);
-		
-		while (ichStart < ichInputMac) {
-
-			int mutsRemaining = allowedMutations;
-			int j = 0;
-			while (j < cchMotif) {
-				
-				if (input.charAt(ichStart + j) != motif.charAt(j)) {
-					if (mutsRemaining == 0) break;
-					--mutsRemaining;
-				}
-				
-				++j;
-			}
-			
-			if (j == cchMotif) return(true);
-			
-			++ichStart;
-		}
-
-		return(false);
-	}
+	private Config cfg;
 	
 	private final static Logger log = Logger.getLogger(Searcher.class.getName());
 }
