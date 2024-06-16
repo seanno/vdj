@@ -7,7 +7,7 @@ import { Button, FormControl, FormLabel, FormControlLabel,
 import RearrangementsTable from './RearrangementsTable.jsx';
 import { serverFetchSearch } from './lib/server.js';
 
-import styles from './Search.module.css'
+import styles from './Pane.module.css'
 
 export default memo(function SearchPane({ context, repertoires, params, rkey }) {
 

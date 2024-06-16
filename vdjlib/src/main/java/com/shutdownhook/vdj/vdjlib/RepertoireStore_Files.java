@@ -144,10 +144,26 @@ public class RepertoireStore_Files implements RepertoireStore
 		try {
 			// remove from context
 			Repertoire[] newReps = Repertoire.remove(getContextRepertoires(userId, ctx), name);
-			saveContextRepertoires(userId, ctx, newReps);
+			if (newReps.length == 0) {
+				getContextFile(userId, ctx).delete();
+			}
+			else {
+				saveContextRepertoires(userId, ctx, newReps);
+			}
 
 			// remove file
 			getRepertoireFile(userId, ctx, name).delete();
+
+			// remove context dir if this was the last repertoire
+			if (newReps.length == 0) {
+				try {
+					Utility.recursiveDelete(getContextDir(userId, ctx));
+				}
+				catch (Exception eDir) {
+					log.warning(Utility.exMsg(eDir, "context dir delete (non-fatal)", false));
+				}
+			}
+
 			return(true);
 		}
 		catch (Exception e) {

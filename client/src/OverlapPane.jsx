@@ -6,7 +6,7 @@ import { Button, FormControl, FormLabel,
 import RearrangementsTable from './RearrangementsTable.jsx';
 import { serverFetchOverlap } from './lib/server.js';
 
-import styles from './Overlap.module.css'
+import styles from './Pane.module.css'
 import tableStyles from './Tables.module.css';
 
 export default memo(function OverlapPane({ context, repertoires, addTab, rkey }) {

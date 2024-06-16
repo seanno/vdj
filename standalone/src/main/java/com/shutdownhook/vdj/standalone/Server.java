@@ -138,7 +138,7 @@ public class Server implements Closeable
 	// GET    /api/contexts/CTX      => return repertoires in context CTX
 	// GET    /api/contexts/CTX/REP  => return repertoire REP in context CTX (QS start/count)
 	// POST   /api/contexts/CTX/REP  => save repertoire from body into REP context CTX (QS user)
-	// DELETE /api/contexts/CTX/REP  => delete repertoire REP in context CTX
+	// DELETE /api/contexts/CTX/REPS => delete repertoire(s) REPS in context CTX
 
 	// GET    /api/search/CTX/REPS   => search REPS in CTX for (QS motif/type/muts/full)
 
@@ -187,10 +187,10 @@ public class Server implements Closeable
 							break;
 
 						case "DELETE":
-							if (info.ContextName != null && info.RepertoireName != null) {
-								// delete repertoire
+							if (info.ContextName != null && info.RepertoireNames != null) {
+								// delete repertoires
 								handled = true;
-								deleteRepertoire(info);
+								deleteRepertoires(info);
 							}
 							break;
 					}
@@ -375,13 +375,30 @@ public class Server implements Closeable
 		}
 	}
 
-	// +------------------+
-	// | deleteRepertoire |
-	// +------------------+
+	// +-------------------+
+	// | deleteRepertoires |
+	// +-------------------+
+
+	static public class DeleteResponse
+	{
+		public String Name;
+		public String Result;
+	}
 	
-	private void deleteRepertoire(ApiInfo info) throws Exception {
-		// nyi
-		info.Response.setText("NYI");
+	private void deleteRepertoires(ApiInfo info) throws Exception {
+
+		DeleteResponse[] responses = new DeleteResponse[info.RepertoireNames.length];
+
+		for (int i = 0; i < info.RepertoireNames.length; ++i) {
+			
+			responses[i] = new DeleteResponse();
+			responses[i].Name = info.RepertoireNames[i];
+
+			boolean ok = store.deleteRepertoire(info.UserId, info.ContextName, info.RepertoireNames[i]);
+			responses[i].Result = (ok ? "Deleted OK" : "Error");
+		}
+		
+		info.Response.setJson(gson.toJson(responses));
 	}
 
 	// +-------------------+

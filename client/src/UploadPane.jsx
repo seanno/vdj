@@ -6,7 +6,7 @@ import { Button, FormControl, FormLabel, FormControlLabel,
 
 import { serverFetchUser, serverFetchUpload } from './lib/server.js';
 
-import styles from './Upload.module.css'
+import styles from './Pane.module.css'
 
 export default memo(function UploadPane({ context, rkey }) {
 
@@ -80,8 +80,8 @@ export default memo(function UploadPane({ context, rkey }) {
 
   function renderUploadForm() {
 
-	const readyToUpload = (contextName.length > 0 &&
-						   repertoireName.length > 0 &&
+	const readyToUpload = (contextName && contextName.length > 0 &&
+						   repertoireName && repertoireName.length > 0 &&
 						   file !== undefined);
 	
 	return(
@@ -142,7 +142,7 @@ export default memo(function UploadPane({ context, rkey }) {
   // +-----------------+
 
   function renderUploading() {
-	return(<div className={styles.msg}>Uploading...</div>);
+	return(<div className={styles.hdr}>Uploading...</div>);
   }
 
   // +-----------+
@@ -152,8 +152,8 @@ export default memo(function UploadPane({ context, rkey }) {
   function renderMsg(msg, showClose) {
 	return(
 	  <>
-		<div className={styles.msg}>{msg}</div>
-		{ showClose && <div className={styles.msg}>Close this tab with the [X] icon above.</div> }
+		<div className={styles.hdr}>{msg}</div>
+		{ showClose && <div className={styles.hdr}>Close this tab with the [X] icon above.</div> }
 	  </>
 	);
   }

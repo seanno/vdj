@@ -9,6 +9,7 @@ import OverlapPane from "./OverlapPane.jsx";
 import SearchPane from "./SearchPane.jsx";
 import UploadPane from "./UploadPane.jsx";
 import TopXPane from "./TopXPane.jsx";
+import DeletePane from "./DeletePane.jsx";
 
 import styles from './App.module.css'
 
@@ -128,6 +129,11 @@ export default function App() {
 
 				{ t.view === 'upload' && <UploadPane
 										   context={t.context}
+										   rkey={`p-${t.name}`} /> }
+
+				{ t.view === 'delete' && <DeletePane
+										   context={t.context}
+										   repertoires={t.repertoires} 
 										   rkey={`p-${t.name}`} /> }
 			  </div>
 			);

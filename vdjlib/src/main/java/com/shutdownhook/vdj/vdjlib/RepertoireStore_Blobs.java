@@ -144,10 +144,18 @@ public class RepertoireStore_Blobs implements RepertoireStore
 		try {
 			// remove from context
 			Repertoire[] newReps = Repertoire.remove(getContextRepertoires(userId, ctx), name);
-			if (!saveContextRepertoires(userId, ctx, newReps)) return(false);
+			if (newReps.length == 0) {
+				// by doing this we effectively delete the context too, since
+				// there is no "directory" when there are no files in it.
+				getContextFileBlob(userId, ctx).delete();
+			}
+			else if (!saveContextRepertoires(userId, ctx, newReps)) {
+				return(false);
+			}
 
 			// remove file
 			getRepertoireBlob(userId, ctx, name).delete();
+
 			return(true);
 		}
 		catch (Exception e) {

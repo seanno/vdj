@@ -82,6 +82,18 @@ export default function NavigationBar({ addTab, clearTabs, showError }) {
 	addTab(newTab);
   }
 
+  function openDelete() {
+
+	const newTab = {
+	  view: 'delete',
+	  name: 'Delete',
+	  context: selectedContext,
+	  repertoires: selectedRepertoires
+	};
+
+	addTab(newTab);
+  }
+
   // +--------+
   // | Render |
   // +--------+
@@ -146,11 +158,22 @@ export default function NavigationBar({ addTab, clearTabs, showError }) {
 
 	  <Button
 		variant='contained'
-		sx={{ mt: 4, mr: 1, mb: 1, display: 'block'  }}
+		sx={{ mt: 4, mr: 1, mb: 1  }}
 		onClick={openUpload}>
 		Upload
 	  </Button>
+
+	  { selectedContext &&
 		
+		<Button
+		  variant='contained'
+		  sx={{ mt: 4, mr: 1, mb: 1 }}
+		  disabled={selectionCount() < 1}
+		  onClick={openDelete}>
+		  Delete
+		</Button>
+	  }
+	  
 	</div>
 	
   );

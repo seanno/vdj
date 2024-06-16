@@ -75,11 +75,21 @@ export async function serverFetchUpload(userId, context, repertoire, file) {
   return(await serverFetch(url, file, contentType));
 }
 
+export async function serverFetchDelete(ctx, reps) {
+
+  const url =
+		'/contexts/' + encodeURIComponent(ctx) +
+		'/' + encodeURIComponent(reps.map((r) => r.Name).join(',')) 
+
+  return(await serverFetch(url, undefined,
+						   'application/json', 'DELETE'));
+}
+
 // +-------------+
 // | serverFetch |
 // +-------------+
 
-export async function serverFetch(relativeUrl, body, contentType = 'application/json') {
+export async function serverFetch(relativeUrl, body, contentType = 'application/json', method = undefined) {
 
   const url = window.serverBase + 'api' + relativeUrl;
     // don't think we need this but will save just in case
@@ -87,7 +97,7 @@ export async function serverFetch(relativeUrl, body, contentType = 'application/
 	// 	"rand=" + Math.random();
 
   const options = {
-	method: (body ? 'POST' : 'GET'),
+	method: (method ? method : (body ? 'POST' : 'GET')),
 	headers: { }
   }
 
