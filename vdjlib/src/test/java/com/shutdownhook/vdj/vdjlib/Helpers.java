@@ -7,6 +7,7 @@ import java.io.Closeable;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -25,6 +26,20 @@ public class Helpers
 						   "[%1$tF %1$tT] [%4$-7s] %5$s %n");
     }
 	
+	// +-------------------+
+	// | stringFromProcess |
+	// +-------------------+
+
+	public static String stringFromProcess(String cmdLine) throws Exception {
+		String[] commands = new String[] { "bash", "-c", cmdLine};
+		ProcessBuilder pb = new ProcessBuilder(commands);
+		Process p = pb.start();
+
+		String output = new String(p.getInputStream().readAllBytes(),
+								   StandardCharsets.UTF_8);
+		return(output);
+	}
+
 	// +----------------------+
 	// | ResourceStreamReader |
 	// +----------------------+

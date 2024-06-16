@@ -65,6 +65,9 @@ public class TsvReceiverTest
 		truth.assertRepertoire(findRepertoireInStore(TEST_USER, TEST_CONTEXT, name));
 
 		rdr.close();
+
+		Assert.assertTrue(store.get().deleteRepertoire(TEST_USER, TEST_CONTEXT, name));
+		Assert.assertNull(findRepertoireInStore(TEST_USER, TEST_CONTEXT, name));
 	}
 
 	private Repertoire findRepertoireInStore(String userId, String ctx, String rep) {

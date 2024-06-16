@@ -15,8 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.util.logging.Logger;
 
-import com.google.gson.Gson;
-
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 
 public class RepertoireStore_Files implements RepertoireStore 
@@ -125,17 +123,9 @@ public class RepertoireStore_Files implements RepertoireStore
 
 	public boolean commitRepertoireToContext(String userId, String ctx, Repertoire r) {
 
-		Repertoire[] oldReps = getContextRepertoires(userId, ctx);
-		Repertoire[] newReps = new Repertoire[oldReps.length + 1];
-
-		for (int i = 0; i < oldReps.length; ++i) newReps[i] = oldReps[i];
-		newReps[oldReps.length] = r;
-
-		String newJson = Repertoire.toJsonArray(newReps);
-
 		try {
-			File contextFile = getContextFile(userId, ctx);
-			Utility.stringToFile(contextFile.getAbsolutePath(), newJson);
+			Repertoire[] newReps = Repertoire.append(getContextRepertoires(userId, ctx), r);
+			saveContextRepertoires(userId, ctx, newReps);
 			return(true);
 		}
 		catch (IOException e) {
@@ -149,50 +139,20 @@ public class RepertoireStore_Files implements RepertoireStore
 	// | deleteRepertoire |
 	// +------------------+
 
-	public boolean deleteRepertoire(String userId, String ctx, String rep) {
+	public boolean deleteRepertoire(String userId, String ctx, String name) {
 
-		removeRepertoireFromContext(userId, ctx, rep);
-
-		boolean success = false;
-		
 		try {
-			getRepertoireFile(userId, ctx, rep).delete();
-			success = true;
+			// remove from context
+			Repertoire[] newReps = Repertoire.remove(getContextRepertoires(userId, ctx), name);
+			saveContextRepertoires(userId, ctx, newReps);
+
+			// remove file
+			getRepertoireFile(userId, ctx, name).delete();
+			return(true);
 		}
 		catch (Exception e) {
-			log.warning(String.format("Exception deleting rep %s/%s/%s", userId, ctx, rep));
-		}
-				
-		return(success);
-	}
-
-	private void removeRepertoireFromContext(String userId, String ctx, String rep) {
-
-		Repertoire[] oldReps = getContextRepertoires(userId, ctx);
-
-		int irepFound;
-		for (irepFound = 0; irepFound < oldReps.length; ++irepFound) {
-			if (oldReps[irepFound].Name.equals(rep)) break;
-		}
-
-		if (irepFound == oldReps.length) return;
-
-		Repertoire[] newReps = new Repertoire[oldReps.length - 1];
-
-		int irepNew = 0;
-		for (int irep = 0; irep < oldReps.length; ++irep) {
-			if (irep != irepFound) newReps[irepNew++] = oldReps[irep];
-		}
-
-		String newJson = Repertoire.toJsonArray(newReps);
-
-		try {
-			File contextFile = getContextFile(userId, ctx);
-			Utility.stringToFile(contextFile.getAbsolutePath(), newJson);
-		}
-		catch (IOException e) {
-			String msg = String.format("removeRepertoireFromContext %s/%s", userId, ctx);
-			log.warning(Utility.exMsg(e, msg, true));
+			log.warning(Utility.exMsg(e, "deleteRepertoire", true));
+			return(false);
 		}
 	}
 
@@ -228,14 +188,18 @@ public class RepertoireStore_Files implements RepertoireStore
 		return(input.replaceAll("\\W+", "_"));
 	}
 
+	private void saveContextRepertoires(String userId, String ctx, Repertoire[] reps) throws IOException {
+		String json = Repertoire.toJsonArray(reps);
+		File contextFile = getContextFile(userId, ctx);
+		Utility.stringToFile(contextFile.getAbsolutePath(), json);
+	}
+
 	// +---------+
 	// | Members |
 	// +---------+
 
 	private Config cfg;
 	private File baseDir;
-
-	private static Gson gson = new Gson();
 
 	private final static Logger log = Logger.getLogger(RepertoireStore_Files.class.getName());
 }

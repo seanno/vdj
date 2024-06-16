@@ -28,18 +28,17 @@ public class ContextRepertoireStore
 		return(repertoires);
 	}
 
-	public synchronized Repertoire findRepertoire(String rep) throws IOException {
+	public synchronized Repertoire findRepertoire(String name) throws IOException {
 		
 		ensureRepertoires();
-		
-		for (int i = 0; i < repertoires.length; ++i) {
-			if (repertoires[i].Name.equals(rep)) return(repertoires[i]);
-		}
+		Repertoire rep = Repertoire.find(repertoires, name);
 
-		log.warning(String.format("Repertoire %s not found in %s/%s",
-								  rep, userId, context));
+		if (rep == null) {
+			log.warning(String.format("Repertoire %s not found in %s/%s",
+									  rep, userId, context));
+		}
 		
-		return(null);
+		return(rep);
 	}
 
 	// +---------------------+

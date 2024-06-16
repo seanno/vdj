@@ -4,16 +4,14 @@
 
 package com.shutdownhook.vdj.vdjlib;
 
-import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
@@ -29,9 +27,19 @@ public class Utility
 		return(s == null || s.isEmpty());
 	}
 
-	// +------+
-	// | Hash |
-	// +------+
+	// +--------------------+
+	// | Encodings / Hashes |
+	// +--------------------+
+
+	public static String urlDecode(String input) {
+		try { return(URLDecoder.decode(input, "UTF-8")); }
+		catch (UnsupportedEncodingException e) { return(null); } // won't happen
+	}
+
+	public static String urlEncode(String input) {
+		try { return(URLEncoder.encode(input, "UTF-8")); }
+		catch (UnsupportedEncodingException e) { return(null); } // won't happen
+	}
 
 	public static String sha256(String input) {
 
