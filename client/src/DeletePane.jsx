@@ -8,6 +8,7 @@ import styles from './Pane.module.css'
 
 export default memo(function DeletePane({ context,
 										  repertoires,
+										  refresh,
 										  rkey }) {
 
   const [startDelete, setStartDelete] = useState(false);
@@ -26,6 +27,7 @@ export default memo(function DeletePane({ context,
 	  serverFetchDelete(context, repertoires) 
 		.then(result => {
 		  setResponse(result);
+		  refresh();
 		})
 		.catch(error => {
 		  console.error(error);

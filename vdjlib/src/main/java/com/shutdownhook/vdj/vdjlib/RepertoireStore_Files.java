@@ -99,6 +99,7 @@ public class RepertoireStore_Files implements RepertoireStore
 	public OutputStream getRepertoireSaveStream(String userId, String ctx, String rep) {
 
 		try {
+			getContextDir(userId, ctx).mkdirs();
 			File tsvFile = getRepertoireFile(userId, ctx, rep);
 			
 			if (tsvFile.exists()) {
@@ -186,10 +187,7 @@ public class RepertoireStore_Files implements RepertoireStore
 	}
 
 	private File getContextDir(String userId, String ctx) {
-		File contextDir = new File(getUserDir(userId), ctx);
-		contextDir.mkdirs();
-
-		return(contextDir);
+		return(new File(getUserDir(userId), ctx));
 	}
 
 	private File getContextFile(String userId, String ctx) {
@@ -206,6 +204,7 @@ public class RepertoireStore_Files implements RepertoireStore
 
 	private void saveContextRepertoires(String userId, String ctx, Repertoire[] reps) throws IOException {
 		String json = Repertoire.toJsonArray(reps);
+		getContextDir(userId, ctx).mkdirs();
 		File contextFile = getContextFile(userId, ctx);
 		Utility.stringToFile(contextFile.getAbsolutePath(), json);
 	}

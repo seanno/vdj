@@ -8,7 +8,7 @@ import { serverFetchUser, serverFetchUpload } from './lib/server.js';
 
 import styles from './Pane.module.css'
 
-export default memo(function UploadPane({ context, rkey }) {
+export default memo(function UploadPane({ context, refresh, rkey }) {
 
   const [userInfo, setUserInfo] = useState(undefined);
   const [confirmation, setConfirmation] = useState(undefined);
@@ -62,6 +62,7 @@ export default memo(function UploadPane({ context, rkey }) {
 	  serverFetchUpload(userId, contextName, repertoireName, file)
 		.then(result => {
 		  setConfirmation(result);
+		  refresh();
 		})
 		.catch(error => {
 		  console.error(error);

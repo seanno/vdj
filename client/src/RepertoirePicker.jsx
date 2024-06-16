@@ -8,6 +8,7 @@ import { List, ListItem, ListItemButton, ListItemIcon,
 export default function RepertoirePicker({ selectedContext,
 										   selectedRepertoires,
 										   onRepertoiresChange,
+										   refreshCounter,
 										   showError }) {
 
   const [repertoireList,setRepertoireList] = useState(undefined);
@@ -56,6 +57,7 @@ export default function RepertoirePicker({ selectedContext,
 	  serverFetchRepertoires(selectedContext)
 		.then(result => {
 		  setRepertoireList(result);
+		  onRepertoiresChange([]);
 		})
 		.catch(error => {
 		  console.error(error);
@@ -65,7 +67,7 @@ export default function RepertoirePicker({ selectedContext,
 
 	loadRepertoires();
 	
-  }, [selectedContext]);
+  }, [selectedContext, refreshCounter]);
 
   // +--------+
   // | Render |

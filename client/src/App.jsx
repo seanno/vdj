@@ -19,6 +19,8 @@ export default function App() {
   const [tabs, setTabs] = useState([]);
   const [tabValue, setTabValue] = useState(undefined);
 
+  const [refreshCounter, setRefreshCounter] = useState(1);
+
   function showError(msg) {
 	setError(msg);
   }
@@ -62,6 +64,10 @@ export default function App() {
   function handleTabChange(evt, newValue) {
 	setTabValue(newValue);
   };
+
+  function refreshNav() {
+	setRefreshCounter(refreshCounter + 1);
+  }
 
   // +--------+
   // | render |
@@ -129,11 +135,13 @@ export default function App() {
 
 				{ t.view === 'upload' && <UploadPane
 										   context={t.context}
+										   refresh={refreshNav}
 										   rkey={`p-${t.name}`} /> }
 
 				{ t.view === 'delete' && <DeletePane
 										   context={t.context}
-										   repertoires={t.repertoires} 
+										   repertoires={t.repertoires}
+										   refresh={refreshNav}
 										   rkey={`p-${t.name}`} /> }
 			  </div>
 			);
@@ -149,7 +157,11 @@ export default function App() {
     <div className={styles.main}>
 
 	  <div className={styles.nav}>
-		<NavigationBar addTab={addTab} clearTabs={clearTabs} showError={showError} />
+		<NavigationBar
+		  addTab={addTab}
+		  clearTabs={clearTabs}
+		  showError={showError}
+		  refreshCounter={refreshCounter} />
 	  </div>
 
 	  <div className={styles.tabs}>

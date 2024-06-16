@@ -4,7 +4,7 @@ import { Button, Modal, TextField } from '@mui/material';
 import ContextPicker from './ContextPicker.jsx';
 import RepertoirePicker from './RepertoirePicker.jsx';
 
-export default function NavigationBar({ addTab, clearTabs, showError }) {
+export default function NavigationBar({ addTab, clearTabs, showError, refreshCounter }) {
 
   const [selectedContext, setSelectedContext] = useState(undefined);
   const [selectedRepertoires,setSelectedRepertoires] = useState([]);
@@ -111,6 +111,7 @@ export default function NavigationBar({ addTab, clearTabs, showError }) {
 		selectedContext={ selectedContext }
 		selectedRepertoires={ selectedRepertoires }
 		onRepertoiresChange={ onRepertoiresChange }
+		refreshCounter={ refreshCounter }
 		ShowError={ showError }
 	  />
 

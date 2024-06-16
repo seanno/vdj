@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.logging.Logger;
 
 public class Utility
 {
@@ -76,7 +77,7 @@ public class Utility
 	}
 
 	public static void recursiveDelete(File file) throws Exception {
-		
+
 		if (!file.exists()) return;
 
 		if (file.isDirectory()) {
@@ -111,5 +112,6 @@ public class Utility
 		return(sw.toString());
 	}
 
+	private final static Logger log = Logger.getLogger(Utility.class.getName());
 	
 }
