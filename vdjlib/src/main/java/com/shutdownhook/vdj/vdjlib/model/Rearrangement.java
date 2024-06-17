@@ -37,7 +37,7 @@ public class Rearrangement
 	// On-Demand calculations
 
 	public double getFractionOfLocus(Repertoire repertoire) {
-		return(((double) Count) / ((double) repertoire.LocusCounts.get(Locus)));
+		return(((double) Count) / ((double) repertoire.LocusCounts.get(Locus.getGroup())));
 	}
 
 	public double getFractionOfCount(Repertoire repertoire) {

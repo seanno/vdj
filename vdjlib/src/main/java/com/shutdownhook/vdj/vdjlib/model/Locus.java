@@ -1,16 +1,25 @@
 //
-// FRAMETYPE.JAVA
+// LOCUS.JAVA
 // 
 
 package com.shutdownhook.vdj.vdjlib.model;
 
 public enum Locus
 {
-	TCRAD,
-	TCRB,
-	TCRG,
-	IGH,
-	IGKL;
+	TCRAD(LocusGroup.TCRAD),
+	TCRB(LocusGroup.TCRB),
+	TCRG(LocusGroup.TCRG),
+	IGH(LocusGroup.IGH),
+	DJ(LocusGroup.IGH),
+	IGK(LocusGroup.IGKL),
+	IGL(LocusGroup.IGKL);
+
+	private Locus(LocusGroup group) {
+		this.group = group;
+	}
+
+	private LocusGroup group;
+	public LocusGroup getGroup() { return(group); }
 
 	public static Locus fromGene(String v, String d, String j,
 								 String vTies, String dTies, String jTies) throws IllegalArgumentException {
@@ -31,8 +40,9 @@ public enum Locus
 		}
 		else if (gene.startsWith("IG")) {
 			switch (gene.substring(2, 3)) {
-				case "H": return(Locus.IGH);
-				default: return(Locus.IGKL);
+				case "H": return((v.isEmpty() && vTies.isEmpty()) ? Locus.DJ : Locus.IGH);
+				case "K": return(Locus.IGK);
+				default: return(Locus.IGL);
 			}
 		}
 		throw new IllegalArgumentException("Bad Locus: " + gene);

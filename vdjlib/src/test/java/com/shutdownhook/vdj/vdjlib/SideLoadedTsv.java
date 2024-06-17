@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 
 import com.shutdownhook.vdj.vdjlib.model.Locus;
+import com.shutdownhook.vdj.vdjlib.model.LocusGroup;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 
@@ -131,8 +132,8 @@ public class SideLoadedTsv
 
 		Assert.assertEquals(repertoire.LocusCounts.size(), r.LocusCounts.size());
 		
-		for (Locus locus : repertoire.LocusCounts.keySet()) {
-			Assert.assertEquals(repertoire.LocusCounts.get(locus), r.LocusCounts.get(locus));
+		for (LocusGroup group : repertoire.LocusCounts.keySet()) {
+			Assert.assertEquals(repertoire.LocusCounts.get(group), r.LocusCounts.get(group));
 		}
 	}
 
@@ -225,9 +226,9 @@ public class SideLoadedTsv
 		if (gene.startsWith("TCRB")) return(Locus.TCRB);
 		if (gene.startsWith("TCRG")) return(Locus.TCRG);
 		if (gene.startsWith("TCRAD")) return(Locus.TCRAD);
-		if (gene.startsWith("IGH")) return(Locus.IGH);
-		if (gene.startsWith("IGK")) return(Locus.IGKL);
-		if (gene.startsWith("IGL")) return(Locus.IGKL);
+		if (gene.startsWith("IGH")) return((v.isEmpty() && vTies.isEmpty()) ? Locus.DJ : Locus.IGH);
+		if (gene.startsWith("IGK")) return(Locus.IGK);
+		if (gene.startsWith("IGL")) return(Locus.IGL);
 		return(null);
 	}
 
