@@ -2,6 +2,7 @@
 import { memo, useState, useEffect } from 'react';
 import { Button, Snackbar } from '@mui/material';
 import RearrangementsTable from './RearrangementsTable.jsx';
+import RepertoireHeader from './RepertoireHeader.jsx';
 import { serverFetchRepertoire } from './lib/server.js';
 
 export default memo(function DetailsPane({ context, repertoire, rkey }) {
@@ -68,6 +69,8 @@ export default memo(function DetailsPane({ context, repertoire, rkey }) {
 
 	<div>
 
+	  <RepertoireHeader repertoire={repertoire} rkey={rkey} />
+	  
 	  { renderPaging() }
 	  <RearrangementsTable rearrangements={rows} rkey={rkey} />
 

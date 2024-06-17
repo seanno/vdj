@@ -3,6 +3,7 @@ import { memo, useState, useEffect } from 'react';
 import { FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 
 import RearrangementsTable from './RearrangementsTable.jsx';
+import RepertoireHeader from './RepertoireHeader.jsx';
 import { serverFetchTopX } from './lib/server.js';
 
 import styles from './TopX.module.css'
@@ -44,6 +45,8 @@ export default memo(function TopXPane({ context, repertoire, rkey }) {
   return(
 
 	<div className={styles.container}>
+
+	  <RepertoireHeader repertoire={repertoire} rkey={rkey} />
 
 	  <div className={styles.select}>
 		<FormControl fullWidth>
