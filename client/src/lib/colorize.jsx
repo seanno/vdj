@@ -2,26 +2,16 @@ import { createElement } from 'react';
 
 export function colorizeRearrangement(r) {
 
-  const colorClasses = ['L','V','N1','D','N2','J','R'];
+  // set up our array of indices - "C" is for the start of CDR3 if called
 
-  // set up up array of segment indices, computing end of CDR3 by scanning for the
-  // first called gene. All of this is a bit over-generalized but imnsho it makes
-  // the code a lot more tolarable than a million if/thens
+  const colorClasses = ['V', 'C', 'V', 'N1', 'D', 'N2', 'J'];
   
-  const indices = [0, r.VIndex, r.N1Index, r.DIndex, r.N2Index, r.JIndex, -1, r.Rearrangement.length];
+  const indices = [0, r.VIndex, (r.VIndex === -1 ? -1 : r.VIndex + 3),
+				   r.N1Index, r.DIndex, r.N2Index, r.JIndex, r.Rearrangement.length];
   
-  for (var i = 1; i < 5; ++i) {
-	if (indices[i] !== -1) {
-	  indices[6] = indices[i] + r.Cdr3Length;
-	  break;
-	}
-  }
-
-  // console.log("BEFORE: " + JSON.stringify(indices));
-  
-  // fix up broken calls. in convo with Lik Wee & Lanny, it seems that our
-  // J calls are "more trustable" that D/N1... so we do this correction right
-  // to left which encapsulates that. May have to keep playing with this!
+  // fix up out-of-order calls. in convo with Lik Wee & Lanny, it seems that our
+  // J calls are "more trustable" that D/N1... so we do this correction right to left
+  // which encapsulates that. May have to keep playing with this!
 
   var runningMin = indices[indices.length-1];
   for (var i = indices.length - 2; i >=0; i--) {
@@ -33,11 +23,9 @@ export function colorizeRearrangement(r) {
 	  runningMin = indices[i];
 	}
   }
-	
-  // console.log(" AFTER: " + JSON.stringify(indices));
 
-  var jsx = [];
-
+  const jsx = [];
+  
   for (var i = 0; i < colorClasses.length; ++i) {
 
 	// only render this segment if start index exists

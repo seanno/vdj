@@ -110,22 +110,22 @@ public class TsvReader implements Closeable
 
 		// string values
 		
-		r.Rearrangement = fields[headerIndices[IHDR_REARRANGEMENT]].trim();
-		r.AminoAcid = fields[headerIndices[IHDR_AMINOACID]].trim();
-		r.VResolved = fields[headerIndices[IHDR_VRESOLVED]].trim();
-		r.DResolved = fields[headerIndices[IHDR_DRESOLVED]].trim();
-		r.JResolved = fields[headerIndices[IHDR_JRESOLVED]].trim();
+		r.Rearrangement = getField(fields, IHDR_REARRANGEMENT);
+		r.AminoAcid = getField(fields, IHDR_AMINOACID);
+		r.VResolved = getField(fields, IHDR_VRESOLVED);
+		r.DResolved = getField(fields, IHDR_DRESOLVED);
+		r.JResolved = getField(fields, IHDR_JRESOLVED);
 		
 		// parsed values
 
-		String strFrameType = fields[headerIndices[IHDR_FRAMETYPE]].trim();
-		String strCount = fields[headerIndices[IHDR_COUNT]].trim();
-		String strCdr3Length = fields[headerIndices[IHDR_CDR3LENGTH]].trim();
-		String strVIndex = fields[headerIndices[IHDR_VINDEX]].trim();
-		String strDIndex = fields[headerIndices[IHDR_DINDEX]].trim();
-		String strJIndex = fields[headerIndices[IHDR_JINDEX]].trim();
-		String strN1Index = fields[headerIndices[IHDR_N1INDEX]].trim();
-		String strN2Index = fields[headerIndices[IHDR_N2INDEX]].trim();
+		String strFrameType = getField(fields, IHDR_FRAMETYPE);
+		String strCount = getField(fields, IHDR_COUNT);
+		String strCdr3Length = getField(fields, IHDR_CDR3LENGTH);
+		String strVIndex = getField(fields,IHDR_VINDEX);
+		String strDIndex = getField(fields, IHDR_DINDEX);
+		String strJIndex = getField(fields, IHDR_JINDEX);
+		String strN1Index = getField(fields, IHDR_N1INDEX);
+		String strN2Index = getField(fields, IHDR_N2INDEX);
 		String strVSHMIndices = optionalField(fields, IHDR_VSHMINDICES);
 
 		r.FrameType = FrameType.valueOf(strFrameType);
@@ -138,21 +138,21 @@ public class TsvReader implements Closeable
 		r.N2Index = Integer.parseInt(strN2Index);
 
 		r.Locus = Locus.fromGene(r.VResolved, r.DResolved, r.JResolved,
-								 fields[headerIndices[IHDR_VFAMILY_TIES]].trim(),
-								 fields[headerIndices[IHDR_DFAMILY_TIES]].trim(),
-								 fields[headerIndices[IHDR_JFAMILY_TIES]].trim());
+								 getField(fields, IHDR_VFAMILY_TIES),
+								 getField(fields, IHDR_DFAMILY_TIES),
+								 getField(fields, IHDR_JFAMILY_TIES));
 
 		r.VSHMIndices = Rearrangement.VSHMCsvToIndices(strVSHMIndices);
 
 		if (cellCount == null) {
 
 			if (headerIndices[IHDR_CELLS] != IDX_MISSING_FIELD) {
-				String strCells = fields[headerIndices[IHDR_CELLS]].trim();
+				String strCells = getField(fields, IHDR_CELLS);
 				if (!strCells.isEmpty()) cellCount = Long.parseLong(strCells);
 			}
 
 			if (cellCount == null && headerIndices[IHDR_CELLS_EST] != IDX_MISSING_FIELD) {
-				String strCells = fields[headerIndices[IHDR_CELLS_EST]].trim();
+				String strCells = getField(fields, IHDR_CELLS_EST);
 				if (!strCells.isEmpty()) cellCount = Long.parseLong(strCells);
 			}
 		}
@@ -298,7 +298,11 @@ public class TsvReader implements Closeable
 		if (line != null && peeker != null) peeker.peek(line);
 		return(line);
 	}
-		
+
+	private String getField(String[] fields, int ihdr) {
+		return(headerIndices[ihdr] < fields.length ? fields[headerIndices[ihdr]].trim() : "");
+	}
+
 	// +---------+
 	// | Members |
 	// +---------+

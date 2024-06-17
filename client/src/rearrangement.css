@@ -1,7 +1,6 @@
-.L  { color: grey; font-family: 'Courier New'; font-weight: bold }
-.V  { color: #00aa00; font-family: 'Courier New'; font-weight: bold }
-.N1 { color: pink; font-family: 'Courier New'; font-weight: bold }
-.D  { color: blue; font-family: 'Courier New'; font-weight: bold }
-.N2 { color: purple; font-family: 'Courier New'; font-weight: bold }
-.J  { color: gold; font-family: 'Courier New'; font-weight: bold }
-.R  { color: grey; font-family: 'Courier New'; font-weight: bold }
+.V  { color: #909090; font-family: 'Courier New'; font-weight: bold }
+.C  { color: #ffffff; font-family: 'Courier New'; font-weight: bold; background-color: #c0c0c0 }
+.N1 { color: #ac15a8; font-family: 'Courier New'; font-weight: bold }
+.D  { color: #397193; font-family: 'Courier New'; font-weight: bold }
+.N2 { color: #c80259; font-family: 'Courier New'; font-weight: bold }
+.J  { color: #e78800; font-family: 'Courier New'; font-weight: bold }
