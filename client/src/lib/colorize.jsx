@@ -15,6 +15,7 @@ export function colorizeRearrangement(r) {
 
   var runningMin = indices[indices.length-1];
   for (var i = indices.length - 2; i >=0; i--) {
+	if (indices[i] < -1) { indices[i] = -1; continue; } // wtf man
 	if (indices[i] == -1) continue;
 	if (indices[i] > runningMin) {
 	  indices[i] = -1; // must be wrong
