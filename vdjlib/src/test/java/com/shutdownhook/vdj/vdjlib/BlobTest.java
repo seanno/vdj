@@ -86,6 +86,10 @@ public class BlobTest
 		truth.assertRepertoire(Repertoire.find(reps, name));
 
 		rdr.close();
+
+		String[] contexts = store.getUserContexts(TEST_USER);
+		Assert.assertEquals(1, contexts.length);
+		Assert.assertEquals(TEST_CONTEXT, contexts[0]);
 		
 		Assert.assertTrue(store.deleteRepertoire(TEST_USER, TEST_CONTEXT, name));
 		reps = store.getContextRepertoires(TEST_USER, TEST_CONTEXT);

@@ -28,6 +28,7 @@ import com.shutdownhook.vdj.vdjlib.RearrangementKey.KeyType;
 import com.shutdownhook.vdj.vdjlib.RepertoireResult;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore_Files;
+import com.shutdownhook.vdj.vdjlib.RepertoireStore_Blobs;
 import com.shutdownhook.vdj.vdjlib.Overlap;
 import com.shutdownhook.vdj.vdjlib.Searcher;
 import com.shutdownhook.vdj.vdjlib.TopXRearrangements;
@@ -56,8 +57,11 @@ public class Server implements Closeable
 		// config and require a restart! Key is UserId.
 		public Map<String,UserInfo> UserInfos;
 		
-		// for now just hardcode in a RepertoireStore_Files
+		// Only one of these should be provided. Sorry for the name
+		// inconsistency, I didn't want to go back and change a bunch
+		// of existing config files
 		public RepertoireStore_Files.Config RepertoireStore;
+		public RepertoireStore_Blobs.Config RepertoireStoreBlobs;
 
 		public String LoggingConfigPath = "@logging.properties";
 
@@ -106,7 +110,7 @@ public class Server implements Closeable
 
 		this.gson = new Gson();
 
-		store = new RepertoireStore_Files(cfg.RepertoireStore);
+		store = createStore();
 
 		searcher = new Searcher(cfg.Searcher);
 		topx = new TopXRearrangements(cfg.TopX);
@@ -122,6 +126,19 @@ public class Server implements Closeable
 		registerApi();
 	}
 
+	private RepertoireStore createStore() throws Exception {
+
+		if (cfg.RepertoireStore != null) {
+			return(new RepertoireStore_Files(cfg.RepertoireStore));
+		}
+
+		if (cfg.RepertoireStoreBlobs != null) {
+			return(new RepertoireStore_Blobs(cfg.RepertoireStoreBlobs));
+		}
+
+		throw new Exception("Missing RepertoireStore configuration");
+	}
+		
 	// +----------------+
 	// | Server Control |
 	// +----------------+

@@ -59,8 +59,16 @@ public class RepertoireStore_Blobs implements RepertoireStore
 		try {
 			List<String> contexts = new ArrayList<String>();
 
-			client.listBlobsByHierarchy(getUserPath(userId)).forEach(blob ->
-				 { if (blob.isPrefix()) contexts.add(Utility.urlDecode(blob.getName())); });
+			client.listBlobsByHierarchy(getUserPath(userId)).forEach(blob -> {
+				 if (blob.isPrefix()) {
+					 // trim off trailing "/" and leave only final path element
+					 String name = blob.getName();
+					 int cch = name.length();
+					 if (cch < 2) return;
+					 int ichLastSlash = name.lastIndexOf("/", cch - 2); // note ok if -1
+					 contexts.add(Utility.urlDecode(name.substring(ichLastSlash + 1, cch - 1)));
+				 }
+			 });
 
 			return(contexts.toArray(new String[contexts.size()]));
 		}
@@ -208,11 +216,11 @@ public class RepertoireStore_Blobs implements RepertoireStore
 	// +---------+
 
 	private String getUserPath(String userId) {
-		return(cfg.ContainerName + "/" + clean(userId) + "/");
+		return(clean(userId) + "/");
 	}
 
 	private String getContextPath(String userId, String ctx) {
-		return(getUserPath(userId) + clean(userId) + "/" + clean(ctx) + "/");
+		return(getUserPath(userId) + clean(ctx) + "/");
 	}
 
 	private String getContextFilePath(String userId, String ctx) {
