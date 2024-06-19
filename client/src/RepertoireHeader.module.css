@@ -1,0 +1,21 @@
+
+.container {
+	
+	display: grid;
+	width: 250px;
+	gap: 2px;
+	background-color: GhostWhite;
+	border: 1px solid grey;
+	padding: 6px;
+	margin-bottom: 12px;
+	font-size: smaller;
+	
+}
+
+.label {
+	font-weight: bold;
+}
+
+.value {
+	text-align: right;
+}

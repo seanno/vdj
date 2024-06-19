@@ -42,21 +42,10 @@ public class Server implements Closeable
 	// | Config & Setup |
 	// +----------------+
 
-	public static class UserInfo
-	{
-		public String AssumeUserId = null;
-		public Boolean CanUploadToAnyUserId = false;
-	}
-	
 	public static class Config
 	{
 		public WebServer.Config WebServer = new WebServer.Config();
 
-		// if we decide to keep a standalone version of this running; this
-		// will be replaced with a more dynamic setup that doesn't pollute
-		// config and require a restart! Key is UserId.
-		public Map<String,UserInfo> UserInfos;
-		
 		// Only one of these should be provided. Sorry for the name
 		// inconsistency, I didn't want to go back and change a bunch
 		// of existing config files
@@ -354,10 +343,9 @@ public class Server implements Closeable
 			saveUserId = info.UserId;
 		}
 		else {
-			// authorized? Note we look this up by AUTH user id
-			UserInfo ui = findUserInfo(info.AuthUserId);
-			
-			if (ui == null || !ui.CanUploadToAnyUserId) {
+			// authorized? 
+			if (!getCanUploadToAny(info.Request)) {
+
 				log.warning(String.format("User %s tried to upload to %s without auth!",
 										  info.AuthUserId, saveUserId));
 				info.Response.Status = 401;
@@ -470,13 +458,17 @@ public class Server implements Closeable
 	// | getUser |
 	// +---------+
 	
+	public static class UserInfo
+	{
+		public String AssumeUserId;
+		public Boolean CanUploadToAnyUserId;
+	}
+
 	private void getUser(ApiInfo info) throws Exception {
 		
-		UserInfo ui = findUserInfo(info.AuthUserId);
-		if (ui == null) ui = new UserInfo();
-
-		if (ui.AssumeUserId == null) ui.AssumeUserId = info.UserId;
-		if (ui.CanUploadToAnyUserId == null) ui.CanUploadToAnyUserId = false;
+		UserInfo ui = new UserInfo();
+		ui.AssumeUserId = info.UserId;
+		ui.CanUploadToAnyUserId = getCanUploadToAny(info.Request);
 		
 		info.Response.setJson(gson.toJson(ui));
 	}
@@ -528,7 +520,7 @@ public class Server implements Closeable
 		info.Response = response;
 		
 		info.AuthUserId = getAuthUser(request);
-		info.UserId = getAssumeUserId(info.AuthUserId);
+		info.UserId = getAssumeUserId(request);
 		
 		// trim off the common start of the path and any query string
 		int ichMac = request.Path.indexOf("?");
@@ -557,17 +549,6 @@ public class Server implements Closeable
 	// | Helpers |
 	// +---------+
 
-	private String getAssumeUserId(String authUserId) {
-		UserInfo info = findUserInfo(authUserId);
-		if (info == null) return(authUserId);
-		if (Easy.nullOrEmpty(info.AssumeUserId)) return(authUserId);
-		return(info.AssumeUserId);
-	}
-	
-	private UserInfo findUserInfo(String userId) {
-		return(cfg.UserInfos == null ? null : cfg.UserInfos.get(userId));
-	}
-	
 	private Repertoire findRepertoire(String userId, String context, String rep) {
 
 		for (Repertoire repertoire : store.getContextRepertoires(userId, context)) {
@@ -577,13 +558,37 @@ public class Server implements Closeable
 		return(null);
 	}
 	
+	// +---------------------+
+	// | User and Properties |
+	// +---------------------+
+	
+	public static String PROP_ASSUME_USERID = "AssumeUserId";
+	public static String PROP_CAN_UPLOAD_TO_ANY = "CanUploadToAnyUserId";
+
+	public static boolean DEFAULT_CAN_UPLOAD_TO_ANY = false;
+
 	private static String getAuthUser(Request request) throws Exception {
 		String user = request.User.Email;
 		if (Easy.nullOrEmpty(user)) user = request.User.Id;
 		if (Easy.nullOrEmpty(user)) throw new Exception("missing auth email or id");
 		return(user);
 	}
+	
+	public static String getAssumeUserId(Request request) throws Exception {
+		return(getUserProp(request, PROP_ASSUME_USERID, getAuthUser(request)));
+	}
 
+	public static boolean getCanUploadToAny(Request request) {
+		String val = getUserProp(request, PROP_CAN_UPLOAD_TO_ANY, null);
+		return(Easy.nullOrEmpty(val) ? DEFAULT_CAN_UPLOAD_TO_ANY : Boolean.parseBoolean(val));
+	}
+	
+	private static String getUserProp(Request request, String name, String defaultVal) {
+		if (request.User.Properties == null) return(defaultVal);
+		String val = request.User.Properties.get(name);
+		return(Easy.nullOrEmpty(val) ? defaultVal : val);
+	}
+	
 	// +---------+
 	// | Members |
 	// +---------+
