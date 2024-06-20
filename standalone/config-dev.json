@@ -1,0 +1,25 @@
+{
+  "RepertoireStore": {
+
+	"BasePath": "/tmp/vdj-dev"
+  },
+  
+  "WebServer": {
+
+	"Port": 3001,
+	"AllowedOrigin": "*",
+	"AllowedMethods": "GET,POST,DELETE,OPTIONS",
+
+	"SSLCertificateFile": "@localhost.crt",
+	"SSLCertificateKeyFile": "@localhost.key",
+
+	"AuthenticationType": "force",
+
+	"ForceLoggedInUser": {
+	  "Id": "dev",
+	  "Email": "dev@example.com",
+	  "Token": "devtoken"
+	}
+	
+  }
+}
