@@ -23,6 +23,11 @@ export default function NavigationBar({ addTab, clearTabs, showError, refreshCou
 	return(selectedRepertoires.length);
   }
 
+  function logout(evt) {
+	evt.preventDefault();
+	window.location = '/__logout';
+  }
+
   function openDetails() {
 
 	const newTab = {
@@ -174,6 +179,10 @@ export default function NavigationBar({ addTab, clearTabs, showError, refreshCou
 		  Delete
 		</Button>
 	  }
+
+	  <div style={{ 'marginTop': '30px' }}>
+		<a href="#" onClick={(evt) => logout(evt)}>logout</a>
+	  </div>
 	  
 	</div>
 	

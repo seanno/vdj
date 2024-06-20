@@ -53,7 +53,7 @@ export default function RearrangementsTable({ rearrangements, rkey, caption }) {
 				<td style={{textAlign: 'right'}}>{r.Count}</td>
 				<td style={{textAlign: 'right'}}>{(r.FractionOfLocus * 100).toFixed(3)}</td>
 				<td style={{textAlign: 'right'}}>{(r.FractionOfCells * 100).toFixed(3)}</td>
-				<td style={{textAlign: 'right'}}>{colorizeRearrangement(r)}</td>
+				<td style={{textAlign: 'right'}}><a href="#" onClick={ (evt) => window.launchIMGT(r.Locus,r.Rearrangement, evt) }>{colorizeRearrangement(r)}</a></td>
 				<td>{r.AminoAcid}</td>
 				<td>{r.VResolved}</td>
 				<td>{r.DResolved}</td>

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { IconButton, Snackbar, Tabs, Tab } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 
+import IMGTLauncher from "./IMGTLauncher.jsx";
 import NavigationBar from "./NavigationBar.jsx";
 import DetailsPane from "./DetailsPane.jsx";
 import OverlapPane from "./OverlapPane.jsx";
@@ -175,6 +176,8 @@ export default function App() {
 		anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
 		onClose={ () => setError(undefined) }
 	  />
+
+	  <IMGTLauncher />
 
 	</div>
 	
