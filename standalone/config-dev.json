@@ -13,6 +13,9 @@
 	"SSLCertificateFile": "@localhost.crt",
 	"SSLCertificateKeyFile": "@localhost.key",
 
+	"StaticPagesZip": "@clientSite.zip",
+	"StaticPagesRouteHtmlWithoutExtension": false,
+
 	"AuthenticationType": "force",
 
 	"ForceLoggedInUser": {
