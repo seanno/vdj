@@ -5,7 +5,7 @@ An open source library and web application for working with T- and B-cell repert
 * [standalone](standalone) is a self-contained web server that serves client and server components for a complete solution. It depends on the [shutdownhook toolbox](https://github.com/seanno/shutdownhook/tree/main/toolbox) library.
 
 # building
-Development system requirement is a Linux box with a JDK (v11+), Maven, NodeJS and npm. JUnit tests require docker to be available and running as well (Azurite is launched in a container to support Azure-related tests).
+Development system requirement is a Linux box with git, JDK (v11+), Maven, NodeJS and npm. JUnit tests require docker to be available and running as well (Azurite is launched in a container to support Azure-related tests).
 ```
 git clone https://github.com/seanno/shutdownhook.git
 git clone https://github.com/seanno/vdj
