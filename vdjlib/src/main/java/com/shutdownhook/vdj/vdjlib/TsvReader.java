@@ -36,6 +36,7 @@ public class TsvReader implements Closeable
 		this.startRowIndex = startRowIndex;
 		this.peeker = peeker;
 		this.cellCount = null; 
+		this.sampleMillis = null; 
 	}
 	
 	public void close() {
@@ -55,6 +56,10 @@ public class TsvReader implements Closeable
 
 	public Long getDiscoveredCellCount() {
 		return(cellCount);
+	}
+
+	public Double getDiscoveredSampleMillis() {
+		return(sampleMillis);
 	}
 
 	// +--------------------+
@@ -200,7 +205,13 @@ public class TsvReader implements Closeable
 				if (nv[0].equalsIgnoreCase("estTotalNucleatedCells")) {
 					cellCount = (long) Math.round(Double.parseDouble(nv[1]));
 				}
-				else if (cellCount == null && nv[0].equalsIgnoreCase("productionPCRAmountofTemplate")) {
+				else if (nv[0].equalsIgnoreCase("sampleMilliliters")) {
+					sampleMillis = Double.parseDouble(nv[1]);
+				}
+				else if (cellCount == null &&
+						 nv[0].equalsIgnoreCase("productionPCRAmountofTemplate") &&
+						 !Utility.nullOrEmpty(nv[1])) {
+
 					double amt = Double.parseDouble(nv[1]);
 					if (amt >= MIN_VALID_AMT_FOR_ESTIMATE) {
 						// amt is in nanograms. Each cell has approximately
@@ -316,6 +327,7 @@ public class TsvReader implements Closeable
 	private int[] headerIndices;
 
 	private Long cellCount;
+	private Double sampleMillis;
 
 	private final static Logger log = Logger.getLogger(TsvReader.class.getName());
 

@@ -17,6 +17,7 @@ public class Repertoire
 	public long TotalCells = 0;
 	public long TotalCount = 0;
 	public long TotalUniques = 0;
+	public double TotalMilliliters = 0.0;
 	public Map<LocusGroup,Long> LocusCounts = new HashMap<LocusGroup,Long>();
 
 	// Helpers

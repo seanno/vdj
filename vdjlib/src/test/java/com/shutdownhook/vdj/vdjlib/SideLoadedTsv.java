@@ -63,6 +63,8 @@ public class SideLoadedTsv
 	public static int TEST_V3_TCRB = 1;
 	public static int TEST_V2_IGH = 2;
 	public static int TEST_PIPELINE_TCRG = 3;
+	public static int TEST_CELLFREE_EOS = 4;
+	public static int TEST_TSV_COUNT = 5; // keep me updated!
 
 	public static SideLoadedTsv getTsv(int which) throws Exception {
 		ensureTestTsvs();
@@ -73,11 +75,12 @@ public class SideLoadedTsv
 		
 		if (tsvs != null) return;
 
-		tsvs = new SideLoadedTsv[4];
+		tsvs = new SideLoadedTsv[TEST_TSV_COUNT];
 		tsvs[TEST_V2_TCRB] = new SideLoadedTsv("subject9-v2.tsv", V2);
 		tsvs[TEST_V3_TCRB] = new SideLoadedTsv("subject9-v3.tsv", V3);
 		tsvs[TEST_V2_IGH] = new SideLoadedTsv("02583-02BH.tsv", V2);
 		tsvs[TEST_PIPELINE_TCRG] = new SideLoadedTsv("A_TCRG_ID.tsv", PIPELINE);
+		tsvs[TEST_CELLFREE_EOS] = new SideLoadedTsv("D_BCell_Cellfree_MRD.tsv", PIPELINE);
 	}
 
 	private static SideLoadedTsv[] tsvs = null;
@@ -126,6 +129,7 @@ public class SideLoadedTsv
 	public void assertRepertoire(Repertoire r) {
 
 		Assert.assertEquals(repertoire.Name, r.Name);
+		Assert.assertEquals(repertoire.TotalMilliliters, r.TotalMilliliters, 0.000001);
 		Assert.assertEquals(repertoire.TotalCells, r.TotalCells);
 		Assert.assertEquals(repertoire.TotalCount, r.TotalCount);
 		Assert.assertEquals(repertoire.TotalUniques, r.TotalUniques);
@@ -161,12 +165,19 @@ public class SideLoadedTsv
 					int ich = line.indexOf("=");
 					repertoire.TotalCells = (long) Double.parseDouble(line.substring(ich+1));
 				}
+				else if (line.startsWith("#sampleMilliliters")) {
+					int ich = line.indexOf("=");
+					repertoire.TotalMilliliters = Double.parseDouble(line.substring(ich+1));
+				}
 				else if (line.startsWith("#productionPCRAmountofTemplate") &&
 						 repertoire.TotalCells == 0L) {
 
 					int ich = line.indexOf("=");
-					double amt = Double.parseDouble(line.substring(ich+1));
-					if (amt >= 12.5) repertoire.TotalCells = (long) (amt * 6.5 / 1000.0);
+					String amtStr = line.substring(ich+1).trim();
+					if (amtStr != null && !amtStr.isEmpty()) {
+						double amt = Double.parseDouble(line.substring(ich+1));
+						if (amt >= 12.5) repertoire.TotalCells = (long) (amt * 6.5 / 1000.0);
+					}
 				}
 				
 				continue;

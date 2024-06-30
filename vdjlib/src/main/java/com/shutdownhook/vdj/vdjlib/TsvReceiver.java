@@ -68,6 +68,10 @@ public class TsvReceiver
 					if (cells != null) repertoire.TotalCells = cells;
 				}
 
+				if (tsvReader.getDiscoveredSampleMillis() != null) {
+					repertoire.TotalMilliliters = tsvReader.getDiscoveredSampleMillis();
+				}
+
 				store.commitRepertoireToContext(userId, ctx, repertoire);
 				success = true;
 			}

@@ -39,6 +39,11 @@ public class TsvReaderTest
 		basic(SideLoadedTsv.TEST_V3_TCRB, 852);
 	}
 
+	@Test
+    public void basicCellfree() throws Exception {
+		basic(SideLoadedTsv.TEST_CELLFREE_EOS, 20);
+	}
+
     private void basic(int which, int batchSize) throws Exception {
 
 		SideLoadedTsv truth = SideLoadedTsv.getTsv(which);
