@@ -198,19 +198,21 @@ public class TsvReader implements Closeable
 			if (trimmed.isEmpty()) continue;
 
 			if (trimmed.startsWith("#")) {
-				
+
 				String[] nv = trimmed.substring(1).split("=");
-				if (nv.length < 2) continue;
+				
+				if (nv.length < 2 || Utility.nullOrEmpty(nv[1])) continue;
 
 				if (nv[0].equalsIgnoreCase("estTotalNucleatedCells")) {
+					
 					cellCount = (long) Math.round(Double.parseDouble(nv[1]));
 				}
 				else if (nv[0].equalsIgnoreCase("sampleMilliliters")) {
-					sampleMillis = Double.parseDouble(nv[1]);
+					
+					double millis = Double.parseDouble(nv[1]);
+					if (millis > 0.0) sampleMillis = millis;
 				}
-				else if (cellCount == null &&
-						 nv[0].equalsIgnoreCase("productionPCRAmountofTemplate") &&
-						 !Utility.nullOrEmpty(nv[1])) {
+				else if (cellCount == null && nv[0].equalsIgnoreCase("productionPCRAmountofTemplate")) {
 
 					double amt = Double.parseDouble(nv[1]);
 					if (amt >= MIN_VALID_AMT_FOR_ESTIMATE) {

@@ -3,7 +3,6 @@ import { memo, useState, useEffect } from 'react';
 import { Button, FormControl, FormLabel,
 		 FormControlLabel, Radio, RadioGroup, } from '@mui/material';
 
-import RearrangementsTable from './RearrangementsTable.jsx';
 import { serverFetchOverlap } from './lib/server.js';
 
 import styles from './Pane.module.css'

@@ -12,6 +12,8 @@ export default function RepertoireHeader({ repertoire, rkey }) {
 	  </Fragment>
 	);
   });
+
+  const useVolume = (repertoire.TotalMilliliters > 0.0);
 	
   return(
 
@@ -20,7 +22,16 @@ export default function RepertoireHeader({ repertoire, rkey }) {
 	  <div className={styles.label} style={{ gridRow: 1, gridColumn: 3 }}>Uniques:</div>
 	  <div style={{ gridRow: 1, gridColumn: 4 }}>{repertoire.TotalUniques.toLocaleString()}</div>
 
-	  { repertoire.TotalCells > 0 &&
+	  {
+		useVolume &&
+		<>
+		  <div className={styles.label} style={{ gridRow: 2, gridColumn: 3 }}>Milliliters:</div>
+		  <div style={{ gridRow: 2, gridColumn: 4 }}>{repertoire.TotalMilliliters.toLocaleString()}</div>
+		</>
+		  
+	  }
+	  
+	  { !useVolume && repertoire.TotalCells > 0 &&
 		<>
 		  <div className={styles.label} style={{ gridRow: 2, gridColumn: 3 }}>Cells:</div>
 		  <div style={{ gridRow: 2, gridColumn: 4 }}>{repertoire.TotalCells.toLocaleString()}</div>

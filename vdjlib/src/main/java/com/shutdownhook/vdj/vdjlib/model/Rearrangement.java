@@ -49,7 +49,7 @@ public class Rearrangement
 		return(((double) Count / ((double) repertoire.TotalCells)));
 	}
 
-	public double getFractionOfMillis(Repertoire repertoire) {
+	public double getCountPerMilliliter(Repertoire repertoire) {
 		if (repertoire.TotalMilliliters == 0.0) return(0.0);
 		return(((double) Count) / repertoire.TotalMilliliters);
 	}
@@ -92,6 +92,7 @@ public class Rearrangement
 			json.addProperty("FractionOfLocus", getFractionOfLocus(repertoire));
 			json.addProperty("FractionOfCount", getFractionOfCount(repertoire));
 			json.addProperty("FractionOfCells", getFractionOfCells(repertoire));
+			json.addProperty("CountPerMilliliter", getCountPerMilliliter(repertoire));
 		}
 		
 		return(json.toString());

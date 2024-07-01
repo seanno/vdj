@@ -72,7 +72,7 @@ export default memo(function DetailsPane({ context, repertoire, rkey }) {
 	  <RepertoireHeader repertoire={repertoire} rkey={rkey} />
 	  
 	  { renderPaging() }
-	  <RearrangementsTable rearrangements={rows} rkey={rkey} />
+	  <RearrangementsTable repertoire={repertoire} rearrangements={rows} rkey={rkey} />
 
 	  <Snackbar
 		open={error !== undefined}

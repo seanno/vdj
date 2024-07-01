@@ -3,7 +3,7 @@ import { colorizeRearrangement } from './lib/colorize.jsx';
 
 import styles from './Tables.module.css';
 
-export default function RearrangementsTable({ rearrangements, rkey, caption }) {
+export default function RearrangementsTable({ repertoire, rearrangements, rkey, caption }) {
 
   function renderCaption() {
 	if (!caption) return(undefined);
@@ -28,6 +28,8 @@ export default function RearrangementsTable({ rearrangements, rkey, caption }) {
   // | normal table |
   // +--------------+
 
+  const useVolume = (repertoire.TotalMilliliters > 0.0);
+  
   return(
 	<table className={styles.rearrangementsTable}>
 	  { caption && <caption>{caption}</caption> }
@@ -36,7 +38,7 @@ export default function RearrangementsTable({ rearrangements, rkey, caption }) {
 		  <th>Locus</th>
 		  <th>Count</th>
 		  <th>% Locus</th>
-		  <th>% Cells</th>
+		  <th>{ useVolume ? 'Count/ML' : '% Cells'}</th>
 		  <th>Rearrangement</th>
 		  <th>Amino Acid</th>
 		  <th>V Resolved</th>
@@ -52,7 +54,7 @@ export default function RearrangementsTable({ rearrangements, rkey, caption }) {
 				<td>{r.Locus}</td>
 				<td style={{textAlign: 'right'}}>{r.Count}</td>
 				<td style={{textAlign: 'right'}}>{(r.FractionOfLocus * 100).toFixed(3)}</td>
-				<td style={{textAlign: 'right'}}>{(r.FractionOfCells * 100).toFixed(3)}</td>
+				<td style={{textAlign: 'right'}}>{(useVolume ? r.CountPerMilliliter : r.FractionOfCells * 100).toFixed(3)}</td>
 				<td style={{textAlign: 'right'}}><a href="#" onClick={ (evt) => window.launchIMGT(r.Locus,r.Rearrangement, evt) }>{colorizeRearrangement(r)}</a></td>
 				<td>{r.AminoAcid}</td>
 				<td>{r.VResolved}</td>

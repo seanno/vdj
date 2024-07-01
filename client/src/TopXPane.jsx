@@ -66,6 +66,7 @@ export default memo(function TopXPane({ context, repertoire, rkey }) {
 
 	  { results &&
 		<RearrangementsTable
+		  repertoire={repertoire}
 		  rearrangements={results.Rearrangements}
 		  key={`${rkey}-tbl}`}
 		/>

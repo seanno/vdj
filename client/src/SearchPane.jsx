@@ -169,6 +169,7 @@ export default memo(function SearchPane({ context, repertoires, params, rkey }) 
 	const tables = results.map((result, irow) => {
 	  return(
 		<RearrangementsTable
+		  repertoire={result.Repertoire}
 		  rearrangements={result.Rearrangements}
 		  caption={result.Repertoire.Name}
 		  key={`${rkey}-${irow}`}
