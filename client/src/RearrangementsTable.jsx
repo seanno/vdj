@@ -44,6 +44,7 @@ export default function RearrangementsTable({ repertoire, rearrangements, rkey, 
 		  <th>V Resolved</th>
 		  <th>D Resolved</th>
 		  <th>J Resolved</th>
+		  <th>logProb</th>
 		</tr>
 	  </thead>
 	  <tbody>
@@ -60,6 +61,7 @@ export default function RearrangementsTable({ repertoire, rearrangements, rkey, 
 				<td>{r.VResolved}</td>
 				<td>{r.DResolved}</td>
 				<td>{r.JResolved}</td>
+				<td style={{textAlign: 'right'}}>{(r.Probability === 0.0 ? '' : r.Probability.toFixed(3))}</td>
 			  </tr>
 			);
 		  })

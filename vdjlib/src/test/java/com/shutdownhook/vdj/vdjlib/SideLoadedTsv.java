@@ -37,6 +37,12 @@ public class SideLoadedTsv
 		{ -1, -1 }
 	};
 
+	public static int[][] PROBABILITY_COLS = {
+		{ -1, -1 },
+		{ -1, -1 },
+		{ 78, 87 }
+	};
+
 	public SideLoadedTsv(String resourceName, int ver) throws IOException {
 		
 		this.repertoire = new Repertoire();
@@ -93,6 +99,8 @@ public class SideLoadedTsv
 
 		String[] truth = matrix.get(irow + 1);
 		int[] cols = COLS[ver];
+
+		// basics
 		
 		Assert.assertEquals(truth[cols[0]], r.Rearrangement);
 		Assert.assertEquals(truth[cols[1]], r.AminoAcid);
@@ -111,6 +119,8 @@ public class SideLoadedTsv
 
 		Assert.assertEquals(locusFromGene(r.VResolved, r.DResolved, r.JResolved,
 										  truth[cols[14]], truth[cols[15]], truth[cols[16]]), r.Locus);
+
+		// shm
 		
 		int[] vSHMIndices = r.VSHMIndices;
 		if (vSHMIndices != null) {
@@ -119,6 +129,21 @@ public class SideLoadedTsv
 			for (int i = 0; i < csv.length; ++i) {
 				Assert.assertEquals(csv[i].trim(), Integer.toString(vSHMIndices[i]));
 			}
+		}
+
+		// cloneProbability and logCloneProbability
+
+		int[] probCols = PROBABILITY_COLS[ver];
+
+		if (r.Probability > 0.0) {
+			String strProb = (truth.length > probCols[0] ? truth[probCols[0]] : null);
+			String strLogProb = (truth.length > probCols[1] ? truth[probCols[1]] : null);
+			
+			double dblProb = (Utility.nullOrEmpty(strProb)
+							  ? Double.parseDouble(strLogProb)
+							  : Math.log10(Double.parseDouble(strProb)));
+
+			Assert.assertEquals(dblProb, r.Probability, 0.000001);
 		}
 	}
 

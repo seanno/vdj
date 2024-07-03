@@ -32,6 +32,7 @@ public class Rearrangement
 	public int N1Index;
 	public int N2Index;
 
+	public double Probability;
 	public int[] VSHMIndices;
 
 	// On-Demand calculations

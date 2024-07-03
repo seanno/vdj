@@ -132,6 +132,8 @@ public class TsvReader implements Closeable
 		String strN1Index = getField(fields, IHDR_N1INDEX);
 		String strN2Index = getField(fields, IHDR_N2INDEX);
 		String strVSHMIndices = optionalField(fields, IHDR_VSHMINDICES);
+		String strCloneProbability = optionalField(fields, IHDR_CLONE_PROBABILITY);
+		String strLogCloneProbability = optionalField(fields, IHDR_LOG_CLONE_PROBABILITY);
 
 		r.FrameType = FrameType.valueOf(strFrameType);
 		r.Count = Long.parseLong(strCount);
@@ -149,6 +151,13 @@ public class TsvReader implements Closeable
 
 		r.VSHMIndices = Rearrangement.VSHMCsvToIndices(strVSHMIndices);
 
+		if (!Utility.nullOrEmpty(strCloneProbability)) {
+			r.Probability = Math.log10(Double.parseDouble(strCloneProbability));
+		}
+		else if (!Utility.nullOrEmpty(strLogCloneProbability)) {
+			r.Probability = Double.parseDouble(strLogCloneProbability);
+		}
+		
 		if (cellCount == null) {
 
 			if (headerIndices[IHDR_CELLS] != IDX_MISSING_FIELD) {
@@ -248,6 +257,8 @@ public class TsvReader implements Closeable
 
 			// Pipeline (only those differing from Analyzer)
 			case "count": index = IHDR_COUNT; break;
+			case "cloneprobability": index = IHDR_CLONE_PROBABILITY; break;
+			case "logcloneprobability": index = IHDR_LOG_CLONE_PROBABILITY; break;
 			
 			// Analyzer V2
 			case "nucleotide":  index = IHDR_REARRANGEMENT; break;
@@ -365,6 +376,9 @@ public class TsvReader implements Closeable
 	private static int IHDR_VFAMILY_TIES = 16;
 	private static int IHDR_DFAMILY_TIES = 17;
 	private static int IHDR_JFAMILY_TIES = 18;
+
+	private static int IHDR_CLONE_PROBABILITY = 19;
+	private static int IHDR_LOG_CLONE_PROBABILITY = 20;
 	
-	private static int HEADER_COUNT = 19; // KEEP ME UPDATED!
+	private static int HEADER_COUNT = 21; // KEEP ME UPDATED!
 }
