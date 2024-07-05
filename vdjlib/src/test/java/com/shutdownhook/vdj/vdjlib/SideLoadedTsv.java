@@ -23,30 +23,40 @@ public class SideLoadedTsv
 	public final static int V2 = 0;
 	public final static int V3 = 1;
 	public final static int PIPELINE = 2;
+	public final static int AGATE = 3;
 
 	public static int[][] COLS = {
 		// in assertRearrangement order
 		{ 0, 1, 38, 2, 5, 12, 19, 4, 32, 34, 36, 33, 35, 49, 9, 16, 23 },
 		{ 52, 53, 54, 56, 96, 97, 98, 60, 76, 79, 80, 77, 78, 92, 81, 84, 87 },
-		{ 0, 1, 42, 4, 43, 45, 46, 8, 33, 35, 37, 36, 34, 69, 12, 18, 24 }
+		{ 0, 1, 42, 4, 43, 45, 46, 8, 33, 35, 37, 36, 34, 69, 12, 18, 24 },
+		{ 0, 1, 4, 6, 13, 17, 21, 12, 31, 34, 35, 32, 33, 46, 36, 39, 42, }
 	};
 
 	public static int[][] CELL_COLS = {
 		{ -1, -1 },
 		{ 37, 35 },
+		{ -1, -1 },
 		{ -1, -1 }
 	};
 
 	public static int[][] PROBABILITY_COLS = {
 		{ -1, -1 },
 		{ -1, -1 },
-		{ 78, 87 }
+		{ 78, 87 },
+		{ -1, -1 }
 	};
 
 	public SideLoadedTsv(String resourceName, int ver) throws IOException {
+		this(resourceName, ver, null, null);
+	}
+
+	public SideLoadedTsv(String resourceName, int ver, Long totalCells, Double sampleMillis) throws IOException {
 		
 		this.repertoire = new Repertoire();
 		this.repertoire.Name = resourceName;
+		if (totalCells != null) this.repertoire.TotalCells = totalCells;
+		if (sampleMillis != null) this.repertoire.TotalMilliliters = sampleMillis;
 		
 		this.matrix = new ArrayList<String[]>();
 		this.ver = ver;
@@ -70,7 +80,8 @@ public class SideLoadedTsv
 	public static int TEST_V2_IGH = 2;
 	public static int TEST_PIPELINE_TCRG = 3;
 	public static int TEST_CELLFREE_EOS = 4;
-	public static int TEST_TSV_COUNT = 5; // keep me updated!
+	public static int TEST_AGATE_1 = 5;
+	public static int TEST_TSV_COUNT = 6; // keep me updated!
 
 	public static SideLoadedTsv getTsv(int which) throws Exception {
 		ensureTestTsvs();
@@ -87,6 +98,7 @@ public class SideLoadedTsv
 		tsvs[TEST_V2_IGH] = new SideLoadedTsv("02583-02BH.tsv", V2);
 		tsvs[TEST_PIPELINE_TCRG] = new SideLoadedTsv("A_TCRG_ID.tsv", PIPELINE);
 		tsvs[TEST_CELLFREE_EOS] = new SideLoadedTsv("D_BCell_Cellfree_MRD.tsv", PIPELINE);
+		tsvs[TEST_AGATE_1] = new SideLoadedTsv("agate_1.tsv", AGATE, 61781L, 0.0);
 	}
 
 	private static SideLoadedTsv[] tsvs = null;

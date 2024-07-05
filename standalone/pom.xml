@@ -41,6 +41,12 @@
       <artifactId>azure-identity</artifactId>
 	</dependency>
 
+	<dependency>
+      <groupId>com.microsoft.sqlserver</groupId>
+      <artifactId>mssql-jdbc</artifactId>
+      <version>12.6.3.jre11</version>
+	</dependency>
+
     <dependency>
 	  <groupId>com.google.code.gson</groupId>
 	  <artifactId>gson</artifactId>

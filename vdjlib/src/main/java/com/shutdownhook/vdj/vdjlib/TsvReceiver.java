@@ -31,6 +31,13 @@ public class TsvReceiver
 	public static CompletableFuture<Boolean> receive(InputStreamReader stm, RepertoireStore store,
 													 String userId, String ctx, String rep) {
 		
+		return(receive(stm, store, userId, ctx, rep, null, null));
+	}
+	
+	public static CompletableFuture<Boolean> receive(InputStreamReader stm, RepertoireStore store,
+													 String userId, String ctx, String rep,
+													 Long totalCells, Double sampleMillis) {
+		
 		CompletableFuture<Boolean> future = new CompletableFuture<Boolean>();
 
 		Exec.getPool().submit(() -> {
@@ -63,12 +70,18 @@ public class TsvReceiver
 					repertoire.accumulateCount(r.Locus, r.Count);
 				}
 
-				if (repertoire.TotalCells == 0) {
+				if (totalCells != null) {
+					repertoire.TotalCells = totalCells;
+				}
+				else if (repertoire.TotalCells == 0) {
 					Long cells = tsvReader.getDiscoveredCellCount();
 					if (cells != null) repertoire.TotalCells = cells;
 				}
 
-				if (tsvReader.getDiscoveredSampleMillis() != null) {
+				if (sampleMillis != null) {
+					repertoire.TotalMilliliters = sampleMillis;
+				}
+				else if (tsvReader.getDiscoveredSampleMillis() != null) {
 					repertoire.TotalMilliliters = tsvReader.getDiscoveredSampleMillis();
 				}
 

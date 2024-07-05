@@ -51,15 +51,26 @@ public class TsvReceiverTest
 		basic(SideLoadedTsv.TEST_V3_TCRB);
 	}
 
+	@Test
+    public void basicAgate() throws Exception {
+		basic(SideLoadedTsv.TEST_AGATE_1, true);
+	}
+
     private void basic(int which) throws Exception {
+		basic(which, false);
+	}
+	
+    private void basic(int which, boolean sendCells) throws Exception {
 
 		SideLoadedTsv truth = SideLoadedTsv.getTsv(which);
 		
 		String name = truth.getResourceName();
 		Helpers.ResourceStreamReader rdr = new Helpers.ResourceStreamReader(name);
 
+		Long totalCells = (sendCells ? truth.getRepertoire().TotalCells : null);
+						   
 		CompletableFuture<Boolean> future =
-			TsvReceiver.receive(rdr.get(), store.get(), TEST_USER, TEST_CONTEXT, name);
+			TsvReceiver.receive(rdr.get(), store.get(), TEST_USER, TEST_CONTEXT, name, totalCells, null);
 
 		Assert.assertTrue(future.get());
 		truth.assertRepertoire(findRepertoireInStore(TEST_USER, TEST_CONTEXT, name));
