@@ -41,8 +41,13 @@ export default memo(function UploadPane({ user, context, refresh, rkey }) {
 
 	  serverFetchUpload(userId, contextName, repertoireName, file)
 		.then(result => {
-		  setConfirmation(result);
-		  refresh();
+		  if (result.httpStatus && result.httpStatus === 409) {
+			setError('Repertoire already exists');
+		  }
+		  else {
+			setConfirmation(result);
+			refresh();
+		  }
 		})
 		.catch(error => {
 		  console.error(error);
