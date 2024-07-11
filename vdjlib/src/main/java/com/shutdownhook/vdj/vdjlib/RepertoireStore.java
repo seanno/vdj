@@ -22,7 +22,7 @@ public interface RepertoireStore
 
 	// Optional methods for a store that implements uploads
 
-	default public OutputStream
+	default public OutputStream // return null if already exists!
 		getRepertoireSaveStream(String userId, String ctx, String rep) { return(null); }
 	
 	default public boolean

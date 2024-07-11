@@ -125,7 +125,7 @@ public class RepertoireStore_Blobs implements RepertoireStore
 		try {
 			return(getRepertoireBlob(userId, ctx, rep)
 				   .getBlockBlobClient()
-				   .getBlobOutputStream(true));
+				   .getBlobOutputStream(false));
 		}
 		catch (Exception e) {
 			log.warning(Utility.exMsg(e, "getRepertoireSaveStream", false));

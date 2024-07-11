@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { IconButton, Snackbar, Tabs, Tab } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Snackbar, Tabs, Tab } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 
 import IMGTLauncher from "./IMGTLauncher.jsx";
@@ -9,19 +9,50 @@ import DetailsPane from "./DetailsPane.jsx";
 import OverlapPane from "./OverlapPane.jsx";
 import SearchPane from "./SearchPane.jsx";
 import UploadPane from "./UploadPane.jsx";
+import AgatePane from "./AgatePane.jsx";
 import TopXPane from "./TopXPane.jsx";
 import DeletePane from "./DeletePane.jsx";
+
+import { serverFetchUser } from './lib/server.js';
 
 import styles from './App.module.css'
 
 export default function App() {
 
+  const [user, setUser] = useState(undefined);
   const [error,setError] = useState(undefined);
   const [tabs, setTabs] = useState([]);
   const [tabValue, setTabValue] = useState(undefined);
 
   const [refreshCounter, setRefreshCounter] = useState(1);
 
+  // +-----------+
+  // | useEffect |
+  // +-----------+
+
+  useEffect(() => {
+
+	const loadUser = async () => {
+
+	  serverFetchUser() 
+		.then(result => {
+		  setUser(result);
+		})
+		.catch(error => {
+		  console.error(error);
+		  setError('Error fetching user details');
+		});
+	}
+
+	loadUser();
+	
+  }, []);
+
+
+  // +---------+
+  // | Actions |
+  // +---------+
+  
   function showError(msg) {
 	setError(msg);
   }
@@ -70,9 +101,9 @@ export default function App() {
 	setRefreshCounter(refreshCounter + 1);
   }
 
-  // +--------+
-  // | render |
-  // +--------+
+  // +------------------+
+  // | renderTabContent |
+  // +------------------+
 
   function renderTabContent() {
 
@@ -135,6 +166,13 @@ export default function App() {
 										 rkey={`p-${t.name}`} /> }
 
 				{ t.view === 'upload' && <UploadPane
+										   user={user}
+										   context={t.context}
+										   refresh={refreshNav}
+										   rkey={`p-${t.name}`} /> }
+
+				{ t.view === 'agate' && <AgatePane
+										   user={user}
 										   context={t.context}
 										   refresh={refreshNav}
 										   rkey={`p-${t.name}`} /> }
@@ -153,12 +191,19 @@ export default function App() {
 	);
   }
   
+  // +--------+
+  // | render |
+  // +--------+
+
+  if (!user) return(undefined);
+  
   return(
 	
     <div className={styles.main}>
 
 	  <div className={styles.nav}>
 		<NavigationBar
+		  user={user}
 		  addTab={addTab}
 		  clearTabs={clearTabs}
 		  showError={showError}

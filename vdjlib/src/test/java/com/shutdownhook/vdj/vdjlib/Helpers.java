@@ -11,6 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import com.shutdownhook.vdj.vdjlib.TsvReceiver.ReceiveResult;
+
 public class Helpers
 {
 	// +------+
@@ -91,7 +93,8 @@ public class Helpers
 
 		public void addFromResource(String userId, String context, String name) throws Exception {
 			Helpers.ResourceStreamReader rdr = new Helpers.ResourceStreamReader(name);
-			if (!TsvReceiver.receive(rdr.get(), store, userId, context, name).get()) throw new Exception("crap");
+			ReceiveResult result = TsvReceiver.receive(rdr.get(), store, userId, context, name).get();
+			if (!ReceiveResult.OK.equals(result)) throw new Exception("crap");
 			rdr.close();
 		}
 

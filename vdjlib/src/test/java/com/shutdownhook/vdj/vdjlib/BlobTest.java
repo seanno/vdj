@@ -11,6 +11,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
+import com.shutdownhook.vdj.vdjlib.TsvReceiver.ReceiveResult;
 
 public class BlobTest
 {
@@ -77,10 +78,10 @@ public class BlobTest
 		
 		Helpers.ResourceStreamReader rdr = new Helpers.ResourceStreamReader(name);
 		
-		CompletableFuture<Boolean> future =
+		CompletableFuture<ReceiveResult> future =
 			TsvReceiver.receive(rdr.get(), store, TEST_USER, TEST_CONTEXT, name);
 
-		Assert.assertTrue(future.get());
+		Assert.assertEquals(ReceiveResult.OK, future.get());
 
 		Repertoire[] reps = store.getContextRepertoires(TEST_USER, TEST_CONTEXT);
 		truth.assertRepertoire(Repertoire.find(reps, name));

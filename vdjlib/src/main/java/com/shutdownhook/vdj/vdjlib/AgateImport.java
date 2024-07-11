@@ -12,11 +12,13 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import com.azure.core.credential.TokenCredential;
@@ -33,13 +35,10 @@ public class AgateImport implements Closeable
 
 	public static class Config
 	{
-		public String User; // null == DefaultAzureCredential
-		public String Password;
-
 		public String Server = "adaptiveagate-db.database.windows.net";
 		public String Database = "agate";
 
-		public Integer MinSearchLength = 3;
+		public Integer MinSearchLength = 5;
 		
 		public String AgateClientId = "fdcf242b-a25b-4b35-aff2-d91d8100225d";
 		public String StorageVersion = "2017-11-09";
@@ -47,19 +46,44 @@ public class AgateImport implements Closeable
 	}
 
 	public AgateImport(Config cfg) throws SQLException {
+		this(cfg, null, null);
+	}
+	
+	public AgateImport(Config cfg, String user, String password) throws SQLException {
 		
 		this.cfg = (cfg == null ? new Config() : cfg);
-		setupConnection();
+		
+		this.user = user;
+		this.password = password;
 	}
 
 	public void close() {
 		if (cxn != null) safeClose(cxn);
 	}
 	
-	// +--------------+
-	// | getTsvStream |
-	// +--------------+
+	// +-------------------+
+	// | getTsvStreamAsync |
+	// | getTsvStream      |
+	// +-------------------+
 
+	public CompletableFuture<InputStream> getTsvStreamAsync(String tsvPath) {
+
+		CompletableFuture<InputStream> future = new CompletableFuture<InputStream>();
+
+		Exec.getPool().submit(() -> {
+
+			try {
+				future.complete(getTsvStream(tsvPath));
+			}
+			catch (Exception e) {
+				log.warning(Utility.exMsg(e, "getTsvStreamAsync", true));
+				future.complete(null);
+			}
+		});
+
+		return(future);
+	}
+	
 	public InputStream getTsvStream(String tsvPath) throws IOException {
 
 		URL url = new URL(tsvPath);
@@ -79,9 +103,10 @@ public class AgateImport implements Closeable
 		return(conn.getInputStream());
 	}
 
-	// +-------------+
-	// | listSamples |
-	// +-------------+
+	// +------------------+
+	// | listSamplesAsync |
+	// | listSamples      |
+	// +------------------+
 
 	private static String SAMPLES_SQL =
 		"select " +
@@ -89,29 +114,54 @@ public class AgateImport implements Closeable
 		"  sample_name, " +
 		"  sample_cells, " +
 		"  sample_cells_mass_estimate, " +
+		"  coalesce(collection_date, upload_date) as effective_date, " +
 		"  current_rearrangement_tsv_file " +
 		"from " +
 		"  samples " +
 		"where " +
 		"  sample_name like concat('%',?,'%') " +
 		"order by " +
-		"  sample_name";
+		"  sample_name desc";
 	
 	public static class Sample
 	{
 		public String Id;
 		public String Name;
+		public Date Date;
 		public long TotalCells;
+		public double TotalMilliliters = 0.0; // agate doesn't support this yet
 		public String TsvPath;
+	}
+	
+	public CompletableFuture<List<Sample>> listSamplesAsync(String search) {
+
+		CompletableFuture<List<Sample>> future = new CompletableFuture<List<Sample>>();
+
+		Exec.getPool().submit(() -> {
+
+			try {
+				future.complete(listSamples(search));
+			}
+			catch (Exception e) {
+				log.warning(Utility.exMsg(e, "listSamplesAsync", true));
+				future.complete(null);
+			}
+		});
+
+		return(future);
 	}
 	
 	public List<Sample> listSamples(String search) throws SQLException, IllegalArgumentException {
 
+		ensureConnection();
+		
 		if (search == null || search.length() < cfg.MinSearchLength) {
 			throw new IllegalArgumentException(String.format("search must be at least %d chars",
 															 cfg.MinSearchLength));
 		}
 		
+		log.info(String.format("Fetching Agate samples matching %s", search));
+
 		PreparedStatement stmt = null;
 		ResultSet rs = null;
 
@@ -119,6 +169,7 @@ public class AgateImport implements Closeable
 			stmt = cxn.prepareStatement(SAMPLES_SQL);
 			stmt.setString(1, search);
 			rs = stmt.executeQuery();
+			log.info("Starting Agate fetch loop");
 
 			List<Sample> samples = new ArrayList<Sample>();
 			
@@ -129,6 +180,7 @@ public class AgateImport implements Closeable
 				
 				s.Id = rs.getString("item_id");
 				s.Name = rs.getString("sample_name");
+				s.Date = rs.getDate("effective_date");
 				s.TsvPath = rs.getString("current_rearrangement_tsv_file");
 
 				Double dblCells = rs.getDouble("sample_cells");
@@ -136,6 +188,7 @@ public class AgateImport implements Closeable
 				if (dblCells != null) s.TotalCells = (long) Math.round(dblCells);
 			}
 
+			log.info(String.format("Fetched %d Agate samples matching %s", samples.size(), search));
 			return(samples);
 		}
 		finally {
@@ -148,33 +201,41 @@ public class AgateImport implements Closeable
 	// | Helpers |
 	// +---------+
 
-	private void setupConnection() throws SQLException {
+	private void ensureConnection() throws SQLException {
 
+		if (cxn != null) return;
+		
+		log.info(String.format("Setting up agate db connection to %s/%s using %s auth",
+							   cfg.Server, cfg.Database,
+							   user == null ? "default" : "user/pass"));
+				 
 		SQLServerDataSource ds = new SQLServerDataSource();
 		ds.setServerName(cfg.Server);
 		ds.setDatabaseName(cfg.Database);
 
-		if (cfg.User != null) {
-			ds.setUser(cfg.User);
-			ds.setPassword(cfg.Password);
+		if (user != null) {
+			ds.setUser(user);
+			ds.setPassword(password);
 		}
 		else {
 			ds.setAccessToken(getToken("https://database.windows.net/", true));
 		}
 
 		this.cxn = ds.getConnection();
+
+		log.info("Agate db connection established");
 	}
 
 	private String getToken(String scope, boolean skipUserPass) {
 
 		TokenCredential cred = null;
 		
-		if (cfg.User != null) {
+		if (user != null) {
 			if (skipUserPass) return(null);
 			cred = new UsernamePasswordCredentialBuilder()
 				.clientId(cfg.AgateClientId)
-				.username(cfg.User)
-				.password(cfg.Password)
+				.username(user)
+				.password(password)
 				.build();
 		}
 		else {
@@ -202,13 +263,14 @@ public class AgateImport implements Closeable
 			usage();
 			return;
 		}
-		
+
+		// uses defaultazurecredential always
 		AgateImport agate = new AgateImport(new Config());
 
 		switch (args[0].toLowerCase()) {
 
 			case "samples":
-				List<Sample> samples = agate.listSamples(args[1]);
+				List<Sample> samples = agate.listSamplesAsync(args[1]).get();
 				for (Sample s : samples) {
 					System.out.println(String.format("%s\t%s\t%d\n%s\n", s.Id, s.Name, s.TotalCells, s.TsvPath));
 				}
@@ -216,7 +278,7 @@ public class AgateImport implements Closeable
 
 			case "tsv":
 				int maxLines = (args.length > 2 ? Integer.parseInt(args[2]) : 10);
-				InputStream stm = agate.getTsvStream(args[1]);
+				InputStream stm = agate.getTsvStreamAsync(args[1]).get();
 				printHead(stm, maxLines);
 				stm.close();
 				break;
@@ -258,6 +320,8 @@ public class AgateImport implements Closeable
 	// +---------+
 
 	private Config cfg;
+	private String user;
+	private String password;
 	private Connection cxn;
 
 	private final static Logger log = Logger.getLogger(AgateImport.class.getName());

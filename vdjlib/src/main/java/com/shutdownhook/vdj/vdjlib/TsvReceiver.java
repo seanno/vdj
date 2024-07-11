@@ -21,6 +21,12 @@ public class TsvReceiver
 	// | receive |
 	// +---------+
 
+	public static enum ReceiveResult {
+		OK,
+		Exists,
+		Error
+	}
+	
 	public static class ReceiveStreams
 	{
 		OutputStream Stm;
@@ -28,17 +34,17 @@ public class TsvReceiver
 		BufferedWriter Buf;
 	}
 	
-	public static CompletableFuture<Boolean> receive(InputStreamReader stm, RepertoireStore store,
-													 String userId, String ctx, String rep) {
+	public static CompletableFuture<ReceiveResult> receive(InputStreamReader stm, RepertoireStore store,
+														   String userId, String ctx, String rep) {
 		
 		return(receive(stm, store, userId, ctx, rep, null, null));
 	}
 	
-	public static CompletableFuture<Boolean> receive(InputStreamReader stm, RepertoireStore store,
-													 String userId, String ctx, String rep,
-													 Long totalCells, Double sampleMillis) {
+	public static CompletableFuture<ReceiveResult> receive(InputStreamReader stm, RepertoireStore store,
+														   String userId, String ctx, String rep,
+														   Long totalCells, Double sampleMillis) {
 		
-		CompletableFuture<Boolean> future = new CompletableFuture<Boolean>();
+		CompletableFuture<ReceiveResult> future = new CompletableFuture<ReceiveResult>();
 
 		Exec.getPool().submit(() -> {
 
@@ -51,12 +57,24 @@ public class TsvReceiver
 				}
 			});
 
-			boolean success = false;
-			boolean openedSaveStreamOK = false;
+			ReceiveResult result = ReceiveResult.Error;
 				
 			try {
+				// check if already exists
+				Repertoire[] repertoires = store.getContextRepertoires(userId, ctx);
+				for (Repertoire r : repertoires) {
+					if (r.Name.equals(rep)) {
+						result = ReceiveResult.Exists;
+						throw new Exception("Attempted re-import of same repertoire (probably fine)");
+					}
+				}
+				
 				streams.Stm = store.getRepertoireSaveStream(userId, ctx, rep);
-				openedSaveStreamOK = true;
+				
+				if (streams.Stm == null) {
+					throw new Exception(String.format("failed getting save Stream %s/%s/%s",
+													  userId, ctx, rep));
+				}
 				
 				streams.Writer = new OutputStreamWriter(streams.Stm);
 				streams.Buf = new BufferedWriter(streams.Writer);
@@ -86,7 +104,7 @@ public class TsvReceiver
 				}
 
 				store.commitRepertoireToContext(userId, ctx, repertoire);
-				success = true;
+				result = ReceiveResult.OK;
 			}
 			catch (Exception e) {
 				log.warning(Utility.exMsg(e, "receive", true));
@@ -96,10 +114,12 @@ public class TsvReceiver
 				if (streams.Writer != null) Utility.safeClose(streams.Writer);
 				if (streams.Stm != null) Utility.safeClose(streams.Stm);
 				if (tsvReader != null) Utility.safeClose(tsvReader);
-				if (!success && openedSaveStreamOK) store.deleteRepertoire(userId, ctx, rep);
+
+				// only try to clean up error, not ok or already existing rep
+				if (result.equals(ReceiveResult.Error)) store.deleteRepertoire(userId, ctx, rep);
 			}
 			
-			future.complete(success);
+			future.complete(result);
 		});
 
 		return(future);

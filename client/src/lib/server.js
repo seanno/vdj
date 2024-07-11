@@ -3,18 +3,22 @@
 // | Wrappers |
 // +----------+
 
+// user
 export async function serverFetchUser() {
   return(await serverFetch('/user'));
 }
 
+// contexts
 export async function serverFetchContexts() {
   return(await serverFetch('/contexts/'));
 }
 
+// repertoires
 export async function serverFetchRepertoires(ctx) {
   return(await serverFetch('/contexts/' + encodeURIComponent(ctx)));
 }
 
+// rearrangements
 export async function serverFetchRepertoire(ctx, rep, start, count) {
   
   const url =
@@ -25,6 +29,7 @@ export async function serverFetchRepertoire(ctx, rep, start, count) {
   return(await serverFetch(url));
 }
 
+// overlap
 export async function serverFetchOverlap(ctx, reps, type) {
 
   const url =
@@ -35,6 +40,7 @@ export async function serverFetchOverlap(ctx, reps, type) {
   return(await serverFetch(url));
 }
 
+// search
 export async function serverFetchSearch(ctx, reps, seq, type, muts, full) {
 
   const url =
@@ -48,6 +54,7 @@ export async function serverFetchSearch(ctx, reps, seq, type, muts, full) {
   return(await serverFetch(url));
 }
 
+// topx
 export async function serverFetchTopX(ctx, rep, sort) {
 
   const url =
@@ -59,6 +66,7 @@ export async function serverFetchTopX(ctx, rep, sort) {
   return(await serverFetch(url));
 }
 
+// upload
 export async function serverFetchUpload(userId, context, repertoire, file) {
 
   const url =
@@ -75,6 +83,7 @@ export async function serverFetchUpload(userId, context, repertoire, file) {
   return(await serverFetch(url, file, contentType));
 }
 
+// delete
 export async function serverFetchDelete(ctx, reps) {
 
   const url =
@@ -83,6 +92,31 @@ export async function serverFetchDelete(ctx, reps) {
 
   return(await serverFetch(url, undefined,
 						   'application/json', 'DELETE'));
+}
+
+// agate - samples
+export async function serverFetchAgateSamples(user, pass, search) {
+
+  const params = { "SearchString": search };
+  if (user) params.User = user;
+  if (pass) params.Password = pass;
+
+  return(await serverFetch('/agate', JSON.stringify(params)));
+}
+
+// agate - import
+export async function serverImportAgate(user, pass, ctx, saveUserId, sample) {
+
+  const params = { "Sample": sample };
+  if (user) params.User = user;
+  if (pass) params.Password = pass;
+  if (saveUserId) params.SaveUser = saveUserId;
+
+  const url =
+		'/agate/' + encodeURIComponent(ctx) +
+		'/' + encodeURIComponent(sample.Name);
+
+  return(await serverFetch(url, JSON.stringify(params)));
 }
 
 // +-------------+
@@ -109,6 +143,10 @@ export async function serverFetch(relativeUrl, body, contentType = 'application/
   console.log(`${options.method} ${url}`);
   const response = await fetch(url, options);
 
+  if (response.status === 409) {
+	return({ httpStatus: 409 });
+  }
+  
   if (response.status !== 200) {
 	throw new Error(`serverFetch ${url}: ${response.status}`);
   }

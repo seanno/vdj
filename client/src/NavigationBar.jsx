@@ -4,7 +4,7 @@ import { Button, Modal, TextField } from '@mui/material';
 import ContextPicker from './ContextPicker.jsx';
 import RepertoirePicker from './RepertoirePicker.jsx';
 
-export default function NavigationBar({ addTab, clearTabs, showError, refreshCounter }) {
+export default function NavigationBar({ user, addTab, clearTabs, showError, refreshCounter }) {
 
   const [selectedContext, setSelectedContext] = useState(undefined);
   const [selectedRepertoires,setSelectedRepertoires] = useState([]);
@@ -87,6 +87,17 @@ export default function NavigationBar({ addTab, clearTabs, showError, refreshCou
 	addTab(newTab);
   }
 
+  function openAgate() {
+
+	const newTab = {
+	  view: 'agate',
+	  name: 'Import',
+	  context: selectedContext
+	};
+
+	addTab(newTab);
+  }
+
   function openDelete() {
 
 	const newTab = {
@@ -162,18 +173,31 @@ export default function NavigationBar({ addTab, clearTabs, showError, refreshCou
 		</>
 	  }
 
+	  <br/>
+	  
 	  <Button
 		variant='contained'
-		sx={{ mt: 4, mr: 1, mb: 1  }}
+		sx={{ mr: 1, mb: 1  }}
 		onClick={openUpload}>
 		Upload
 	  </Button>
+
+	  { user.AgateEnabled &&
+
+		<Button
+		  variant='contained'
+		  sx={{ mr: 1, mb: 1 }}
+		  onClick={openAgate}>
+		  Import
+		</Button>
+
+	  }
 
 	  { selectedContext &&
 		
 		<Button
 		  variant='contained'
-		  sx={{ mt: 4, mr: 1, mb: 1 }}
+		  sx={{ mr: 1, mb: 1 }}
 		  disabled={selectionCount() < 1}
 		  onClick={openDelete}>
 		  Delete
@@ -181,7 +205,7 @@ export default function NavigationBar({ addTab, clearTabs, showError, refreshCou
 	  }
 
 	  <div style={{ 'marginTop': '30px' }}>
-		<a href="#" onClick={(evt) => logout(evt)}>logout</a>
+		<a title={user.Id} href="#" onClick={(evt) => logout(evt)}>logout</a>
 	  </div>
 	  
 	</div>

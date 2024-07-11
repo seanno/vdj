@@ -46,3 +46,7 @@ window.searchTypeConfig = {
 window.topXDefaultSort = 'FractionOfLocus';
 window.topXCount = 100;
 
+// AGATE
+
+window.agateMinSearchLength = 5;
+

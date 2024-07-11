@@ -15,6 +15,7 @@ import org.junit.Test;
 import com.shutdownhook.vdj.vdjlib.model.Locus;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
+import com.shutdownhook.vdj.vdjlib.TsvReceiver.ReceiveResult;
 
 public class TsvReceiverTest 
 {
@@ -56,6 +57,20 @@ public class TsvReceiverTest
 		basic(SideLoadedTsv.TEST_AGATE_1, true);
 	}
 
+	@Test
+    public void repertoireExists() throws Exception {
+		
+		SideLoadedTsv truth = SideLoadedTsv.getTsv(SideLoadedTsv.TEST_V3_TCRB);
+		
+		ReceiveResult result = receiveHelper(truth, false);
+		Assert.assertEquals(ReceiveResult.OK, result);
+
+		result = receiveHelper(truth, false);
+		Assert.assertEquals(ReceiveResult.Exists, result);
+
+		Assert.assertTrue(store.get().deleteRepertoire(TEST_USER, TEST_CONTEXT, truth.getResourceName()));
+	}
+
     private void basic(int which) throws Exception {
 		basic(which, false);
 	}
@@ -63,22 +78,31 @@ public class TsvReceiverTest
     private void basic(int which, boolean sendCells) throws Exception {
 
 		SideLoadedTsv truth = SideLoadedTsv.getTsv(which);
+		String name = truth.getResourceName();
 		
+		ReceiveResult result = receiveHelper(truth, sendCells);
+
+		Assert.assertEquals(ReceiveResult.OK, result);
+		truth.assertRepertoire(findRepertoireInStore(TEST_USER, TEST_CONTEXT, name));
+
+		Assert.assertTrue(store.get().deleteRepertoire(TEST_USER, TEST_CONTEXT, name));
+		Assert.assertNull(findRepertoireInStore(TEST_USER, TEST_CONTEXT, name));
+	}
+
+	private ReceiveResult receiveHelper(SideLoadedTsv truth, boolean sendCells) throws Exception {
+
 		String name = truth.getResourceName();
 		Helpers.ResourceStreamReader rdr = new Helpers.ResourceStreamReader(name);
 
 		Long totalCells = (sendCells ? truth.getRepertoire().TotalCells : null);
 						   
-		CompletableFuture<Boolean> future =
+		CompletableFuture<ReceiveResult> future =
 			TsvReceiver.receive(rdr.get(), store.get(), TEST_USER, TEST_CONTEXT, name, totalCells, null);
 
-		Assert.assertTrue(future.get());
-		truth.assertRepertoire(findRepertoireInStore(TEST_USER, TEST_CONTEXT, name));
-
+		ReceiveResult result = future.get();
 		rdr.close();
 
-		Assert.assertTrue(store.get().deleteRepertoire(TEST_USER, TEST_CONTEXT, name));
-		Assert.assertNull(findRepertoireInStore(TEST_USER, TEST_CONTEXT, name));
+		return(result);
 	}
 
 	private Repertoire findRepertoireInStore(String userId, String ctx, String rep) {

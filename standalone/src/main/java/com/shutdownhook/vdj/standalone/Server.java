@@ -8,6 +8,7 @@ package com.shutdownhook.vdj.standalone;
 import java.io.Closeable;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -22,6 +23,7 @@ import com.shutdownhook.toolbox.WebServer.Response;
 
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
+import com.shutdownhook.vdj.vdjlib.AgateImport;
 import com.shutdownhook.vdj.vdjlib.ContextRepertoireStore;
 import com.shutdownhook.vdj.vdjlib.RearrangementKey;
 import com.shutdownhook.vdj.vdjlib.RearrangementKey.KeyType;
@@ -35,6 +37,7 @@ import com.shutdownhook.vdj.vdjlib.TopXRearrangements;
 import com.shutdownhook.vdj.vdjlib.TopXRearrangements.TopXSort;
 import com.shutdownhook.vdj.vdjlib.TsvReader;
 import com.shutdownhook.vdj.vdjlib.TsvReceiver;
+import com.shutdownhook.vdj.vdjlib.TsvReceiver.ReceiveResult;
 
 public class Server implements Closeable
 {
@@ -72,6 +75,10 @@ public class Server implements Closeable
 		public TopXRearrangements.Config TopX = new TopXRearrangements.Config();
 		public Integer DefaultTopXCount = 100;
 		public TopXSort DefaultTopXSort = TopXSort.FractionOfCells;
+
+		// Agate
+		public Boolean AgateUserPassAuth = false;
+		public AgateImport.Config Agate;
 		
 		public String ApiBase = "/api";
 		public String ContextScope = "contexts";
@@ -79,6 +86,7 @@ public class Server implements Closeable
 		public String OverlapScope = "overlap";
 		public String UserScope = "user";
 		public String TopXScope = "topx";
+		public String AgateScope = "agate";
 
 		public String ClientSiteZip = "@clientSite.zip";
 		public Boolean StaticPagesRouteHtmlWithoutExtension = false;
@@ -154,6 +162,9 @@ public class Server implements Closeable
 	//                                  descending by SORT (QS sort/count)
 
 	// GET    /api/user              => return user info (for AUTH user)
+
+	// POST   /api/agate                => return list of matching samples (JSON post body; see method)
+	// POST   /api/agate/CTX/REP/import => import agate sample into REP context CTX (JSON post body; see method)
 
 	private void registerApi() throws Exception {
 
@@ -241,6 +252,13 @@ public class Server implements Closeable
 
 						// get topx rearrangements
 						getTopX(info);
+						handled = true;
+					}
+				}
+				else if (info.Scope.equals(cfg.AgateScope)) {
+
+					if (request.Method.equals("POST")) {
+						handleAgateRequest(info);
 						handled = true;
 					}
 				}
@@ -334,11 +352,21 @@ public class Server implements Closeable
 
 	private void saveRepertoire(ApiInfo info) throws Exception {
 
-		// param for uploading to alternative user store
+		saveRepertoireInternal(info,
+							   info.Request.QueryParams.get("user"),
+							   info.Request.BodyStream,
+							   null, null);
+	}
+	
+	private void saveRepertoireInternal(ApiInfo info,
+										String userOverride,
+										InputStream stm,
+										Long totalCells,
+										Double sampleMillis) throws Exception {
+
+		String saveUserId = userOverride;
 		
-		String saveUserId = info.Request.QueryParams.get("user");
-		
-		if (Easy.nullOrEmpty(saveUserId)) {
+		if (Easy.nullOrEmpty(userOverride)) {
 			// no override provided, use effective user id
 			saveUserId = info.UserId;
 		}
@@ -358,21 +386,29 @@ public class Server implements Closeable
 		InputStreamReader rdr = null;
 
 		try {
-			rdr = new InputStreamReader(info.Request.BodyStream);
+			rdr = new InputStreamReader(stm);
 
-			Boolean success = TsvReceiver.receive(rdr, store,
-												  saveUserId, info.ContextName,
-												  info.RepertoireName).get();
+			
+			ReceiveResult result = TsvReceiver.receive(rdr, store,
+													   saveUserId, info.ContextName,
+													   info.RepertoireName,
+													   totalCells, sampleMillis).get();
 
-			if (!success) {
-				log.warning(String.format("Failed receiving TSV body %s/%s/%s",
-										  saveUserId, info.ContextName, info.RepertoireName));
-				
-				info.Response.Status = 500;
-			}
-			else {
-				Repertoire r = findRepertoire(saveUserId, info.ContextName, info.RepertoireName);
-				info.Response.setJson(r.toJson());
+			switch (result) {
+				case OK:
+					Repertoire r = findRepertoire(saveUserId, info.ContextName, info.RepertoireName);
+					info.Response.setJson(r.toJson());
+					break;
+
+				case Exists:
+					info.Response.Status = 409; // "409 Conflict"
+					break;
+
+				case Error:
+					log.warning(String.format("Failed receiving TSV body %s/%s/%s",
+											  saveUserId, info.ContextName, info.RepertoireName));
+					info.Response.Status = 500;
+					break;
 			}
 		}
 		finally {
@@ -462,6 +498,8 @@ public class Server implements Closeable
 	{
 		public String AssumeUserId;
 		public Boolean CanUploadToAnyUserId;
+		public Boolean AgateEnabled;
+		public Boolean AgateUserPassAuth;
 	}
 
 	private void getUser(ApiInfo info) throws Exception {
@@ -469,7 +507,10 @@ public class Server implements Closeable
 		UserInfo ui = new UserInfo();
 		ui.AssumeUserId = info.UserId;
 		ui.CanUploadToAnyUserId = getCanUploadToAny(info.Request);
-		
+
+		ui.AgateEnabled = (cfg.Agate != null);
+		ui.AgateUserPassAuth = (cfg.Agate != null && cfg.AgateUserPassAuth);
+							
 		info.Response.setJson(gson.toJson(ui));
 	}
 
@@ -493,6 +534,72 @@ public class Server implements Closeable
 
 		RepertoireResult result = topx.getAsync(params).get();
 		info.Response.setJson(result.toJson());
+	}
+
+	// +--------------------+
+	// | handleAgateRequest |
+	// +--------------------+
+
+	public static class AgateParams
+	{
+		public String User;
+		public String Password;
+
+		// for searching
+		public String SearchString;
+
+		// for importing
+		public String SaveUser;
+		public AgateImport.Sample Sample;
+	}
+	
+	private void handleAgateRequest(ApiInfo info) throws Exception {
+
+		if (cfg.Agate == null) throw new Exception("agate request received but not configured");
+		
+		AgateImport agate = null;
+
+		try {
+			String body = new String(info.Request.BodyStream.readAllBytes(), StandardCharsets.UTF_8);
+			AgateParams params = gson.fromJson(body, AgateParams.class);
+			
+			String user = (cfg.AgateUserPassAuth ? params.User : null);
+			String pass = (cfg.AgateUserPassAuth ? params.Password : null);
+			agate = new AgateImport(cfg.Agate, user, pass);
+
+			if (info.ContextName == null) {
+				getAgateSamples(info, params, agate);
+			}
+			else {
+				importAgateSample(info, params, agate);
+			}
+		}
+		finally {
+			if (agate != null) agate.close();
+		}
+	}
+
+	private void getAgateSamples(ApiInfo info, AgateParams params, AgateImport agate) throws Exception {
+
+		List<AgateImport.Sample> samples = agate.listSamplesAsync(params.SearchString).get();
+		info.Response.setJson(gson.toJson(samples));
+	}
+	
+	private void importAgateSample(ApiInfo info, AgateParams params, AgateImport agate) throws Exception {
+
+		InputStream stm = null;
+
+		try {
+			stm = agate.getTsvStreamAsync(params.Sample.TsvPath).get();
+
+			saveRepertoireInternal(info, params.SaveUser, stm,
+								   params.Sample.TotalCells,
+								   params.Sample.TotalMilliliters);
+			
+		}
+		finally {
+			if (stm != null) stm.close();
+		}
 	}
 
 	// +---------+

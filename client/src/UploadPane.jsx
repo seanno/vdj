@@ -4,18 +4,17 @@ import { memo, useState, useEffect } from 'react';
 import { Button, FormControl, FormLabel, FormControlLabel,
 		 Radio, RadioGroup, TextField } from '@mui/material';
 
-import { serverFetchUser, serverFetchUpload } from './lib/server.js';
+import { serverFetchUpload } from './lib/server.js';
 
 import styles from './Pane.module.css'
 
-export default memo(function UploadPane({ context, refresh, rkey }) {
+export default memo(function UploadPane({ user, context, refresh, rkey }) {
 
-  const [userInfo, setUserInfo] = useState(undefined);
   const [confirmation, setConfirmation] = useState(undefined);
   const [error,setError] = useState(undefined);
   const [startUpload, setStartUpload] = useState(false);
 
-  const [userId, setUserId] = useState('');
+  const [userId, setUserId] = useState(user.CanUploadToAnyUserId ? user.AssumeUserId : '');
   const [contextName, setContextName] = useState(context === undefined ? '' : context);
   const [repertoireName, setRepertoireName] = useState('');
   const [file, setFile] = useState(undefined);
@@ -33,25 +32,6 @@ export default memo(function UploadPane({ context, refresh, rkey }) {
   // +-----------+
   // | useEffect |
   // +-----------+
-
-  useEffect(() => {
-
-	const loadUserInfo = async () => {
-
-	  serverFetchUser() 
-		.then(result => {
-		  setUserInfo(result);
-		  if (result.CanUploadToAnyUserId) setUserId(result.AssumeUserId);
-		})
-		.catch(error => {
-		  console.error(error);
-		  setError('Error fetching user details');
-		});
-	}
-
-	loadUserInfo();
-	
-  }, []);
 
   useEffect(() => {
 
@@ -88,7 +68,7 @@ export default memo(function UploadPane({ context, refresh, rkey }) {
 	return(
 	  <>
 		
-		{ userInfo.CanUploadToAnyUserId &&
+		{ user.CanUploadToAnyUserId &&
 		  
 		  <div className={styles.dialogTxt}>
 			<TextField
@@ -167,7 +147,7 @@ export default memo(function UploadPane({ context, refresh, rkey }) {
 	
 	<div className={styles.container}>
 
-	  { userInfo && !confirmation && !error &&
+	  { !confirmation && !error &&
 		renderUploadForm() }
 	  
 	  { startUpload && !confirmation && !error &&
