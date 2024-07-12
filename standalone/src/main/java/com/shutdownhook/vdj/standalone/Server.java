@@ -582,6 +582,7 @@ public class Server implements Closeable
 	private void getAgateSamples(ApiInfo info, AgateParams params, AgateImport agate) throws Exception {
 
 		List<AgateImport.Sample> samples = agate.listSamplesAsync(params.SearchString).get();
+		if (samples == null) throw new Exception("failed listing agate samples");
 		info.Response.setJson(gson.toJson(samples));
 	}
 	
@@ -591,6 +592,7 @@ public class Server implements Closeable
 
 		try {
 			stm = agate.getTsvStreamAsync(params.Sample.TsvPath).get();
+			if (stm == null) throw new Exception("failed getting agate tsv stream");
 
 			saveRepertoireInternal(info, params.SaveUser, stm,
 								   params.Sample.TotalCells,

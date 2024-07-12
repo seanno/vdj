@@ -93,7 +93,7 @@ public class AgateImport implements Closeable
 		conn.setConnectTimeout(cfg.StorageTimeoutMillis);
 		conn.setReadTimeout(cfg.StorageTimeoutMillis);
 
-		String token = getToken("https://storage.azure.com", false);
+		String token = getToken("https://storage.azure.com/.default", false);
 		conn.setRequestProperty("Authorization", "Bearer " + token);
 		conn.setRequestProperty("x-ms-version", cfg.StorageVersion);
 				
@@ -216,6 +216,7 @@ public class AgateImport implements Closeable
 		if (user != null) {
 			ds.setUser(user);
 			ds.setPassword(password);
+			ds.setAuthentication("ActiveDirectoryPassword");
 		}
 		else {
 			ds.setAccessToken(getToken("https://database.windows.net/", true));

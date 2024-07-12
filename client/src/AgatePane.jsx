@@ -178,7 +178,8 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 				sx={{ width: '100%' }}
 				onChange={(evt) => setAgatePass(evt.target.value)}
 
-				endAdornment={
+				InputProps={{
+				  endAdornment: 
 				  <InputAdornment position="end">
 					<IconButton
 					  onClick={() => setShowPass(!showPass) }
@@ -188,7 +189,7 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 					  {showPass ? <VisibilityOff /> : <Visibility />}
 					</IconButton>
 				  </InputAdornment>
-				}
+				}}
 			  />
 			</div>
 		  </>
@@ -406,7 +407,7 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
   }
   
   
-  return(<div className={styles.container}>{elts}</div>);
+  return(<div className={styles.container}><form>{elts}</form></div>);
 }
 
 )
