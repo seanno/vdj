@@ -41,6 +41,7 @@ public class AgateImport implements Closeable
 		public Integer MinSearchLength = 5;
 		
 		public String AgateClientId = "fdcf242b-a25b-4b35-aff2-d91d8100225d";
+		public String AgateTenantId = "720cf133-4325-491c-b6a9-159d0497fc65";
 		public String StorageVersion = "2017-11-09";
 		public Integer StorageTimeoutMillis = (5 * 60 * 1000);
 	}
@@ -93,7 +94,7 @@ public class AgateImport implements Closeable
 		conn.setConnectTimeout(cfg.StorageTimeoutMillis);
 		conn.setReadTimeout(cfg.StorageTimeoutMillis);
 
-		String token = getToken("https://storage.azure.com/.default", false);
+		String token = getToken("https://storage.azure.com/.default");
 		conn.setRequestProperty("Authorization", "Bearer " + token);
 		conn.setRequestProperty("x-ms-version", cfg.StorageVersion);
 				
@@ -212,28 +213,23 @@ public class AgateImport implements Closeable
 		SQLServerDataSource ds = new SQLServerDataSource();
 		ds.setServerName(cfg.Server);
 		ds.setDatabaseName(cfg.Database);
+		ds.setAccessToken(getToken("https://database.windows.net/.default"));
 
-		if (user != null) {
-			ds.setUser(user);
-			ds.setPassword(password);
-			ds.setAuthentication("ActiveDirectoryPassword");
-		}
-		else {
-			ds.setAccessToken(getToken("https://database.windows.net/", true));
-		}
+		// https://stackoverflow.com/questions/961078/sql-server-query-running-slow-from-java
+		ds.setSendStringParametersAsUnicode(false);
 
 		this.cxn = ds.getConnection();
 
 		log.info("Agate db connection established");
 	}
 
-	private String getToken(String scope, boolean skipUserPass) {
+	private String getToken(String scope) {
 
 		TokenCredential cred = null;
 		
 		if (user != null) {
-			if (skipUserPass) return(null);
 			cred = new UsernamePasswordCredentialBuilder()
+				.tenantId(cfg.AgateTenantId)
 				.clientId(cfg.AgateClientId)
 				.username(user)
 				.password(password)
