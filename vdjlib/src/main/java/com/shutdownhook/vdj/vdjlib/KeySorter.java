@@ -40,6 +40,7 @@ public class KeySorter implements Closeable
 	public static class Config
 	{
 		public int InitialChunkSize = 500000;
+		public Boolean UseCache = true;
 		public String WorkingPath = "/tmp";
 	}
 
@@ -62,15 +63,10 @@ public class KeySorter implements Closeable
 		cleanupFiles(files);
 	}
 
-	// +-------------+
-	// | getNextItem |
-	// +-------------+
+	// +----------+
+	// | readNext |
+	// +----------+
 
-	public void initReader() throws Exception {
-		if (files.size() != 1) throw new Exception("KeySorter not ready");
-		reader = new KeyReader(files.get(0));
-	}
-	
 	public KeyItem readNext() throws IOException {
 		return(reader.readNext());
 	}
@@ -80,19 +76,25 @@ public class KeySorter implements Closeable
 	// | sort      |
 	// +-----------+
 
-	public CompletableFuture<File> sortAsync() {
+	public CompletableFuture<Boolean> sortAsync() {
 		
-		CompletableFuture<File> future = new CompletableFuture<File>();
+		CompletableFuture<Boolean> future = new CompletableFuture<Boolean>();
 
 		Exec.getPool().submit(() -> {
 
 			try {
-				sort();
-				future.complete(files.get(0));
+				
+				if (!fetchFromCache()) {
+					sort();
+					reader = new KeyReader(files.get(0));
+					maybeSaveToCache();
+				}
+				
+				future.complete(true);
 			}
 			catch (Exception e) {
 				log.warning(Utility.exMsg(e, "sort", true));
-				future.complete(null);
+				future.complete(false);
 			}
 		});
 
@@ -326,6 +328,42 @@ public class KeySorter implements Closeable
 		}
 	}
 
+	// +------------------+
+	// | fetchFromCache   |
+	// | maybeSaveToCache |
+	// +------------------+
+
+	private boolean fetchFromCache() throws IOException {
+		
+		if (!cfg.UseCache) return(false);
+
+		String cacheKey = getCacheKey();
+		InputStream stm = crs.getSecondaryStream(repertoireName, cacheKey);
+		if (stm == null) return(false);
+
+		log.info(String.format("KeySorter cache hit for %s/%s", repertoireName, cacheKey));
+		reader = new KeyReader(stm);
+		return(true);
+	}
+
+	private void maybeSaveToCache() {
+
+		if (!cfg.UseCache) return;
+
+		try {
+			String cacheKey = getCacheKey();
+			crs.saveSecondaryFile(repertoireName, cacheKey, files.get(0));
+			log.info(String.format("KeySorter cached result for %s/%s", repertoireName, cacheKey));
+		}
+		catch (Exception e) {
+			log.warning(Utility.exMsg(e, "KeySorter save to cache (non-fatal)", true));
+		}
+	}
+
+	private String getCacheKey() {
+		return("keySorter-" + extractor.getClass().getName());
+	}
+
 	// +---------+
 	// | KeyItem |
 	// +---------+
@@ -399,8 +437,13 @@ public class KeySorter implements Closeable
 
 	public static class KeyReader implements Closeable
 	{
+		public KeyReader(InputStream stm) throws IOException {
+			this.stm = stm;
+			rdr = new InputStreamReader(stm);
+			buf = new BufferedReader(rdr);
+		}
+		
 		public KeyReader(File file) throws IOException {
-			
 			rdr = new FileReader(file);
 			buf = new BufferedReader(rdr);
 		}
@@ -413,9 +456,11 @@ public class KeySorter implements Closeable
 		public void close() {
 			if (buf != null) Utility.safeClose(buf);
 			if (rdr != null) Utility.safeClose(rdr);
+			if (stm != null) Utility.safeClose(stm);
 		}
 
-		private FileReader rdr;
+		private InputStream stm;
+		private InputStreamReader rdr;
 		private BufferedReader buf;
 	}
 

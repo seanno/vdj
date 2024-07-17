@@ -26,6 +26,7 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.models.ListBlobsOptions;
 
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 
@@ -164,10 +165,62 @@ public class RepertoireStore_Blobs implements RepertoireStore
 			// remove file
 			getRepertoireBlob(userId, ctx, name).delete();
 
+			// clean up secondary files
+			deleteRepertoireSecondaryFiles(userId, ctx, name);
+				
 			return(true);
 		}
 		catch (Exception e) {
 			log.warning(Utility.exMsg(e, "deleteRepertoire", false));
+			return(false);
+		}
+	}
+
+	// +----------------------------------+
+	// | getRepertoireSecondarySaveStream |
+	// +----------------------------------+
+
+	public OutputStream getRepertoireSecondarySaveStream(String userId, String ctx, String rep, String key) {
+		try {
+			return(getRepertoireSecondaryFileBlob(userId, ctx, rep, key)
+				   .getBlockBlobClient()
+				   .getBlobOutputStream(true));
+		}
+		catch (Exception e) {
+			log.warning(Utility.exMsg(e, "getRepertoireSecondarySaveStream", false));
+			return(null);
+		}
+	}
+
+	// +------------------------------+
+	// | getRepertoireSecondaryStream |
+	// +------------------------------+
+	
+	public InputStream getRepertoireSecondaryStream(String userId, String ctx, String rep, String key) {
+		try {
+			BlobClient blob = getRepertoireSecondaryFileBlob(userId, ctx, rep, key);
+			return(blob.exists() ? blob.openInputStream() : null);
+		}
+		catch (Exception e) {
+			log.warning(Utility.exMsg(e, "getRepertoireSecondaryStream", true));
+			return(null);
+		}
+	}
+
+	// +--------------------------------+
+	// | deleteRepertoireSecondaryFiles |
+	// +--------------------------------+
+	
+	public boolean deleteRepertoireSecondaryFiles(String userId, String ctx, String rep) {
+		try {
+			client.listBlobsByHierarchy(getRepertoireCachePath(userId, ctx, rep)).forEach(blob -> {
+				if (!blob.isPrefix()) client.getBlobClient(blob.getName()).delete();
+			});
+
+			return(true);
+		}
+		catch (Exception e) {
+			log.warning(Utility.exMsg(e, "deleteRepertoireSecondaryFiles", true));
 			return(false);
 		}
 	}
@@ -232,13 +285,21 @@ public class RepertoireStore_Blobs implements RepertoireStore
 	}
 
 	private String getRepertoirePath(String userId, String ctx, String rep) {
-		return(getContextPath(userId, ctx) + clean(rep) + ".tsv");
+		return(getContextPath(userId, ctx) + clean(rep) + TSV_EXT);
 	}
 
 	private BlobClient getRepertoireBlob(String userId, String ctx, String rep) {
 		return(client.getBlobClient(getRepertoirePath(userId, ctx, rep)));
 	}
 
+	private String getRepertoireCachePath(String userId, String ctx, String rep) {
+		return(getContextPath(userId, ctx) + clean(rep) + CACHE_SUFFIX + "/");
+	}
+
+	private BlobClient getRepertoireSecondaryFileBlob(String userId, String ctx, String rep, String key) {
+		return(client.getBlobClient(getRepertoireCachePath(userId, ctx, rep) + clean(key)));
+	}
+	
 	private String clean(String input) {
 		return(Utility.urlEncode(input));
 	}
@@ -264,6 +325,9 @@ public class RepertoireStore_Blobs implements RepertoireStore
 
 	private Config cfg;
 	private BlobContainerClient client;
+
+	private final static String TSV_EXT = ".tsv";
+	private final static String CACHE_SUFFIX = "__cache";
 
 	private final static Logger log = Logger.getLogger(RepertoireStore_Blobs.class.getName());
 }

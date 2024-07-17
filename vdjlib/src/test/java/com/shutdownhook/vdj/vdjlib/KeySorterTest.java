@@ -79,12 +79,14 @@ public class KeySorterTest
 	@Test
 	public void basic() throws Exception {
 		for (TestRepertoireInfo info : TEST_INFOS) {
-			basicTestRepertoireInfo(info);
+			basicTestRepertoireInfo(info, true);
+			basicTestRepertoireInfo(info, false);
 		}
 	}
 
-	private void basicTestRepertoireInfo(TestRepertoireInfo info) throws Exception {
+	private void basicTestRepertoireInfo(TestRepertoireInfo info, boolean useCache) throws Exception {
 		KeySorter.Config cfg = new KeySorter.Config();
+		cfg.UseCache = useCache;
 		cfg.InitialChunkSize = info.Uniques + 1; basicTestHelper(info, cfg);
 		cfg.InitialChunkSize = info.Uniques / 2; basicTestHelper(info, cfg);
 		cfg.InitialChunkSize = (int) ((double)info.Uniques / 3.5); basicTestHelper(info, cfg);
@@ -95,11 +97,10 @@ public class KeySorterTest
 		System.out.println(String.format("basicTestHelper: %s, %d", info.Name, cfg.InitialChunkSize));
 
 		KeySorter ks = new KeySorter(crs, info.Name, info.Extractor, cfg);
-		File sorted = ks.sortAsync().get();
-		ks.initReader();
-		
+		boolean sorted = ks.sortAsync().get();
+		Assert.assertTrue(sorted);
+
 		assertKeyItems(ks, getSideLoadedTruth(info.Name, info.Extractor));
-		sorted.delete();
 		ks.close();
 	}
 	

@@ -4,8 +4,11 @@
 
 package com.shutdownhook.vdj.vdjlib;
 
+import java.io.File;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.logging.Logger;
 
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
@@ -51,6 +54,40 @@ public class ContextRepertoireStore
 	
 	public InputStream getRepertoireStream(Repertoire rep) throws IOException {
 		return(store.getRepertoireStream(userId, context, rep.Name));
+	}
+
+	// +-----------------+
+	// | Secondary Files |
+	// +-----------------+
+
+	public InputStream getSecondaryStream(String rep, String key) {
+		return(store.getRepertoireSecondaryStream(userId, context, rep, key));
+	}
+
+	public InputStream getSecondaryStream(Repertoire rep, String key) {
+		return(store.getRepertoireSecondaryStream(userId, context, rep.Name, key));
+	}
+
+	public OutputStream getSecondarySaveStream(String rep, String key) {
+		return(store.getRepertoireSecondarySaveStream(userId, context, rep, key));
+	}
+	
+	public OutputStream getSecondarySaveStream(Repertoire rep, String key) {
+		return(store.getRepertoireSecondarySaveStream(userId, context, rep.Name, key));
+	}
+
+	public void saveSecondaryFile(String rep, String key, File file) throws IOException {
+
+		OutputStream output = null;
+
+		try {
+			output = getSecondarySaveStream(rep, key);
+			if (output == null) return; // this is ok, just means we don't have a cache
+			Files.copy(file.toPath(), output);
+		}
+		finally {
+			if (output != null) output.close();
+		}
 	}
 
 	// +---------+

@@ -7,6 +7,7 @@ package com.shutdownhook.vdj.vdjlib;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
@@ -155,20 +156,79 @@ public class RepertoireStore_Files implements RepertoireStore
 			// remove file
 			getRepertoireFile(userId, ctx, name).delete();
 
-			// remove context dir if this was the last repertoire
 			if (newReps.length == 0) {
+				// last repertoire; remove context dir
 				try {
 					Utility.recursiveDelete(getContextDir(userId, ctx));
 				}
 				catch (Exception eDir) {
-					log.warning(Utility.exMsg(eDir, "context dir delete (non-fatal)", false));
+					log.warning(Utility.exMsg(eDir, "context dir delete (non-fatal)", true));
 				}
+			}
+			else {
+				// make sure cached files are gone
+				deleteRepertoireSecondaryFiles(userId, ctx, name);
 			}
 
 			return(true);
 		}
 		catch (Exception e) {
 			log.warning(Utility.exMsg(e, "deleteRepertoire", true));
+			return(false);
+		}
+	}
+
+	// +----------------------------------+
+	// | getRepertoireSecondarySaveStream |
+	// +----------------------------------+
+
+	public OutputStream getRepertoireSecondarySaveStream(String userId, String ctx, String rep, String key) {
+		
+		try {
+			File cacheDir = getRepertoireCacheDir(userId, ctx, rep);
+			cacheDir.mkdirs();
+			return(new FileOutputStream(new File(cacheDir, clean(key))));
+		}
+		catch (IOException e) {
+
+			String msg = String.format("getRepertoireSecondarySaveStream %s/%s/%s/%s", userId, ctx, rep, key);
+			log.severe(Utility.exMsg(e, msg, true));
+			return(null);
+		}
+	}
+
+	// +------------------------------+
+	// | getRepertoireSecondaryStream |
+	// +------------------------------+
+	
+	public InputStream getRepertoireSecondaryStream(String userId, String ctx, String rep, String key) {
+
+		try {
+			return(new FileInputStream(new File(getRepertoireCacheDir(userId, ctx, rep), clean(key))));
+		}
+		catch (FileNotFoundException eNotFound) {
+			// this is ok, just means we don't have one cached
+			return(null);
+		}
+		catch (IOException e) {
+			String msg = String.format("getRepertoireSecondaryStream %s/%s/%s/%s", userId, ctx, rep, key);
+			log.severe(Utility.exMsg(e, msg, true));
+			return(null);
+		}
+	}
+
+	// +--------------------------------+
+	// | deleteRepertoireSecondaryFiles |
+	// +--------------------------------+
+	
+	public boolean deleteRepertoireSecondaryFiles(String userId, String ctx, String rep) {
+
+		try {
+			Utility.recursiveDelete(getRepertoireCacheDir(userId, ctx, rep));
+			return(true);
+		}
+		catch (Exception eDir) {
+			log.warning(Utility.exMsg(eDir, "repertoire cache dir delete", false));
 			return(false);
 		}
 	}
@@ -195,7 +255,13 @@ public class RepertoireStore_Files implements RepertoireStore
 	}
 
 	private File getRepertoireFile(String userId, String ctx, String rep) {
-		return(new File(getContextDir(userId, ctx), clean(rep) + ".tsv"));
+		return(new File(getContextDir(userId, ctx), clean(rep) + TSV_EXT));
+	}
+
+	private File getRepertoireCacheDir(String userId, String ctx, String rep) {
+		File cacheDir = new File(getContextDir(userId, ctx), clean(rep) + CACHE_SUFFIX);
+		cacheDir.mkdirs();
+		return(cacheDir);
 	}
 
 	private String clean(String input) {
@@ -215,6 +281,9 @@ public class RepertoireStore_Files implements RepertoireStore
 
 	private Config cfg;
 	private File baseDir;
+
+	private final static String TSV_EXT = ".tsv";
+	private final static String CACHE_SUFFIX = "__cache";
 
 	private final static Logger log = Logger.getLogger(RepertoireStore_Files.class.getName());
 }

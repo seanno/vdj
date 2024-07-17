@@ -28,6 +28,18 @@ public interface RepertoireStore
 	default public boolean
 		commitRepertoireToContext(String userId, String ctx, Repertoire r) { return(false); }
 	
-	default public boolean
+	default public boolean // be sure to delete secondary streams, if any
 		deleteRepertoire(String userId, String ctx, String rep) { return(false); }
+
+	// Optional cache support
+	
+	default public OutputStream
+		getRepertoireSecondarySaveStream(String userId, String ctx, String rep, String key) { return(null); }
+
+	default public InputStream
+		getRepertoireSecondaryStream(String userId, String ctx, String rep, String key) { return(null); }
+
+	default public boolean
+		deleteRepertoireSecondaryFiles(String userId, String ctx, String rep) { return(true); }
+		
 }

@@ -129,7 +129,7 @@ public class Overlap
 			log.finest(String.format("KeySorting %d repertoires", result.Repertoires.size()));
 			
 			sorters = new ArrayList<KeySorter>();
-			List<CompletableFuture<File>> futures = new ArrayList<CompletableFuture<File>>();
+			List<CompletableFuture<Boolean>> futures = new ArrayList<CompletableFuture<Boolean>>();
 			
 			for (Repertoire rep : result.Repertoires) {
 				KeySorter sorter = new KeySorter(params.CRS, rep.Name, params.Extractor, cfg.KeySorter);
@@ -138,10 +138,7 @@ public class Overlap
 			}
 
 			for (int i = 0; i < futures.size(); ++i) {
-				
-				File file = futures.get(i).get();
-				
-				if (file == null) {
+				if (!futures.get(i).get()) {
 					throw new Exception("KeySorter failed for " +
 										result.Repertoires.get(i).Name);
 				}
@@ -186,7 +183,6 @@ public class Overlap
 	private void findOverlaps(List<KeySorter> sorters, OverlapResult result) throws Exception {
 
 		log.finest("finding overlaps");
-		for (KeySorter sorter : sorters) sorter.initReader();
 
 		FindOverlapsState state = new FindOverlapsState();
 		state.KeyIndices = new int[sorters.size()];
