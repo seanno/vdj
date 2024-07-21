@@ -125,8 +125,8 @@ export default memo(function OverlapChartPane({ context, repertoires, params, rk
 	};
 
 	return(
-	  <div>
-		<div style={{ float: 'left' }}>
+	  <div style={{ whiteSpace: 'nowrap' }} >
+		<div style={{ display: 'inline-block', verticalAlign: 'top' }}>
 		  <Chart
 			chartType='ScatterChart'
 			data={data}
@@ -137,9 +137,11 @@ export default memo(function OverlapChartPane({ context, repertoires, params, rk
 		  />
 		</div>
 
-		<div
+		<div 
 		  dangerouslySetInnerHTML={{ __html: details }}
-		  style={{ padding: '20px',
+		  style={{ display: 'inline-block',
+				   verticalAlign: 'top',
+				   padding: '20px',
 				   whiteSpace: 'nowrap',
 				   fontFamily: 'Courier New',
 				   fontSize: 'small' }}>
