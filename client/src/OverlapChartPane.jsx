@@ -89,8 +89,7 @@ export default memo(function OverlapChartPane({ context, repertoires, params, rk
 
 	const data = [[
 	  { type: 'number', r1 },
-	  { type: 'number', r2 },
-	  { type: 'string', role: 'tooltip' }
+	  { type: 'number', r2 }
 	]];
 
 	var maxVal = 0.0;
@@ -105,9 +104,7 @@ export default memo(function OverlapChartPane({ context, repertoires, params, rk
 	  const val2 = Math.log10(item.Counts[1]);
 	  if (val2 > maxVal) maxVal = val2;
 
-	  const tip = `${item.Key} (${val1},${val2})`;
-
-	  data.push([ val1, val2, tip]);
+	  data.push([ val1, val2 ]);
 	}
 
 	maxVal = Math.floor(maxVal + 1);
