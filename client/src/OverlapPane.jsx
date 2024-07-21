@@ -18,6 +18,7 @@ export default memo(function OverlapPane({ context, repertoires, addTab, rkey })
 
   // +------------+
   // | openSearch |
+  // | openChart  |
   // +------------+
 
   function openSearch(key) {
@@ -35,6 +36,19 @@ export default memo(function OverlapPane({ context, repertoires, addTab, rkey })
 		full: true,
 		start: true
 	  }
+	};
+
+	addTab(newTab);
+  }
+
+  function openChart() {
+
+	const newTab = {
+	  view: 'overlapChart',
+	  name: 'Scatter',
+	  context: context,
+	  repertoires: repertoires,
+	  params: { overlapType: overlapType }
 	};
 
 	addTab(newTab);
@@ -154,6 +168,17 @@ export default memo(function OverlapPane({ context, repertoires, addTab, rkey })
 		<div className={styles.hdr}>
 		  Overlapping: { repertoires.map((r) => r.Name).join(', ') }
 		</div>
+
+		{ repertoires.length == 2 &&
+		  <div>
+			<Button
+			  sx={{ mb: 2 }}
+			  variant='outlined'
+			  onClick={openChart} >
+			  Open Scatter Plot
+			</Button>
+		  </div>
+		}
 		
 		<table className={tableStyles.rearrangementsTable}>
 		  <thead>

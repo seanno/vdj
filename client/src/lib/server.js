@@ -30,12 +30,13 @@ export async function serverFetchRepertoire(ctx, rep, start, count) {
 }
 
 // overlap
-export async function serverFetchOverlap(ctx, reps, type) {
+export async function serverFetchOverlap(ctx, reps, type, mode) {
 
   const url =
 		'/overlap/' + encodeURIComponent(ctx) +
 		'/' + encodeURIComponent(reps.map((r) => r.Name).join(',')) +
-		'?type=' + encodeURIComponent(type);
+		'?type=' + encodeURIComponent(type) +
+		(mode ? '&mode=' + encodeURIComponent(mode) : '');
 
   return(await serverFetch(url));
 }

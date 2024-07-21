@@ -164,7 +164,7 @@ export default function NavigationBar({ user, addTab, clearTabs, showError, refr
 			<Button
 			  variant='contained'
 			  sx={{ mr: 1, mb: 1 }}
-			  disabled={selectionCount() !== 2}
+			  disabled={selectionCount() < 2 || selectionCount() > window.overlapMaxSamples}
 			  onClick={openOverlap}>
 			  Overlap
 			</Button>

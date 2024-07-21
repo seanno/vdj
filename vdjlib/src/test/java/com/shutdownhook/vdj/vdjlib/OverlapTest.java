@@ -9,11 +9,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.Ignore;
 
-import com.google.gson.GsonBuilder;
+import com.google.gson.Gson;
 	
 import com.shutdownhook.vdj.vdjlib.RearrangementKey;
 import com.shutdownhook.vdj.vdjlib.RearrangementKey.KeyType;
 import com.shutdownhook.vdj.vdjlib.Overlap.OverlapResult;
+import com.shutdownhook.vdj.vdjlib.Overlap.OverlapResultItem;
 
 public class OverlapTest
 {
@@ -41,9 +42,9 @@ public class OverlapTest
 		store.close();
 	}
 
-	// +-------+
-	// | Tests |
-	// +-------+
+	// +------------------+
+	// | basic / standard |
+	// +------------------+
 
 	@Test
 	public void basicAmino() throws Exception {
@@ -84,13 +85,64 @@ public class OverlapTest
 	private OverlapResult basicHelper(KeyType keyType, int maxOverlaps) throws Exception {
 
 		Overlap.Config cfg = new Overlap.Config();
-		cfg.MaxOverlaps = maxOverlaps;
+		cfg.MaxStandardOverlaps = maxOverlaps;
 		Overlap overlap = new Overlap(cfg);
 
 		Overlap.Params params = new Overlap.Params();
 		params.CRS = crs;
 		params.RepertoireNames = new String[] { "A_BCell_ID.tsv", "A_BCell_MRD.tsv", "02583-02BH.tsv" };
 		params.Extractor = RearrangementKey.getExtractor(keyType);
+		
+		return(overlap.overlapAsync(params).get());
+	}
+	
+	// +----------+
+	// | combined |
+	// +----------+
+
+	@Test
+	public void combined() throws Exception {
+		OverlapResult result = combinedHelper(KeyType.AminoAcid);
+		System.out.println(String.format("----- Amino Combined (%d)", result.Items.size()));
+		
+		// Assert.assertEquals(64, result.Items.size());
+
+		OverlapResultItem ori = findORIByKey(result, "CQQYNSYPPPSG");
+		Assert.assertEquals(ori.PresentIn, 2);
+		Assert.assertEquals(ori.Counts[0], 46589);
+		Assert.assertEquals(ori.Counts[1], 293);
+
+		ori = findORIByKey(result, "CARAAIAVAGFDYW, CARMGREVAQGSFFDYW, CLQHNSYPLTF, CQQRSNWPLLTF, CQQRSNWPRSPSG, CQQYDNLLFTF, CQQYDNPASG, CQQYYSTPFTF, RLMLP*PAFLLSPSG, RLMLP*PAFLVSPSG, WREIL**YQLLCGYFDPW, WRPILS*YQLLCGYFDYW, XQSYDSSLSGSVF");
+		Assert.assertEquals(ori.PresentIn, 1);
+		Assert.assertEquals(ori.Counts[0], 2);
+		Assert.assertEquals(ori.Counts[1], 0);
+
+		ori = findORIByKey(result, "*MPGVNLFTF, *MQGIHLLTF, *MQGIHLPDTF, *MQGIHLPRSPSG, *MQGIHLPYTF, *MQGIHPPFTF, *MQGIHPWTF, *MQGIPHTF, *TKARQ*PLGPCSGGGCYFDYW, *TKVRQ*PLGSYSGGGCYFDYW, *WGHYWSFDYW, CAADAPLPPSQIDYW, CAADKVSYYDSSG**WFDPW, CAADPHPATEALDYW, CAAGIADDYW, CAAGMEFWSGYFVLYGMDVW...");
+		Assert.assertEquals(ori.PresentIn, 1);
+		Assert.assertEquals(ori.Counts[0], 0);
+		Assert.assertEquals(ori.Counts[1], 1);
+	}
+
+	private OverlapResultItem findORIByKey(OverlapResult result, String key) {
+		
+		for (OverlapResultItem ori : result.Items) {
+			if (ori.Key.equals(key)) return(ori);
+		}
+
+		return(null);
+	}
+
+	private OverlapResult combinedHelper(KeyType keyType) throws Exception {
+
+		Overlap.Config cfg = new Overlap.Config();
+		cfg.MaxCombinedKeyLength = 256;
+		Overlap overlap = new Overlap(cfg);
+
+		Overlap.Params params = new Overlap.Params();
+		params.CRS = crs;
+		params.RepertoireNames = new String[] { "A_BCell_ID.tsv", "A_BCell_MRD.tsv" };
+		params.Extractor = RearrangementKey.getExtractor(keyType);
+		params.Mode = Overlap.OverlapMode.Combined;
 		
 		return(overlap.overlapAsync(params).get());
 	}

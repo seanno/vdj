@@ -7,6 +7,7 @@ import IMGTLauncher from "./IMGTLauncher.jsx";
 import NavigationBar from "./NavigationBar.jsx";
 import DetailsPane from "./DetailsPane.jsx";
 import OverlapPane from "./OverlapPane.jsx";
+import OverlapChartPane from "./OverlapChartPane.jsx";
 import SearchPane from "./SearchPane.jsx";
 import UploadPane from "./UploadPane.jsx";
 import AgatePane from "./AgatePane.jsx";
@@ -153,6 +154,13 @@ export default function App() {
 											repertoires={t.repertoires} 
 											addTab={addTab}
 											rkey={`p-${t.name}`} /> }
+
+				{ t.view === 'overlapChart' && <OverlapChartPane
+												 context={t.context}
+												 repertoires={t.repertoires} 
+												 addTab={addTab}
+												 params={t.params}
+												 rkey={`p-${t.name}`} /> }
 
 				{ t.view === 'search' && <SearchPane
 										   context={t.context}

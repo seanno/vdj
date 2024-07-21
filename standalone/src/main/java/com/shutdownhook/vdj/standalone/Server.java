@@ -32,6 +32,7 @@ import com.shutdownhook.vdj.vdjlib.RepertoireStore;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore_Files;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore_Blobs;
 import com.shutdownhook.vdj.vdjlib.Overlap;
+import com.shutdownhook.vdj.vdjlib.Overlap.OverlapMode;
 import com.shutdownhook.vdj.vdjlib.Searcher;
 import com.shutdownhook.vdj.vdjlib.TopXRearrangements;
 import com.shutdownhook.vdj.vdjlib.TopXRearrangements.TopXSort;
@@ -69,6 +70,7 @@ public class Server implements Closeable
 
 		// Overlap
 		public Overlap.Config Overlap = new Overlap.Config();
+		public OverlapMode DefaultOverlapMode = OverlapMode.Standard;
 		public KeyType DefaultOverlapType = KeyType.CDR3;
 
 		// TopX
@@ -156,7 +158,7 @@ public class Server implements Closeable
 
 	// GET    /api/search/CTX/REPS   => search REPS in CTX for (QS motif/type/muts/full)
 
-	// GET    /api/overlap/CTX/REPS  => find overlaps in REPS in CTX (QS type)
+	// GET    /api/overlap/CTX/REPS  => find overlaps in REPS in CTX (QS type/mode)
 
 	// GET    /api/topx/CTX/REP      => return top COUNT rearrangements from REP in CTX sorted 
 	//                                  descending by SORT (QS sort/count)
@@ -479,12 +481,18 @@ public class Server implements Closeable
 	private void overlapRepertoires(ApiInfo info) throws Exception {
 		
 		String typeStr = info.Request.QueryParams.get("type");
-		KeyType keyType = (Easy.nullOrEmpty(typeStr) ? cfg.DefaultOverlapType : KeyType.valueOf(typeStr));
+		KeyType keyType = (Easy.nullOrEmpty(typeStr) ?
+						   cfg.DefaultOverlapType : KeyType.valueOf(typeStr));
+
+		String modeStr = info.Request.QueryParams.get("mode");
+		OverlapMode mode = (Easy.nullOrEmpty(modeStr) ?
+									cfg.DefaultOverlapMode : OverlapMode.valueOf(modeStr));
 
 		Overlap.Params params = new Overlap.Params();
 		params.CRS = new ContextRepertoireStore(store, info.UserId, info.ContextName);
 		params.RepertoireNames = info.RepertoireNames;
 		params.Extractor = RearrangementKey.getExtractor(keyType);
+		params.Mode = mode;
 		
 		Overlap.OverlapResult result = overlap.overlapAsync(params).get();
 		info.Response.setJson(gson.toJson(result));

@@ -10,6 +10,7 @@ window.detailsPageSize = 100;
 // OVERLAP
 
 window.overlapTypeDefault = 'CDR3';
+window.overlapMaxSamples = 6;
 
 // SEARCH
 
