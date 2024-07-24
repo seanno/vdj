@@ -1,0 +1,24 @@
+{
+  "RepertoireStoreBlobs": {
+
+        "Endpoint": "https://vdjrepertoirestore.blob.core.windows.net/"
+    },
+
+  "LoggingConfigPath": "/opt/vdj/logging-docker.json",
+
+  "WebServer": {
+	
+	"Port": 3000,
+
+	"StaticPagesZip": "@clientSite.zip",
+	"StaticPagesRouteHtmlWithoutExtension": false,
+
+	"AuthenticationType": "xms",
+
+	"ForceLoggedInUser": {
+	  "Id": "dev",
+	  "Email": "dev@example.com",
+	  "Token": "devtoken"
+	}
+  }
+}
