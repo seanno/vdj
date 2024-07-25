@@ -703,8 +703,7 @@ public class Server implements Closeable
 		// id be part of the property name itself; e.g. AssumeUserId_sean@thenolans.com.
 		for (String name : request.User.Properties.keySet()) {
 			if (name.startsWith(cfg.AssumeUserIdProp + "_")) {
-				int cchPrefix = cfg.AssumeUserIdProp.length() + 1;
-				return(request.User.Properties.get(name).substring(cchPrefix));
+				return(name.substring(cfg.AssumeUserIdProp.length() + 1));
 			}
 		}
 
