@@ -58,8 +58,11 @@ public class Server implements Closeable
 
 		public String LoggingConfigPath = "@logging.properties";
 
+		public String CanUploadToAnyUserIdProp = "CanUploadToAnyUserId";
+		public String AssumeUserIdProp = "AssumeUserId";
+		
+		// Get
 		public Integer DefaultGetCount = 50;
-
 		public Integer MaxGetCount = 250;
 
 		// Search
@@ -80,6 +83,7 @@ public class Server implements Closeable
 
 		// Agate
 		public Boolean AgateUserPassAuth = false;
+		public Boolean AgateOnBehalfOfAuth = false;
 		public AgateImport.Config Agate;
 		
 		public String ApiBase = "/api";
@@ -679,28 +683,40 @@ public class Server implements Closeable
 	// | User and Properties |
 	// +---------------------+
 	
-	public static String PROP_ASSUME_USERID = "AssumeUserId";
-	public static String PROP_CAN_UPLOAD_TO_ANY = "CanUploadToAnyUserId";
-
-	public static boolean DEFAULT_CAN_UPLOAD_TO_ANY = false;
-
-	private static String getAuthUser(Request request) throws Exception {
+	private String getAuthUser(Request request) throws Exception {
 		String user = request.User.Email;
 		if (Easy.nullOrEmpty(user)) user = request.User.Id;
 		if (Easy.nullOrEmpty(user)) throw new Exception("missing auth email or id");
 		return(user);
 	}
 	
-	public static String getAssumeUserId(Request request) throws Exception {
-		return(getUserProp(request, PROP_ASSUME_USERID, getAuthUser(request)));
+	public String getAssumeUserId(Request request) throws Exception {
+		
+		String defaultVal = getAuthUser(request);
+		if (request.User.Properties == null) return(defaultVal);
+
+		String val = request.User.Properties.get(cfg.AssumeUserIdProp);
+		if (val != null) return(val);
+
+		// This is for XMS auth where we are using roles to hold properties.
+		// Properties just "exist" or don't, so we make the actual assumed user
+		// id be part of the property name itself; e.g. AssumeUserId_sean@thenolans.com.
+		for (String name : request.User.Properties.keySet()) {
+			if (name.startsWith(cfg.AssumeUserIdProp + "_")) {
+				int cchPrefix = cfg.AssumeUserIdProp.length() + 1;
+				return(request.User.Properties.get(name).substring(cchPrefix));
+			}
+		}
+
+		return(defaultVal);
 	}
 
-	public static boolean getCanUploadToAny(Request request) {
-		String val = getUserProp(request, PROP_CAN_UPLOAD_TO_ANY, null);
-		return(Easy.nullOrEmpty(val) ? DEFAULT_CAN_UPLOAD_TO_ANY : Boolean.parseBoolean(val));
+	public boolean getCanUploadToAny(Request request) {
+		String val = getUserProp(request, cfg.CanUploadToAnyUserIdProp, null);
+		return(Easy.nullOrEmpty(val) ? false : Boolean.parseBoolean(val));
 	}
 	
-	private static String getUserProp(Request request, String name, String defaultVal) {
+	private String getUserProp(Request request, String name, String defaultVal) {
 		if (request.User.Properties == null) return(defaultVal);
 		String val = request.User.Properties.get(name);
 		return(Easy.nullOrEmpty(val) ? defaultVal : val);

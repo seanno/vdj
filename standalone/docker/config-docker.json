@@ -4,7 +4,13 @@
         "Endpoint": "https://vdjrepertoirestore.blob.core.windows.net/"
     },
 
+  "CanUploadToAnyUserIdProp": "VDJ_UploadToAnyUserId",
+  "AssumeUserIdProp": "VDJ_AssumeUserId",
+  
   "LoggingConfigPath": "/opt/vdj/logging-docker.json",
+
+  "AgateUserPassAuth": true,
+  "Agate": { },
 
   "WebServer": {
 	
