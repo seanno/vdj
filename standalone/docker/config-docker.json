@@ -1,7 +1,7 @@
 {
   "RepertoireStoreBlobs": {
 
-        "Endpoint": "https://vdjrepertoirestore.blob.core.windows.net/"
+        "Endpoint": "@RepertoireStorageEndpoint"
     },
 
   "CanUploadToAnyUserIdProp": "VDJ_UploadToAnyUserId",
