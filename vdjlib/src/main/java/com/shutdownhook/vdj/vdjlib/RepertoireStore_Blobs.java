@@ -246,7 +246,7 @@ public class RepertoireStore_Blobs implements RepertoireStore
 		log.info("Connecting to Azure storage with DefaultAzureCredential");
 
 		return(new BlobServiceClientBuilder()
-			   .endpoint(endpoint)
+			   .endpoint(getFromCfgOrEnv(endpoint))
 			   .credential(new DefaultAzureCredentialBuilder().build())
 			   .buildClient());
 	}
@@ -255,12 +255,8 @@ public class RepertoireStore_Blobs implements RepertoireStore
 
 		log.info("Connecting to Azure storage with connection string");
 		
-		String cs = (connectionString.startsWith("@")
-					 ? System.getenv(connectionString.substring(1))
-					 : connectionString);
-		
 		return(new BlobServiceClientBuilder()
-			   .connectionString(cs)
+			   .connectionString(getFromCfgOrEnv(connectionString))
 			   .buildClient());
 	}
 
@@ -317,6 +313,10 @@ public class RepertoireStore_Blobs implements RepertoireStore
 			log.warning(Utility.exMsg(e, "saveRepertoireToContext", false));
 			return(false);
 		}
+	}
+
+	private static String getFromCfgOrEnv(String input) {
+		return(input.startsWith("@") ? System.getenv(input.substring(1)) : input);
 	}
 	
 	// +---------+
