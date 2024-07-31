@@ -49,7 +49,7 @@ public class AgateImport implements Closeable
 	public AgateImport(Config cfg) throws SQLException {
 		this(cfg, null, null);
 	}
-	
+
 	public AgateImport(Config cfg, String user, String password) throws SQLException {
 		
 		this.cfg = (cfg == null ? new Config() : cfg);

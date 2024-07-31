@@ -4,7 +4,7 @@
 
 package com.shutdownhook.vdj.vdjlib;
 
-import java.util.Logger;
+import java.util.logging.Logger;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
@@ -69,10 +69,20 @@ public class AzureTokenFactory
 
 	public static class OnBehalfOfParams
 	{
-		
+		public String ClientId;
+		public String ClientSecret;
+		public String TenantId;
+		public String Token;
 	}
 
 	public static TokenCredential getTokenCredential(OnBehalfOfParams params) {
+		
+		return(new OnBehalfOfCredentialBuilder()
+			   .clientId(params.ClientId)
+			   .clientSecret(params.ClientSecret)
+			   .tenantId(params.TenantId)
+			   .userAssertion(params.Token)
+			   .build());
 	}
 
 	// +---------+
