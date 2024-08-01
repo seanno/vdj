@@ -25,9 +25,9 @@ public class RepertoireSpec
 	}
 
 	public RepertoireSpec(RepertoireSpec source, RepertoireSpec fallback) {
-		this.UserId = (source != null && source.UserId != null ? source.UserId : fallback.UserId);
-		this.Context = (source != null && source.Context != null ? source.Context : fallback.Context);
-		this.Name = (source != null && source.Name != null ? source.Name : fallback.Name);
+		this.UserId = (source != null && !Utility.nullOrEmpty(source.UserId) ? source.UserId : fallback.UserId);
+		this.Context = (source != null && !Utility.nullOrEmpty(source.Context) ? source.Context : fallback.Context);
+		this.Name = (source != null && !Utility.nullOrEmpty(source.Name) ? source.Name : fallback.Name);
 	}
 	
 	public String toString() { return(String.format("%s/%s/%s", UserId, Context, Name)); }
