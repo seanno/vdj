@@ -89,7 +89,12 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 		.then(result => {
 		  setSamples(result);
 		  setSelections([]);
-		  if (!contextName) setContextName(searchString);
+		  
+		  if (!contextName) {
+			setContextName(searchString.endsWith("-")
+						   ? searchString.substring(0, searchString.length - 1)
+						   : searchString);
+		  }
 		})
 		.catch(error => {
 		  console.error(error);
