@@ -164,18 +164,7 @@ public class SideLoadedTsv
 	// +------------------+
 
 	public void assertRepertoire(Repertoire r) {
-
-		Assert.assertEquals(repertoire.Name, r.Name);
-		Assert.assertEquals(repertoire.TotalMilliliters, r.TotalMilliliters, 0.000001);
-		Assert.assertEquals(repertoire.TotalCells, r.TotalCells);
-		Assert.assertEquals(repertoire.TotalCount, r.TotalCount);
-		Assert.assertEquals(repertoire.TotalUniques, r.TotalUniques);
-
-		Assert.assertEquals(repertoire.LocusCounts.size(), r.LocusCounts.size());
-		
-		for (LocusGroup group : repertoire.LocusCounts.keySet()) {
-			Assert.assertEquals(repertoire.LocusCounts.get(group), r.LocusCounts.get(group));
-		}
+		Helpers.assertRepertoire(repertoire, r, false);
 	}
 
 	// +------+

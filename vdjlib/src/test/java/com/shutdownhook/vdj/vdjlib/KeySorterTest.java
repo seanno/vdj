@@ -51,7 +51,7 @@ public class KeySorterTest
 		Helpers.init();
 
 		store = new Helpers.TempRepertoireStore();
-		store.addFromResource(TEST_USER, TEST_CONTEXT, "subject9-v2.tsv");
+		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, "subject9-v2.tsv"));
 		crs = new ContextRepertoireStore(store.get(), TEST_USER, TEST_CONTEXT);
 
 		TEST_INFOS = new TestRepertoireInfo[2];

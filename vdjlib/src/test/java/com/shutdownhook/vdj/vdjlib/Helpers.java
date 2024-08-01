@@ -11,6 +11,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.junit.Assert;
+
+import com.shutdownhook.vdj.vdjlib.model.LocusGroup;
+import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 import com.shutdownhook.vdj.vdjlib.TsvReceiver.ReceiveResult;
 
 public class Helpers
@@ -91,14 +95,47 @@ public class Helpers
 		public RepertoireStore get() { return(store); }
 		public Path getPath() { return(path); }
 
-		public void addFromResource(String userId, String context, String name) throws Exception {
-			Helpers.ResourceStreamReader rdr = new Helpers.ResourceStreamReader(name);
-			ReceiveResult result = TsvReceiver.receive(rdr.get(), store, userId, context, name).get();
+		public void addFromResource(RepertoireSpec spec) throws Exception {
+			Helpers.ResourceStreamReader rdr = new Helpers.ResourceStreamReader(spec.Name);
+			ReceiveResult result = TsvReceiver.receive(rdr.get(), store, spec).get();
 			if (!ReceiveResult.OK.equals(result)) throw new Exception("crap");
 			rdr.close();
 		}
 
+		public Repertoire findRepertoire(RepertoireSpec spec) {
+			return(Helpers.findRepertoire(store, spec));
+		}
+
 		private Path path;
 		private RepertoireStore_Files store;
+	}
+	
+	// +------------------+
+	// | assertRepertoire |
+	// +------------------+
+	
+	public static void assertRepertoire(Repertoire rE, Repertoire rT, boolean ignoreName) {
+		
+		if (!ignoreName) Assert.assertEquals(rT.Name, rE.Name);
+		
+		Assert.assertEquals(rT.TotalMilliliters, rE.TotalMilliliters, 0.000001);
+		Assert.assertEquals(rT.TotalCells, rE.TotalCells);
+		Assert.assertEquals(rT.TotalCount, rE.TotalCount);
+		Assert.assertEquals(rT.TotalUniques, rE.TotalUniques);
+
+		Assert.assertEquals(rT.LocusCounts.size(), rE.LocusCounts.size());
+		
+		for (LocusGroup group : rT.LocusCounts.keySet()) {
+			Assert.assertEquals(rT.LocusCounts.get(group), rE.LocusCounts.get(group));
+		}
+	}
+	
+	// +----------------+
+	// | findRepertoire |
+	// +----------------+
+
+	public static Repertoire findRepertoire(RepertoireStore store, RepertoireSpec spec) {
+		Repertoire[] reps = store.getContextRepertoires(spec.UserId, spec.Context);
+		return(Repertoire.find(reps, spec.Name));
 	}
 }

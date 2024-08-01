@@ -23,11 +23,13 @@ import com.shutdownhook.toolbox.WebServer.Response;
 
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
+import com.shutdownhook.vdj.vdjlib.AdminOps;
 import com.shutdownhook.vdj.vdjlib.AgateImport;
 import com.shutdownhook.vdj.vdjlib.ContextRepertoireStore;
 import com.shutdownhook.vdj.vdjlib.RearrangementKey;
 import com.shutdownhook.vdj.vdjlib.RearrangementKey.KeyType;
 import com.shutdownhook.vdj.vdjlib.RepertoireResult;
+import com.shutdownhook.vdj.vdjlib.RepertoireSpec;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore_Files;
 import com.shutdownhook.vdj.vdjlib.RepertoireStore_Blobs;
@@ -60,6 +62,7 @@ public class Server implements Closeable
 
 		public String CanUploadToAnyUserIdProp = "CanUploadToAnyUserId";
 		public String AssumeUserIdProp = "AssumeUserId";
+		public String AdminUserProp = "AdminUser";
 		
 		// Get
 		public Integer DefaultGetCount = 50;
@@ -93,6 +96,7 @@ public class Server implements Closeable
 		public String UserScope = "user";
 		public String TopXScope = "topx";
 		public String AgateScope = "agate";
+		public String AdminScope = "admin";
 
 		public String ClientSiteZip = "@clientSite.zip";
 		public Boolean StaticPagesRouteHtmlWithoutExtension = false;
@@ -171,6 +175,8 @@ public class Server implements Closeable
 
 	// POST   /api/agate                => return list of matching samples (JSON post body; see method)
 	// POST   /api/agate/CTX/REP/import => import agate sample into REP context CTX (JSON post body; see method)
+
+	// POST   /api/admin/copy        => copy repertoire (JSON post body; see method)
 
 	private void registerApi() throws Exception {
 
@@ -268,6 +274,13 @@ public class Server implements Closeable
 						handled = true;
 					}
 				}
+				else if (info.Scope.equals(cfg.AdminScope)) {
+
+					if (isAdmin(info.Request) && request.Method.equals("POST")) {
+						handleAdminRequest(info);
+						handled = true;
+					}
+				}
 
 				if (!handled) {
 					response.Status = 500;
@@ -331,13 +344,13 @@ public class Server implements Closeable
 		TsvReader tsv = null;
 
 		try {
-			Repertoire repertoire = findRepertoire(info.UserId, info.ContextName, info.RepertoireName);
+			Repertoire repertoire = findRepertoire(info.getSpec(info.RepertoireName));
 			if (repertoire == null) {
 				info.Response.Status = 500;
 				return;
 			}
 			
-			stm = store.getRepertoireStream(info.UserId, info.ContextName, info.RepertoireName);
+			stm = store.getRepertoireStream(info.getSpec(info.RepertoireName));
 			rdr = new InputStreamReader(stm);
 			tsv = new TsvReader(rdr, start);
 
@@ -394,15 +407,13 @@ public class Server implements Closeable
 		try {
 			rdr = new InputStreamReader(stm);
 
-			
-			ReceiveResult result = TsvReceiver.receive(rdr, store,
-													   saveUserId, info.ContextName,
-													   info.RepertoireName,
+			RepertoireSpec spec = new RepertoireSpec(saveUserId, info.ContextName, info.RepertoireName);
+			ReceiveResult result = TsvReceiver.receive(rdr, store, spec, 
 													   totalCells, sampleMillis).get();
 
 			switch (result) {
 				case OK:
-					Repertoire r = findRepertoire(saveUserId, info.ContextName, info.RepertoireName);
+					Repertoire r = findRepertoire(spec);
 					info.Response.setJson(r.toJson());
 					break;
 
@@ -411,8 +422,7 @@ public class Server implements Closeable
 					break;
 
 				case Error:
-					log.warning(String.format("Failed receiving TSV body %s/%s/%s",
-											  saveUserId, info.ContextName, info.RepertoireName));
+					log.warning(String.format("Failed receiving TSV body %s", spec));
 					info.Response.Status = 500;
 					break;
 			}
@@ -441,7 +451,7 @@ public class Server implements Closeable
 			responses[i] = new DeleteResponse();
 			responses[i].Name = info.RepertoireNames[i];
 
-			boolean ok = store.deleteRepertoire(info.UserId, info.ContextName, info.RepertoireNames[i]);
+			boolean ok = store.deleteRepertoire(info.getSpec(info.RepertoireNames[i]));
 			responses[i].Result = (ok ? "Deleted OK" : "Error");
 		}
 		
@@ -512,6 +522,7 @@ public class Server implements Closeable
 		public Boolean CanUploadToAnyUserId;
 		public Boolean AgateEnabled;
 		public Boolean AgateUserPassAuth;
+		public Boolean IsAdmin;
 	}
 
 	private void getUser(ApiInfo info) throws Exception {
@@ -519,10 +530,11 @@ public class Server implements Closeable
 		UserInfo ui = new UserInfo();
 		ui.AssumeUserId = info.UserId;
 		ui.CanUploadToAnyUserId = getCanUploadToAny(info.Request);
+		ui.IsAdmin = isAdmin(info.Request);
 
 		ui.AgateEnabled = (cfg.Agate != null);
 		ui.AgateUserPassAuth = (cfg.Agate != null && cfg.AgateUserPassAuth);
-							
+
 		info.Response.setJson(gson.toJson(ui));
 	}
 
@@ -616,6 +628,52 @@ public class Server implements Closeable
 		}
 	}
 
+	// +--------------------+
+	// | handleAdminRequest |
+	// +--------------------+
+
+	private void handleAdminRequest(ApiInfo info) throws Exception {
+
+		String body = new String(info.Request.BodyStream.readAllBytes(), StandardCharsets.UTF_8);
+
+		switch (info.ContextName) { 
+			case "copy": adminCopyRepertoire(info, body); break;
+			case "move": adminMoveRepertoire(info, body); break;
+			default: info.Response.Status = 500; break;
+		}
+	}
+
+	// adminCopy
+	
+	private void adminCopyRepertoire(ApiInfo info, String body) throws Exception {
+
+		AdminOps.MoveCopyParams params = gson.fromJson(body, AdminOps.MoveCopyParams.class);
+
+		ReceiveResult result = AdminOps.copyRepertoireAsync(store, params).get();
+
+		if (result == ReceiveResult.OK) {
+			Repertoire r = findRepertoire(params.To);
+			info.Response.setJson(r.toJson());
+		}
+		else {
+			info.Response.Status = 500;
+		}
+	}
+
+	private void adminMoveRepertoire(ApiInfo info, String body) throws Exception {
+		
+		AdminOps.MoveCopyParams params = gson.fromJson(body, AdminOps.MoveCopyParams.class);
+
+		boolean success = AdminOps.moveRepertoireAsync(store, params).get();
+
+		if (success) {
+			info.Response.setJson("{ \"result\": \"OK\" }");
+		}
+		else {
+			info.Response.Status = 500;
+		}
+	}
+
 	// +---------+
 	// | ApiInfo |
 	// +---------+
@@ -632,6 +690,10 @@ public class Server implements Closeable
 		public String ContextName;
 		public String RepertoireName;
 		public String[] RepertoireNames;
+
+		public RepertoireSpec getSpec(String name) {
+			return(new RepertoireSpec(UserId, ContextName, name));
+		}
 	}
 	
 	private ApiInfo getApiInfo(Request request, Response response) throws Exception {
@@ -670,13 +732,9 @@ public class Server implements Closeable
 	// | Helpers |
 	// +---------+
 
-	private Repertoire findRepertoire(String userId, String context, String rep) {
-
-		for (Repertoire repertoire : store.getContextRepertoires(userId, context)) {
-			if (repertoire.Name.equals(rep)) return(repertoire);
-		}
-
-		return(null);
+	private Repertoire findRepertoire(RepertoireSpec spec) {
+		Repertoire[] reps = store.getContextRepertoires(spec.UserId, spec.Context);
+		return(Repertoire.find(reps, spec.Name));
 	}
 	
 	// +---------------------+
@@ -712,6 +770,11 @@ public class Server implements Closeable
 
 	public boolean getCanUploadToAny(Request request) {
 		String val = getUserProp(request, cfg.CanUploadToAnyUserIdProp, null);
+		return(Easy.nullOrEmpty(val) ? false : Boolean.parseBoolean(val));
+	}
+
+	public boolean isAdmin(Request request) {
+		String val = getUserProp(request, cfg.AdminUserProp, null);
 		return(Easy.nullOrEmpty(val) ? false : Boolean.parseBoolean(val));
 	}
 	

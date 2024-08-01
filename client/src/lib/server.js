@@ -120,6 +120,13 @@ export async function serverImportAgate(user, pass, ctx, saveUserId, sample) {
   return(await serverFetch(url, JSON.stringify(params)));
 }
 
+// admin
+export async function serverFetchAdmin(operation, body) {
+
+  const url = '/admin/' + encodeURIComponent(operation);
+  return(await serverFetch(url, body));
+}
+
 // +-------------+
 // | serverFetch |
 // +-------------+

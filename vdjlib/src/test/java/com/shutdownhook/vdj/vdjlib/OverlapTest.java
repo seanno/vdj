@@ -31,9 +31,9 @@ public class OverlapTest
 		Helpers.init();
 
 		store = new Helpers.TempRepertoireStore();
-		store.addFromResource(TEST_USER, TEST_CONTEXT, "A_BCell_ID.tsv");
-		store.addFromResource(TEST_USER, TEST_CONTEXT, "A_BCell_MRD.tsv");
-		store.addFromResource(TEST_USER, TEST_CONTEXT, "02583-02BH.tsv");
+		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, "A_BCell_ID.tsv"));
+		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, "A_BCell_MRD.tsv"));
+		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, "02583-02BH.tsv"));
 		crs = new ContextRepertoireStore(store.get(), TEST_USER, TEST_CONTEXT);
 	}
 	

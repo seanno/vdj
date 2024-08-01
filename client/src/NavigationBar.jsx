@@ -28,6 +28,21 @@ export default function NavigationBar({ user, addTab, clearTabs, showError, refr
 	window.location = '/__logout';
   }
 
+  function openAdmin(evt) {
+	evt.preventDefault();
+
+	const newTab = {
+	  view: 'admin',
+	  name: 'Admin',
+	  user: user,
+	  context: selectedContext,
+	  repertoires: selectedRepertoires
+	};
+
+	addTab(newTab);
+
+  }
+
   function openDetails() {
 
 	const newTab = {
@@ -207,6 +222,12 @@ export default function NavigationBar({ user, addTab, clearTabs, showError, refr
 	  <div style={{ 'marginTop': '30px' }}>
 		<a title={user.Id} href="#" onClick={(evt) => logout(evt)}>logout</a>
 	  </div>
+
+	  { user.IsAdmin &&
+		<div>
+		  <a href="#" onClick={(evt) => openAdmin(evt)}>admin</a>
+		</div>
+	  }
 	  
 	</div>
 	

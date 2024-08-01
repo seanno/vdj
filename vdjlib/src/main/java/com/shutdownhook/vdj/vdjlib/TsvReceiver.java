@@ -35,14 +35,13 @@ public class TsvReceiver
 	}
 	
 	public static CompletableFuture<ReceiveResult> receive(InputStreamReader stm, RepertoireStore store,
-														   String userId, String ctx, String rep) {
+														   RepertoireSpec spec) {
 		
-		return(receive(stm, store, userId, ctx, rep, null, null));
+		return(receive(stm, store, spec, null, null));
 	}
 	
 	public static CompletableFuture<ReceiveResult> receive(InputStreamReader stm, RepertoireStore store,
-														   String userId, String ctx, String rep,
-														   Long totalCells, Double sampleMillis) {
+														   RepertoireSpec spec, Long totalCells, Double sampleMillis) {
 		
 		CompletableFuture<ReceiveResult> future = new CompletableFuture<ReceiveResult>();
 
@@ -61,26 +60,23 @@ public class TsvReceiver
 				
 			try {
 				// check if already exists
-				Repertoire[] repertoires = store.getContextRepertoires(userId, ctx);
-				for (Repertoire r : repertoires) {
-					if (r.Name.equals(rep)) {
-						result = ReceiveResult.Exists;
-						throw new Exception("Attempted re-import of same repertoire (probably fine)");
-					}
+				Repertoire[] repertoires = store.getContextRepertoires(spec.UserId, spec.Context);
+				if (Repertoire.find(repertoires, spec.Name) != null) {
+					result = ReceiveResult.Exists;
+					throw new Exception("Attempted re-import of same repertoire (probably fine)");
 				}
 				
-				streams.Stm = store.getRepertoireSaveStream(userId, ctx, rep);
+				streams.Stm = store.getRepertoireSaveStream(spec);
 				
 				if (streams.Stm == null) {
-					throw new Exception(String.format("failed getting save Stream %s/%s/%s",
-													  userId, ctx, rep));
+					throw new Exception(String.format("failed getting save Stream %s", spec));
 				}
 				
 				streams.Writer = new OutputStreamWriter(streams.Stm);
 				streams.Buf = new BufferedWriter(streams.Writer);
 
 				Repertoire repertoire = new Repertoire();
-				repertoire.Name = rep;
+				repertoire.Name = spec.Name;
 				
 				Rearrangement r;
 
@@ -103,7 +99,7 @@ public class TsvReceiver
 					repertoire.TotalMilliliters = tsvReader.getDiscoveredSampleMillis();
 				}
 
-				store.commitRepertoireToContext(userId, ctx, repertoire);
+				store.commitRepertoireToContext(spec.UserId, spec.Context, repertoire);
 				result = ReceiveResult.OK;
 			}
 			catch (Exception e) {
@@ -116,7 +112,7 @@ public class TsvReceiver
 				if (tsvReader != null) Utility.safeClose(tsvReader);
 
 				// only try to clean up error, not ok or already existing rep
-				if (result.equals(ReceiveResult.Error)) store.deleteRepertoire(userId, ctx, rep);
+				if (result.equals(ReceiveResult.Error)) store.deleteRepertoire(spec);
 			}
 			
 			future.complete(result);
