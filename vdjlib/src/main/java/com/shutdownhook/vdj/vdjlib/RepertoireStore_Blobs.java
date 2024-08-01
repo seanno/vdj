@@ -107,10 +107,9 @@ public class RepertoireStore_Blobs implements RepertoireStore
 	// | getRepertoireStream |
 	// +---------------------+
 	
-	public InputStream getRepertoireStream(String userId, String ctx, String rep) {
+	public InputStream getRepertoireStream(RepertoireSpec spec) {
 		try {
-			return(getRepertoireBlob(userId, ctx, rep)
-				   .openInputStream());
+			return(getRepertoireBlob(spec).openInputStream());
 		}
 		catch (Exception e) {
 			log.warning(Utility.exMsg(e, "getRepertoireStream", false));
@@ -122,9 +121,9 @@ public class RepertoireStore_Blobs implements RepertoireStore
 	// | getRepertoireSaveStream |
 	// +-------------------------+
 
-	public OutputStream getRepertoireSaveStream(String userId, String ctx, String rep) {
+	public OutputStream getRepertoireSaveStream(RepertoireSpec spec) {
 		try {
-			return(getRepertoireBlob(userId, ctx, rep)
+			return(getRepertoireBlob(spec)
 				   .getBlockBlobClient()
 				   .getBlobOutputStream(false));
 		}
@@ -148,25 +147,25 @@ public class RepertoireStore_Blobs implements RepertoireStore
 	// | deleteRepertoire |
 	// +------------------+
 
-	public boolean deleteRepertoire(String userId, String ctx, String name) {
+	public boolean deleteRepertoire(RepertoireSpec spec) {
 
 		try {
 			// remove from context
-			Repertoire[] newReps = Repertoire.remove(getContextRepertoires(userId, ctx), name);
+			Repertoire[] newReps = Repertoire.remove(getContextRepertoires(spec.UserId, spec.Context), spec.Name);
 			if (newReps.length == 0) {
 				// by doing this we effectively delete the context too, since
 				// there is no "directory" when there are no files in it.
-				getContextFileBlob(userId, ctx).delete();
+				getContextFileBlob(spec.UserId, spec.Context).delete();
 			}
-			else if (!saveContextRepertoires(userId, ctx, newReps)) {
+			else if (!saveContextRepertoires(spec.UserId, spec.Context, newReps)) {
 				return(false);
 			}
 
 			// remove file
-			getRepertoireBlob(userId, ctx, name).delete();
+			getRepertoireBlob(spec).delete();
 
 			// clean up secondary files
-			deleteRepertoireSecondaryFiles(userId, ctx, name);
+			deleteRepertoireSecondaryFiles(spec);
 				
 			return(true);
 		}
@@ -180,9 +179,9 @@ public class RepertoireStore_Blobs implements RepertoireStore
 	// | getRepertoireSecondarySaveStream |
 	// +----------------------------------+
 
-	public OutputStream getRepertoireSecondarySaveStream(String userId, String ctx, String rep, String key) {
+	public OutputStream getRepertoireSecondarySaveStream(RepertoireSpec spec, String key) {
 		try {
-			return(getRepertoireSecondaryFileBlob(userId, ctx, rep, key)
+			return(getRepertoireSecondaryFileBlob(spec, key)
 				   .getBlockBlobClient()
 				   .getBlobOutputStream(true));
 		}
@@ -196,9 +195,9 @@ public class RepertoireStore_Blobs implements RepertoireStore
 	// | getRepertoireSecondaryStream |
 	// +------------------------------+
 	
-	public InputStream getRepertoireSecondaryStream(String userId, String ctx, String rep, String key) {
+	public InputStream getRepertoireSecondaryStream(RepertoireSpec spec, String key) {
 		try {
-			BlobClient blob = getRepertoireSecondaryFileBlob(userId, ctx, rep, key);
+			BlobClient blob = getRepertoireSecondaryFileBlob(spec, key);
 			return(blob.exists() ? blob.openInputStream() : null);
 		}
 		catch (Exception e) {
@@ -211,9 +210,9 @@ public class RepertoireStore_Blobs implements RepertoireStore
 	// | deleteRepertoireSecondaryFiles |
 	// +--------------------------------+
 	
-	public boolean deleteRepertoireSecondaryFiles(String userId, String ctx, String rep) {
+	public boolean deleteRepertoireSecondaryFiles(RepertoireSpec spec) {
 		try {
-			client.listBlobsByHierarchy(getRepertoireCachePath(userId, ctx, rep)).forEach(blob -> {
+			client.listBlobsByHierarchy(getRepertoireCachePath(spec)).forEach(blob -> {
 				if (!blob.isPrefix()) client.getBlobClient(blob.getName()).delete();
 			});
 
@@ -280,20 +279,20 @@ public class RepertoireStore_Blobs implements RepertoireStore
 		return(client.getBlobClient(getContextFilePath(userId, ctx)));
 	}
 
-	private String getRepertoirePath(String userId, String ctx, String rep) {
-		return(getContextPath(userId, ctx) + clean(rep) + TSV_EXT);
+	private String getRepertoirePath(RepertoireSpec spec) {
+		return(getContextPath(spec.UserId, spec.Context) + clean(spec.Name) + TSV_EXT);
 	}
 
-	private BlobClient getRepertoireBlob(String userId, String ctx, String rep) {
-		return(client.getBlobClient(getRepertoirePath(userId, ctx, rep)));
+	private BlobClient getRepertoireBlob(RepertoireSpec spec) {
+		return(client.getBlobClient(getRepertoirePath(spec)));
 	}
 
-	private String getRepertoireCachePath(String userId, String ctx, String rep) {
-		return(getContextPath(userId, ctx) + clean(rep) + CACHE_SUFFIX + "/");
+	private String getRepertoireCachePath(RepertoireSpec spec) {
+		return(getContextPath(spec.UserId, spec.Context) + clean(spec.Name) + CACHE_SUFFIX + "/");
 	}
 
-	private BlobClient getRepertoireSecondaryFileBlob(String userId, String ctx, String rep, String key) {
-		return(client.getBlobClient(getRepertoireCachePath(userId, ctx, rep) + clean(key)));
+	private BlobClient getRepertoireSecondaryFileBlob(RepertoireSpec spec, String key) {
+		return(client.getBlobClient(getRepertoireCachePath(spec) + clean(key)));
 	}
 	
 	private String clean(String input) {

@@ -13,6 +13,7 @@ import UploadPane from "./UploadPane.jsx";
 import AgatePane from "./AgatePane.jsx";
 import TopXPane from "./TopXPane.jsx";
 import DeletePane from "./DeletePane.jsx";
+import AdminPane from "./AdminPane.jsx";
 
 import { serverFetchUser } from './lib/server.js';
 
@@ -189,6 +190,12 @@ export default function App() {
 										   context={t.context}
 										   repertoires={t.repertoires}
 										   refresh={refreshNav}
+										   rkey={`p-${t.name}`} /> }
+
+				{ t.view === 'admin' && <AdminPane
+										   user={user}
+										   context={t.context}
+										   repertoires={t.repertoires}
 										   rkey={`p-${t.name}`} /> }
 			  </div>
 			);

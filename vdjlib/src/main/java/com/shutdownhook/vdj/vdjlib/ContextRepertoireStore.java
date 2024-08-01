@@ -49,11 +49,11 @@ public class ContextRepertoireStore
 	// +---------------------+
 
 	public InputStream getRepertoireStream(String rep) throws IOException {
-		return(store.getRepertoireStream(userId, context, rep));
+		return(store.getRepertoireStream(new RepertoireSpec(userId, context, rep)));
 	}
 	
 	public InputStream getRepertoireStream(Repertoire rep) throws IOException {
-		return(store.getRepertoireStream(userId, context, rep.Name));
+		return(store.getRepertoireStream(new RepertoireSpec(userId, context, rep.Name)));
 	}
 
 	// +-----------------+
@@ -61,19 +61,19 @@ public class ContextRepertoireStore
 	// +-----------------+
 
 	public InputStream getSecondaryStream(String rep, String key) {
-		return(store.getRepertoireSecondaryStream(userId, context, rep, key));
+		return(store.getRepertoireSecondaryStream(new RepertoireSpec(userId, context, rep), key));
 	}
 
 	public InputStream getSecondaryStream(Repertoire rep, String key) {
-		return(store.getRepertoireSecondaryStream(userId, context, rep.Name, key));
+		return(store.getRepertoireSecondaryStream(new RepertoireSpec(userId, context, rep.Name), key));
 	}
 
 	public OutputStream getSecondarySaveStream(String rep, String key) {
-		return(store.getRepertoireSecondarySaveStream(userId, context, rep, key));
+		return(store.getRepertoireSecondarySaveStream(new RepertoireSpec(userId, context, rep), key));
 	}
 	
 	public OutputStream getSecondarySaveStream(Repertoire rep, String key) {
-		return(store.getRepertoireSecondarySaveStream(userId, context, rep.Name, key));
+		return(store.getRepertoireSecondarySaveStream(new RepertoireSpec(userId, context, rep.Name), key));
 	}
 
 	public void saveSecondaryFile(String rep, String key, File file) throws IOException {

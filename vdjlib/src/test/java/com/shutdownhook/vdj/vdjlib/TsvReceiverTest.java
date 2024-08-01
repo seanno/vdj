@@ -68,7 +68,8 @@ public class TsvReceiverTest
 		result = receiveHelper(truth, false);
 		Assert.assertEquals(ReceiveResult.Exists, result);
 
-		Assert.assertTrue(store.get().deleteRepertoire(TEST_USER, TEST_CONTEXT, truth.getResourceName()));
+		RepertoireSpec spec = new RepertoireSpec(TEST_USER, TEST_CONTEXT, truth.getResourceName());
+		Assert.assertTrue(store.get().deleteRepertoire(spec));
 	}
 
     private void basic(int which) throws Exception {
@@ -83,10 +84,12 @@ public class TsvReceiverTest
 		ReceiveResult result = receiveHelper(truth, sendCells);
 
 		Assert.assertEquals(ReceiveResult.OK, result);
-		truth.assertRepertoire(findRepertoireInStore(TEST_USER, TEST_CONTEXT, name));
 
-		Assert.assertTrue(store.get().deleteRepertoire(TEST_USER, TEST_CONTEXT, name));
-		Assert.assertNull(findRepertoireInStore(TEST_USER, TEST_CONTEXT, name));
+		RepertoireSpec spec = new RepertoireSpec(TEST_USER, TEST_CONTEXT, name);
+		truth.assertRepertoire(findRepertoireInStore(spec));
+
+		Assert.assertTrue(store.get().deleteRepertoire(spec));
+		Assert.assertNull(findRepertoireInStore(spec));
 	}
 
 	private ReceiveResult receiveHelper(SideLoadedTsv truth, boolean sendCells) throws Exception {
@@ -97,7 +100,9 @@ public class TsvReceiverTest
 		Long totalCells = (sendCells ? truth.getRepertoire().TotalCells : null);
 						   
 		CompletableFuture<ReceiveResult> future =
-			TsvReceiver.receive(rdr.get(), store.get(), TEST_USER, TEST_CONTEXT, name, totalCells, null);
+			TsvReceiver.receive(rdr.get(), store.get(),
+								new RepertoireSpec(TEST_USER, TEST_CONTEXT, name),
+								totalCells, null);
 
 		ReceiveResult result = future.get();
 		rdr.close();
@@ -105,9 +110,8 @@ public class TsvReceiverTest
 		return(result);
 	}
 
-	private Repertoire findRepertoireInStore(String userId, String ctx, String rep) {
-		Repertoire[] reps = store.get().getContextRepertoires(userId, ctx);
-		for (Repertoire r : reps) if (r.Name.equals(rep)) return(r);
-		return(null);
+	private Repertoire findRepertoireInStore(RepertoireSpec spec) {
+		Repertoire[] reps = store.get().getContextRepertoires(spec.UserId, spec.Context);
+		return(Repertoire.find(reps, spec.Name));
 	}
 }

@@ -34,9 +34,9 @@ public class TopXTest
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		store = new Helpers.TempRepertoireStore();
-		store.addFromResource(TEST_USER, TEST_CONTEXT, REP_1);
-		store.addFromResource(TEST_USER, TEST_CONTEXT, REP_2);
-		store.addFromResource(TEST_USER, TEST_CONTEXT, REP_3);
+		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, REP_1));
+		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, REP_2));
+		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, REP_3));
 
 		crs = new ContextRepertoireStore(store.get(), TEST_USER, TEST_CONTEXT);
 		topx = new TopXRearrangements(new TopXRearrangements.Config());

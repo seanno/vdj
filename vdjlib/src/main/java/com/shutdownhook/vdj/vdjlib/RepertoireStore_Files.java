@@ -80,14 +80,14 @@ public class RepertoireStore_Files implements RepertoireStore
 	// | getRepertoireStream |
 	// +---------------------+
 	
-	public InputStream getRepertoireStream(String userId, String ctx, String rep) {
+	public InputStream getRepertoireStream(RepertoireSpec spec) {
 
 		try {
-			return(new FileInputStream(getRepertoireFile(userId, ctx, rep)));
+			return(new FileInputStream(getRepertoireFile(spec)));
 		}
 		catch (IOException e) {
 
-			String msg = String.format("getRepertoireStream %s/%s/%s", userId, ctx, rep);
+			String msg = String.format("getRepertoireStream %s", spec);
 			log.severe(Utility.exMsg(e, msg, true));
 			return(null);
 		}
@@ -97,15 +97,14 @@ public class RepertoireStore_Files implements RepertoireStore
 	// | getRepertoireSaveStream |
 	// +-------------------------+
 
-	public OutputStream getRepertoireSaveStream(String userId, String ctx, String rep) {
+	public OutputStream getRepertoireSaveStream(RepertoireSpec spec) {
 
 		try {
-			getContextDir(userId, ctx).mkdirs();
-			File tsvFile = getRepertoireFile(userId, ctx, rep);
+			getContextDir(spec.UserId, spec.Context).mkdirs();
+			File tsvFile = getRepertoireFile(spec);
 			
 			if (tsvFile.exists()) {
-				log.warning(String.format("File for rep %s/%s/%s already exists, " +
-										  "name collision?", userId, ctx, rep));
+				log.warning(String.format("File for rep %s already exists, name collision?", spec));
 				return(null);
 			}
 			
@@ -113,7 +112,7 @@ public class RepertoireStore_Files implements RepertoireStore
 		}
 		catch (IOException e) {
 
-			String msg = String.format("getRepertoireSaveStream %s/%s/%s", userId, ctx, rep);
+			String msg = String.format("getRepertoireSaveStream %s", spec);
 			log.severe(Utility.exMsg(e, msg, true));
 			return(null);
 		}
@@ -141,25 +140,27 @@ public class RepertoireStore_Files implements RepertoireStore
 	// | deleteRepertoire |
 	// +------------------+
 
-	public boolean deleteRepertoire(String userId, String ctx, String name) {
+	public boolean deleteRepertoire(RepertoireSpec spec) {
 
 		try {
 			// remove from context
-			Repertoire[] newReps = Repertoire.remove(getContextRepertoires(userId, ctx), name);
+			Repertoire[] oldReps = getContextRepertoires(spec.UserId, spec.Context);
+			Repertoire[] newReps = Repertoire.remove(oldReps, spec.Name);
+			
 			if (newReps.length == 0) {
-				getContextFile(userId, ctx).delete();
+				getContextFile(spec.UserId, spec.Context).delete();
 			}
 			else {
-				saveContextRepertoires(userId, ctx, newReps);
+				saveContextRepertoires(spec.UserId, spec.Context, newReps);
 			}
 
 			// remove file
-			getRepertoireFile(userId, ctx, name).delete();
+			getRepertoireFile(spec).delete();
 
 			if (newReps.length == 0) {
 				// last repertoire; remove context dir
 				try {
-					Utility.recursiveDelete(getContextDir(userId, ctx));
+					Utility.recursiveDelete(getContextDir(spec.UserId, spec.Context));
 				}
 				catch (Exception eDir) {
 					log.warning(Utility.exMsg(eDir, "context dir delete (non-fatal)", true));
@@ -167,7 +168,7 @@ public class RepertoireStore_Files implements RepertoireStore
 			}
 			else {
 				// make sure cached files are gone
-				deleteRepertoireSecondaryFiles(userId, ctx, name);
+				deleteRepertoireSecondaryFiles(spec);
 			}
 
 			return(true);
@@ -182,16 +183,16 @@ public class RepertoireStore_Files implements RepertoireStore
 	// | getRepertoireSecondarySaveStream |
 	// +----------------------------------+
 
-	public OutputStream getRepertoireSecondarySaveStream(String userId, String ctx, String rep, String key) {
+	public OutputStream getRepertoireSecondarySaveStream(RepertoireSpec spec, String key) {
 		
 		try {
-			File cacheDir = getRepertoireCacheDir(userId, ctx, rep);
+			File cacheDir = getRepertoireCacheDir(spec);
 			cacheDir.mkdirs();
 			return(new FileOutputStream(new File(cacheDir, clean(key))));
 		}
 		catch (IOException e) {
 
-			String msg = String.format("getRepertoireSecondarySaveStream %s/%s/%s/%s", userId, ctx, rep, key);
+			String msg = String.format("getRepertoireSecondarySaveStream %s/%s", spec, key);
 			log.severe(Utility.exMsg(e, msg, true));
 			return(null);
 		}
@@ -201,17 +202,17 @@ public class RepertoireStore_Files implements RepertoireStore
 	// | getRepertoireSecondaryStream |
 	// +------------------------------+
 	
-	public InputStream getRepertoireSecondaryStream(String userId, String ctx, String rep, String key) {
+	public InputStream getRepertoireSecondaryStream(RepertoireSpec spec, String key) {
 
 		try {
-			return(new FileInputStream(new File(getRepertoireCacheDir(userId, ctx, rep), clean(key))));
+			return(new FileInputStream(new File(getRepertoireCacheDir(spec), clean(key))));
 		}
 		catch (FileNotFoundException eNotFound) {
 			// this is ok, just means we don't have one cached
 			return(null);
 		}
 		catch (IOException e) {
-			String msg = String.format("getRepertoireSecondaryStream %s/%s/%s/%s", userId, ctx, rep, key);
+			String msg = String.format("getRepertoireSecondaryStream %s/%s", spec, key);
 			log.severe(Utility.exMsg(e, msg, true));
 			return(null);
 		}
@@ -221,10 +222,10 @@ public class RepertoireStore_Files implements RepertoireStore
 	// | deleteRepertoireSecondaryFiles |
 	// +--------------------------------+
 	
-	public boolean deleteRepertoireSecondaryFiles(String userId, String ctx, String rep) {
+	public boolean deleteRepertoireSecondaryFiles(RepertoireSpec spec) {
 
 		try {
-			Utility.recursiveDelete(getRepertoireCacheDir(userId, ctx, rep));
+			Utility.recursiveDelete(getRepertoireCacheDir(spec));
 			return(true);
 		}
 		catch (Exception eDir) {
@@ -254,12 +255,12 @@ public class RepertoireStore_Files implements RepertoireStore
 		return(new File(getContextDir(userId, ctx), cfg.ContextFileName));
 	}
 
-	private File getRepertoireFile(String userId, String ctx, String rep) {
-		return(new File(getContextDir(userId, ctx), clean(rep) + TSV_EXT));
+	private File getRepertoireFile(RepertoireSpec spec) {
+		return(new File(getContextDir(spec.UserId, spec.Context), clean(spec.Name) + TSV_EXT));
 	}
 
-	private File getRepertoireCacheDir(String userId, String ctx, String rep) {
-		File cacheDir = new File(getContextDir(userId, ctx), clean(rep) + CACHE_SUFFIX);
+	private File getRepertoireCacheDir(RepertoireSpec spec) {
+		File cacheDir = new File(getContextDir(spec.UserId, spec.Context), clean(spec.Name) + CACHE_SUFFIX);
 		cacheDir.mkdirs();
 		return(cacheDir);
 	}

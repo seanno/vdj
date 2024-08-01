@@ -106,7 +106,7 @@ public class StoreImplTest
 		Helpers.ResourceStreamReader rdr = new Helpers.ResourceStreamReader(name);
 		
 		CompletableFuture<ReceiveResult> future =
-			TsvReceiver.receive(rdr.get(), store, TEST_USER, TEST_CONTEXT, name);
+			TsvReceiver.receive(rdr.get(), store, new RepertoireSpec(TEST_USER, TEST_CONTEXT, name));
 
 		Assert.assertEquals(ReceiveResult.OK, future.get());
 
@@ -120,35 +120,36 @@ public class StoreImplTest
 		Assert.assertEquals(TEST_CONTEXT, contexts[0]);
 
 		// secondary files
-
-		writeSecondaryFile(store, TEST_USER, TEST_CONTEXT, name, CACHE_FILE_1_KEY, CACHE_FILE_1_CONTENTS);
-		writeSecondaryFile(store, TEST_USER, TEST_CONTEXT, name, CACHE_FILE_2_KEY, CACHE_FILE_2_CONTENTS);
-
-		store.deleteRepertoireSecondaryFiles(TEST_USER, TEST_CONTEXT, name);
-		Assert.assertNull(store.getRepertoireSecondaryStream(TEST_USER, TEST_CONTEXT, name, CACHE_FILE_1_KEY));
-		Assert.assertNull(store.getRepertoireSecondaryStream(TEST_USER, TEST_CONTEXT, name, CACHE_FILE_2_KEY));
+		RepertoireSpec spec = new RepertoireSpec(TEST_USER, TEST_CONTEXT, name);
 		
-		writeSecondaryFile(store, TEST_USER, TEST_CONTEXT, name, CACHE_FILE_1_KEY, CACHE_FILE_1_CONTENTS);
+		writeSecondaryFile(store, spec, CACHE_FILE_1_KEY, CACHE_FILE_1_CONTENTS);
+		writeSecondaryFile(store, spec, CACHE_FILE_2_KEY, CACHE_FILE_2_CONTENTS);
+
+		store.deleteRepertoireSecondaryFiles(spec);
+		Assert.assertNull(store.getRepertoireSecondaryStream(spec, CACHE_FILE_1_KEY));
+		Assert.assertNull(store.getRepertoireSecondaryStream(spec, CACHE_FILE_2_KEY));
+		
+		writeSecondaryFile(store, spec, CACHE_FILE_1_KEY, CACHE_FILE_1_CONTENTS);
 		
 		// clean up
 		
-		Assert.assertTrue(store.deleteRepertoire(TEST_USER, TEST_CONTEXT, name));
+		Assert.assertTrue(store.deleteRepertoire(spec));
 		reps = store.getContextRepertoires(TEST_USER, TEST_CONTEXT);
 		Assert.assertNull(Repertoire.find(reps, name));
-		Assert.assertNull(store.getRepertoireSecondaryStream(TEST_USER, TEST_CONTEXT, name, CACHE_FILE_1_CONTENTS));
+		Assert.assertNull(store.getRepertoireSecondaryStream(spec, CACHE_FILE_1_CONTENTS));
 	}
 
-	private void writeSecondaryFile(RepertoireStore store, String userId, String ctx,
-									String rep, String key, String contents) throws Exception {
+	private void writeSecondaryFile(RepertoireStore store, RepertoireSpec spec, 
+									String key, String contents) throws Exception {
 
-		InputStream in = store.getRepertoireSecondaryStream(userId, ctx, rep, key);
+		InputStream in = store.getRepertoireSecondaryStream(spec, key);
 		Assert.assertNull(in);
 		
-		OutputStream out = store.getRepertoireSecondarySaveStream(userId, ctx, rep, key);
+		OutputStream out = store.getRepertoireSecondarySaveStream(spec, key);
 		out.write(contents.getBytes(StandardCharsets.UTF_8));
 		out.close();
 		
-		in = store.getRepertoireSecondaryStream(userId, ctx, rep, key);
+		in = store.getRepertoireSecondaryStream(spec, key);
 		Assert.assertNotNull(in);
 		String found = new String(in.readAllBytes(), StandardCharsets.UTF_8);
 		Assert.assertEquals(contents, found);
