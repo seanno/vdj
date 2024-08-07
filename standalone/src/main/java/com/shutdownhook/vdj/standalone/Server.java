@@ -21,9 +21,10 @@ import com.shutdownhook.toolbox.WebServer;
 import com.shutdownhook.toolbox.WebServer.Request;
 import com.shutdownhook.toolbox.WebServer.Response;
 
-import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
-import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 import com.shutdownhook.vdj.vdjlib.AdminOps;
+import com.shutdownhook.vdj.vdjlib.AzureTokenFactory;
+import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.FactoryType;
+import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.OnBehalfOfParams;
 import com.shutdownhook.vdj.vdjlib.AgateImport;
 import com.shutdownhook.vdj.vdjlib.ContextRepertoireStore;
 import com.shutdownhook.vdj.vdjlib.RearrangementKey;
@@ -41,6 +42,8 @@ import com.shutdownhook.vdj.vdjlib.TopXRearrangements.TopXSort;
 import com.shutdownhook.vdj.vdjlib.TsvReader;
 import com.shutdownhook.vdj.vdjlib.TsvReceiver;
 import com.shutdownhook.vdj.vdjlib.TsvReceiver.ReceiveResult;
+import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
+import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 
 public class Server implements Closeable
 {
@@ -85,9 +88,9 @@ public class Server implements Closeable
 		public TopXSort DefaultTopXSort = TopXSort.FractionOfCells;
 
 		// Agate
-		public Boolean AgateUserPassAuth = false;
-		public Boolean AgateOnBehalfOfAuth = false;
+		public FactoryType AgateAuthType;
 		public AgateImport.Config Agate;
+		public String AgateClientSecretEnvVar = "microsoft-provider-authentication-secret";
 		
 		public String ApiBase = "/api";
 		public String ContextScope = "contexts";
@@ -276,7 +279,7 @@ public class Server implements Closeable
 				}
 				else if (info.Scope.equals(cfg.AdminScope)) {
 
-					if (isAdmin(info.Request) && request.Method.equals("POST")) {
+					if (isAdmin(info.Request)) {
 						handleAdminRequest(info);
 						handled = true;
 					}
@@ -518,23 +521,28 @@ public class Server implements Closeable
 	
 	public static class UserInfo
 	{
+		public String AuthUserId;
 		public String AssumeUserId;
 		public Boolean CanUploadToAnyUserId;
 		public Boolean AgateEnabled;
 		public Boolean AgateUserPassAuth;
 		public Boolean IsAdmin;
+		public String LogoutPath;
 	}
 
 	private void getUser(ApiInfo info) throws Exception {
 		
 		UserInfo ui = new UserInfo();
+		ui.AuthUserId = info.AuthUserId;
 		ui.AssumeUserId = info.UserId;
 		ui.CanUploadToAnyUserId = getCanUploadToAny(info.Request);
 		ui.IsAdmin = isAdmin(info.Request);
+		
+		ui.AgateEnabled = (cfg.Agate != null && cfg.AgateAuthType != null);
+		ui.AgateUserPassAuth = (FactoryType.UserPass.equals(cfg.AgateAuthType));
 
-		ui.AgateEnabled = (cfg.Agate != null);
-		ui.AgateUserPassAuth = (cfg.Agate != null && cfg.AgateUserPassAuth);
-
+		ui.LogoutPath = cfg.WebServer.LogoutPath;
+		
 		info.Response.setJson(gson.toJson(ui));
 	}
 
@@ -579,17 +587,16 @@ public class Server implements Closeable
 	
 	private void handleAgateRequest(ApiInfo info) throws Exception {
 
-		if (cfg.Agate == null) throw new Exception("agate request received but not configured");
+		if (cfg.Agate == null || cfg.AgateAuthType == null) {
+			throw new Exception("agate request received but not configured");
+		}
 		
 		AgateImport agate = null;
 
 		try {
 			String body = new String(info.Request.BodyStream.readAllBytes(), StandardCharsets.UTF_8);
 			AgateParams params = gson.fromJson(body, AgateParams.class);
-			
-			String user = (cfg.AgateUserPassAuth ? params.User : null);
-			String pass = (cfg.AgateUserPassAuth ? params.Password : null);
-			agate = new AgateImport(cfg.Agate, user, pass);
+			agate = getAgate(params, info);
 
 			if (info.ContextName == null) {
 				getAgateSamples(info, params, agate);
@@ -601,6 +608,30 @@ public class Server implements Closeable
 		finally {
 			if (agate != null) agate.close();
 		}
+	}
+
+	private AgateImport getAgate(AgateParams params, ApiInfo info) {
+
+		log.info(String.format("getAgate: %s", cfg.AgateAuthType));
+		
+		// default
+		if (FactoryType.Default.equals(cfg.AgateAuthType)) {
+			return(AgateImport.createDefault(cfg.Agate));
+		}
+
+		// user pass
+		if (FactoryType.UserPass.equals(cfg.AgateAuthType)) {
+			return(AgateImport.createUserPass(cfg.Agate, params.User, params.Password));
+		}
+
+		// on behalf of
+		if (FactoryType.OnBehalfOf.equals(cfg.AgateAuthType)) {
+			String secret = System.getenv(cfg.AgateClientSecretEnvVar);
+			return(AgateImport.createOnBehalfOf(cfg.Agate, secret, info.Request.User.Token));
+		}
+
+		log.severe(String.format("WTF invalid factory type: %s", cfg.AgateAuthType));
+		return(null);
 	}
 
 	private void getAgateSamples(ApiInfo info, AgateParams params, AgateImport agate) throws Exception {
@@ -634,17 +665,19 @@ public class Server implements Closeable
 
 	private void handleAdminRequest(ApiInfo info) throws Exception {
 
-		String body = new String(info.Request.BodyStream.readAllBytes(), StandardCharsets.UTF_8);
+		String body = (info.Request.BodyStream == null ? null
+					   :new String(info.Request.BodyStream.readAllBytes(), StandardCharsets.UTF_8));
 
 		switch (info.ContextName) { 
 			case "copy": adminCopyRepertoire(info, body); break;
 			case "move": adminMoveRepertoire(info, body); break;
+			case "obo": adminVerifyBlobOBO(info, body); break;
+			case "deets": adminGetRequestDetails(info); break;
 			default: info.Response.Status = 500; break;
 		}
 	}
 
 	// adminCopy
-	
 	private void adminCopyRepertoire(ApiInfo info, String body) throws Exception {
 
 		AdminOps.MoveCopyParams params = gson.fromJson(body, AdminOps.MoveCopyParams.class);
@@ -654,12 +687,13 @@ public class Server implements Closeable
 		if (result == ReceiveResult.OK) {
 			Repertoire r = findRepertoire(params.To);
 			info.Response.setJson(r.toJson());
+			return;
 		}
-		else {
-			info.Response.Status = 500;
-		}
+
+		info.Response.Status = 500;
 	}
 
+	// adminMove
 	private void adminMoveRepertoire(ApiInfo info, String body) throws Exception {
 		
 		AdminOps.MoveCopyParams params = gson.fromJson(body, AdminOps.MoveCopyParams.class);
@@ -668,10 +702,21 @@ public class Server implements Closeable
 
 		if (success) {
 			info.Response.setJson("{ \"result\": \"OK\" }");
+			return;
 		}
-		else {
-			info.Response.Status = 500;
-		}
+		
+		info.Response.Status = 500;
+	}
+	
+	// request details
+	private void adminGetRequestDetails(ApiInfo info) throws Exception {
+		info.Response.setJson(Admin.getRequestDetails(info.Request));
+	}
+
+	// adminOBO
+	private void adminVerifyBlobOBO(ApiInfo info, String body) throws Exception {
+		boolean ok = Admin.verifyBlobOBOAccess(body, info.Request, cfg.AgateClientSecretEnvVar);
+		info.Response.setJson(String.format("{ \"result\": \"%s\" }", ok ? "OK" : "Error; see logs"));
 	}
 
 	// +---------+

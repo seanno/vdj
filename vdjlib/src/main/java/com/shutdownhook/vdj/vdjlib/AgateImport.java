@@ -21,11 +21,12 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
-import com.azure.core.credential.TokenCredential;
-import com.azure.core.credential.TokenRequestContext;
-import com.azure.identity.DefaultAzureCredentialBuilder;
-import com.azure.identity.UsernamePasswordCredentialBuilder;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+
+import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.DefaultParams;
+import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.FactoryType;
+import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.OnBehalfOfParams;
+import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.UserPassParams;
 
 public class AgateImport implements Closeable
 {
@@ -42,26 +43,42 @@ public class AgateImport implements Closeable
 		
 		public String AgateClientId = "fdcf242b-a25b-4b35-aff2-d91d8100225d";
 		public String AgateTenantId = "720cf133-4325-491c-b6a9-159d0497fc65";
+
+		public String StorageResource = "https://storage.azure.com/.default";
 		public String StorageVersion = "2017-11-09";
 		public Integer StorageTimeoutMillis = (5 * 60 * 1000);
+
+		public String SqlResource = "https://database.windows.net/.default";
 	}
 
-	public AgateImport(Config cfg) throws SQLException {
-		this(cfg, null, null);
-	}
-
-	public AgateImport(Config cfg, String user, String password) throws SQLException {
-		
-		this.cfg = (cfg == null ? new Config() : cfg);
-		
-		this.user = user;
-		this.password = password;
+	public AgateImport(Config cfg, AzureTokenFactory tokenFactory) {
+		this.cfg = cfg;
+		this.tokenFactory = tokenFactory;
 	}
 
 	public void close() {
 		if (cxn != null) safeClose(cxn);
 	}
 	
+	// +----------+
+	// | Creation |
+	// +----------+
+
+	public static AgateImport createDefault(Config cfg) {
+		DefaultParams params = new DefaultParams(cfg.AgateTenantId);
+		return(new AgateImport(cfg, AzureTokenFactory.create(FactoryType.Default, params)));
+	}
+
+	public static AgateImport createUserPass(Config cfg, String user, String pass) {
+		UserPassParams params = new UserPassParams(user, pass, cfg.AgateTenantId, cfg.AgateClientId);
+		return(new AgateImport(cfg, AzureTokenFactory.create(FactoryType.UserPass, params)));
+	}
+
+	public static AgateImport createOnBehalfOf(Config cfg, String secret, String token) {
+		OnBehalfOfParams params = new OnBehalfOfParams(secret, token);
+		return(new AgateImport(cfg, AzureTokenFactory.create(FactoryType.OnBehalfOf, params)));
+	}
+
 	// +-------------------+
 	// | getTsvStreamAsync |
 	// | getTsvStream      |
@@ -94,7 +111,7 @@ public class AgateImport implements Closeable
 		conn.setConnectTimeout(cfg.StorageTimeoutMillis);
 		conn.setReadTimeout(cfg.StorageTimeoutMillis);
 
-		String token = getToken("https://storage.azure.com/.default");
+		String token = tokenFactory.getToken(cfg.StorageResource); 
 		conn.setRequestProperty("Authorization", "Bearer " + token);
 		conn.setRequestProperty("x-ms-version", cfg.StorageVersion);
 				
@@ -206,14 +223,13 @@ public class AgateImport implements Closeable
 
 		if (cxn != null) return;
 		
-		log.info(String.format("Setting up agate db connection to %s/%s using %s auth",
-							   cfg.Server, cfg.Database,
-							   user == null ? "default" : "user/pass"));
+		log.info(String.format("Setting up agate db connection to %s/%s",
+							   cfg.Server, cfg.Database));
 				 
 		SQLServerDataSource ds = new SQLServerDataSource();
 		ds.setServerName(cfg.Server);
 		ds.setDatabaseName(cfg.Database);
-		ds.setAccessToken(getToken("https://database.windows.net/.default"));
+		ds.setAccessToken(tokenFactory.getToken(cfg.SqlResource));
 
 		// https://stackoverflow.com/questions/961078/sql-server-query-running-slow-from-java
 		ds.setSendStringParametersAsUnicode(false);
@@ -223,26 +239,6 @@ public class AgateImport implements Closeable
 		log.info("Agate db connection established");
 	}
 
-	private String getToken(String scope) {
-
-		TokenCredential cred = null;
-		
-		if (user != null) {
-			cred = new UsernamePasswordCredentialBuilder()
-				.tenantId(cfg.AgateTenantId)
-				.clientId(cfg.AgateClientId)
-				.username(user)
-				.password(password)
-				.build();
-		}
-		else {
-			cred = new DefaultAzureCredentialBuilder().build();
-		}
-
-		TokenRequestContext ctx = new TokenRequestContext().addScopes(scope);
-		return(cred.getTokenSync(ctx).getToken());
-	}
-	
 	private void safeClose(AutoCloseable c) {
 		try { c.close(); }
 		catch (Exception e) { /* eat it */ }
@@ -262,7 +258,7 @@ public class AgateImport implements Closeable
 		}
 
 		// uses defaultazurecredential always
-		AgateImport agate = new AgateImport(new Config());
+		AgateImport agate = AgateImport.createDefault(new Config());
 
 		switch (args[0].toLowerCase()) {
 
@@ -317,8 +313,7 @@ public class AgateImport implements Closeable
 	// +---------+
 
 	private Config cfg;
-	private String user;
-	private String password;
+	private AzureTokenFactory tokenFactory;
 	private Connection cxn;
 
 	private final static Logger log = Logger.getLogger(AgateImport.class.getName());

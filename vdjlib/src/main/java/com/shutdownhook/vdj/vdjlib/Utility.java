@@ -10,12 +10,14 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.lang.IllegalArgumentException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.logging.Logger;
 
 public class Utility
@@ -39,6 +41,11 @@ public class Utility
 
 	public static String urlEncode(String input) {
 		try { return(URLEncoder.encode(input, "UTF-8")); }
+		catch (UnsupportedEncodingException e) { return(null); } // won't happen
+	}
+
+	public static String base64urlDecode(String input) throws IllegalArgumentException {
+		try { return(new String(Base64.getUrlDecoder().decode(input), "UTF-8")); }
 		catch (UnsupportedEncodingException e) { return(null); } // won't happen
 	}
 

@@ -25,7 +25,7 @@ export default function NavigationBar({ user, addTab, clearTabs, showError, refr
 
   function logout(evt) {
 	evt.preventDefault();
-	window.location = '/__logout';
+	window.location = user.LogoutPath;
   }
 
   function openAdmin(evt) {
@@ -220,7 +220,7 @@ export default function NavigationBar({ user, addTab, clearTabs, showError, refr
 	  }
 
 	  <div style={{ 'marginTop': '30px' }}>
-		<a title={user.Id} href="#" onClick={(evt) => logout(evt)}>logout</a>
+		<a title={user.AuthUserId} href="#" onClick={(evt) => logout(evt)}>logout</a>
 	  </div>
 
 	  { user.IsAdmin &&

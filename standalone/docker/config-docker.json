@@ -6,10 +6,11 @@
 
   "CanUploadToAnyUserIdProp": "VDJ_UploadToAnyUserId",
   "AssumeUserIdProp": "VDJ_AssumeUserId",
+  "AdminUserProp": "VDJ_AdminUser",
   
   "LoggingConfigPath": "/opt/vdj/logging-docker.json",
 
-  "AgateUserPassAuth": true,
+  "AgateAuthType": "OnBehalfOf",
   "Agate": { },
 
   "WebServer": {
@@ -20,11 +21,6 @@
 	"StaticPagesRouteHtmlWithoutExtension": false,
 
 	"AuthenticationType": "xms",
-
-	"ForceLoggedInUser": {
-	  "Id": "dev",
-	  "Email": "dev@example.com",
-	  "Token": "devtoken"
-	}
+	"LogoutPath" = "/.auth/logout"
   }
 }
