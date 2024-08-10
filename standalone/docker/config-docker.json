@@ -11,11 +11,12 @@
   "LoggingConfigPath": "/opt/vdj/logging-docker.json",
 
   "AgateAuthType": "OnBehalfOf",
+  "AgateClientSecretEnvVar": "MICROSOFT_PROVIDER_AUTHENTICATION_SECRET",
   "Agate": { },
 
   "WebServer": {
 	
-	"Port": 3000,
+	"Port": 80,
 
 	"StaticPagesZip": "@clientSite.zip",
 	"StaticPagesRouteHtmlWithoutExtension": false,

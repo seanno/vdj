@@ -235,17 +235,21 @@ public class RepertoireStore_Blobs implements RepertoireStore
 								 : getStorageClientEndpoint(cfg.Endpoint));
 
 
+		log.info("Blob Container Name is: " + cfg.ContainerName);
+		
 		svc.createBlobContainerIfNotExists(cfg.ContainerName);
-
 		return(svc.getBlobContainerClient(cfg.ContainerName));
 	}
 
 	private static BlobServiceClient getStorageClientEndpoint(String endpoint) {
 
-		log.info("Connecting to Azure storage with DefaultAzureCredential");
+		String resolved = getFromCfgOrEnv(endpoint);
+		
+		log.info("Connecting to Repertoire Blob Storage with DefaultAzureCredential");
+		log.info(String.format("Blob Endpoint Info: %s (%s)", endpoint, resolved));
 
 		return(new BlobServiceClientBuilder()
-			   .endpoint(getFromCfgOrEnv(endpoint))
+			   .endpoint(resolved)
 			   .credential(new DefaultAzureCredentialBuilder().build())
 			   .buildClient());
 	}

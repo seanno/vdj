@@ -790,6 +790,14 @@ public class Server implements Closeable
 		String user = request.User.Email;
 		if (Easy.nullOrEmpty(user)) user = request.User.Id;
 		if (Easy.nullOrEmpty(user)) throw new Exception("missing auth email or id");
+
+		if (user.indexOf("@") == -1 && request.User.Properties != null) {
+			String preferred = request.User.Properties.get("preferred_username");
+			if (!Easy.nullOrEmpty(preferred) && preferred.indexOf("@") != -1) {
+				user = preferred;
+			}
+		}
+		
 		return(user);
 	}
 	
