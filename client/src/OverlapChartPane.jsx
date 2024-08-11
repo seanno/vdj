@@ -41,18 +41,39 @@ export default memo(function OverlapChartPane({ context, repertoires, params, rk
   // | chartEvents |
   // +-------------+
 
+  function formatFraction(rep, count) {
+	
+	const useVolume = (rep.TotalMilliliters > 0.0);
+
+	const val = (useVolume
+				 ? count / rep.TotalMilliliters
+				 : (rep.TotalCells > 0 ? count / rep.TotalCells * 100 : 0.0));
+
+	return(val.toFixed(3) + (useVolume ? ' Count/ML' : ' % Cells'));
+  }
+  
   const chartEvents = [
 	{
 	  eventName: 'select',
 	  callback: ({chartWrapper}) => {
 		const chart = chartWrapper.getChart();
 		const selection = chart.getSelection();
+		
 		if (selection.length === 1) {
+		  
 		  const item = results.Items[selection[0].row];
 
+		  const rep0 = results.Repertoires[0];
+		  const count0 = item.Counts[0];
+		  const valTxt0 = formatFraction(rep0, count0);
+
+		  const rep1 = results.Repertoires[1];
+		  const count1 = item.Counts[1];
+		  const valTxt1 = formatFraction(rep1, count1);
+
 		  const newDeets =
-				`${results.Repertoires[0].Name}: ${item.Counts[0]}<br/>` +
-				`${results.Repertoires[1].Name}: ${item.Counts[1]}<br/>` +
+				`${rep0.Name}: ${count0} (${valTxt0})<br/>` +
+				`${rep1.Name}: ${count1} (${valTxt1})<br/>` +
 				'<br/>' +
 				item.Key.replaceAll(', ', '<br/>').replaceAll('...', '<br/>...');
 				
