@@ -88,7 +88,7 @@ public class Server implements Closeable
 		public TopXSort DefaultTopXSort = TopXSort.FractionOfCells;
 
 		// Agate
-		public FactoryType AgateAuthType;
+		public String AgateAuthType;
 		public AgateImport.Config Agate;
 		public String AgateClientSecretEnvVar = "microsoft-provider-authentication-secret";
 		
@@ -538,8 +538,8 @@ public class Server implements Closeable
 		ui.CanUploadToAnyUserId = getCanUploadToAny(info.Request);
 		ui.IsAdmin = isAdmin(info.Request);
 		
-		ui.AgateEnabled = (cfg.Agate != null && cfg.AgateAuthType != null);
-		ui.AgateUserPassAuth = (FactoryType.UserPass.equals(cfg.AgateAuthType));
+		ui.AgateEnabled = (cfg.Agate != null && getAgateAuthType() != null);
+		ui.AgateUserPassAuth = (FactoryType.UserPass.equals(getAgateAuthType()));
 
 		ui.LogoutPath = cfg.WebServer.LogoutPath;
 		
@@ -583,11 +583,14 @@ public class Server implements Closeable
 		// for importing
 		public String SaveUser;
 		public AgateImport.Sample Sample;
+
+		// for query
+		public String Query;
 	}
 	
 	private void handleAgateRequest(ApiInfo info) throws Exception {
 
-		if (cfg.Agate == null || cfg.AgateAuthType == null) {
+		if (cfg.Agate == null || getAgateAuthType() == null) {
 			throw new Exception("agate request received but not configured");
 		}
 		
@@ -612,25 +615,26 @@ public class Server implements Closeable
 
 	private AgateImport getAgate(AgateParams params, ApiInfo info) {
 
-		log.info(String.format("getAgate: %s", cfg.AgateAuthType));
+		FactoryType authType = getAgateAuthType();
+		log.info(String.format("getAgate: %s", authType));
 		
 		// default
-		if (FactoryType.Default.equals(cfg.AgateAuthType)) {
+		if (FactoryType.Default.equals(authType)) {
 			return(AgateImport.createDefault(cfg.Agate));
 		}
 
 		// user pass
-		if (FactoryType.UserPass.equals(cfg.AgateAuthType)) {
+		if (FactoryType.UserPass.equals(authType)) {
 			return(AgateImport.createUserPass(cfg.Agate, params.User, params.Password));
 		}
 
 		// on behalf of
-		if (FactoryType.OnBehalfOf.equals(cfg.AgateAuthType)) {
+		if (FactoryType.OnBehalfOf.equals(authType)) {
 			String secret = System.getenv(cfg.AgateClientSecretEnvVar);
 			return(AgateImport.createOnBehalfOf(cfg.Agate, secret, info.Request.User.Token));
 		}
 
-		log.severe(String.format("WTF invalid factory type: %s", cfg.AgateAuthType));
+		log.severe(String.format("WTF invalid factory type: %s", authType));
 		return(null);
 	}
 
@@ -673,6 +677,7 @@ public class Server implements Closeable
 			case "move": adminMoveRepertoire(info, body); break;
 			case "obo": adminVerifyBlobOBO(info, body); break;
 			case "deets": adminGetRequestDetails(info); break;
+			case "aquery": adminQueryAgate(info, body); break;
 			default: info.Response.Status = 500; break;
 		}
 	}
@@ -717,6 +722,13 @@ public class Server implements Closeable
 	private void adminVerifyBlobOBO(ApiInfo info, String body) throws Exception {
 		boolean ok = Admin.verifyBlobOBOAccess(body, info.Request, cfg.AgateClientSecretEnvVar);
 		info.Response.setJson(String.format("{ \"result\": \"%s\" }", ok ? "OK" : "Error; see logs"));
+	}
+
+	// adminQueryAgate
+	private void adminQueryAgate(ApiInfo info, String body) throws Exception {
+		AgateParams params = gson.fromJson(body, AgateParams.class);
+		AgateImport agate = getAgate(params, info);
+		info.Response.setJson(gson.toJson(agate.query(params.Query)));
 	}
 
 	// +---------+
@@ -780,6 +792,16 @@ public class Server implements Closeable
 	private Repertoire findRepertoire(RepertoireSpec spec) {
 		Repertoire[] reps = store.getContextRepertoires(spec.UserId, spec.Context);
 		return(Repertoire.find(reps, spec.Name));
+	}
+
+	private FactoryType getAgateAuthType() {
+
+		if (cfg.AgateAuthType == null) return(null);
+
+		String val = cfg.AgateAuthType;
+		if (val.startsWith("@")) val = System.getenv(val.substring(1));
+
+		return(val == null ? null : FactoryType.valueOf(val));
 	}
 	
 	// +---------------------+

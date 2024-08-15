@@ -15,7 +15,9 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -215,6 +217,53 @@ public class AgateImport implements Closeable
 		}
 	}
 
+	// +-------+
+	// | query |
+	// +-------+
+
+	public static class AgateQueryResults
+	{
+		public String[] Headers;
+		public List<String[]> Rows = new ArrayList<String[]>();
+		public String Error;
+	}
+	
+	public AgateQueryResults query(String query) {
+		
+		Statement stmt = null;
+		ResultSet rs = null;
+
+		AgateQueryResults results = new AgateQueryResults();
+
+		try {
+			ensureConnection();
+			
+			stmt = cxn.createStatement();
+			rs = stmt.executeQuery(query);
+
+			ResultSetMetaData metaData = rs.getMetaData();
+			int ccol = metaData.getColumnCount();
+			
+			results.Headers = new String[ccol];
+			for (int i = 0; i < ccol; ++i) results.Headers[i] = metaData.getColumnLabel(i+1);
+			
+			while (rs != null && rs.next()) {
+				String[] cols = new String[ccol];
+				results.Rows.add(cols);
+				for (int i = 0; i < ccol; ++i) cols[i] = rs.getString(i+1);
+			}
+		}
+		catch (Exception e) {
+			results.Error = e.toString();
+		}
+		finally {
+			if (rs != null) safeClose(rs);
+			if (stmt != null) safeClose(stmt);
+		}
+		
+		return(results);
+	}
+		
 	// +---------+
 	// | Helpers |
 	// +---------+

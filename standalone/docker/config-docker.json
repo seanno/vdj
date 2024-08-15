@@ -10,7 +10,7 @@
   
   "LoggingConfigPath": "/opt/vdj/logging-docker.json",
 
-  "AgateAuthType": "OnBehalfOf",
+  "AgateAuthType": "@AgateAuthType",
   "AgateClientSecretEnvVar": "MICROSOFT_PROVIDER_AUTHENTICATION_SECRET",
   "Agate": { },
 

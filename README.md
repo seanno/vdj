@@ -22,4 +22,33 @@ For client development with hot-reload capability, first run the standalone serv
 `npm run dev -- --host 0.0.0.0`
 Point your browser at https://localhost:5173 to access the client (again with a self-signed certificate). 
 
-  
+# running (container / Azure Web Site)
+The [standalone/docker](standalone/docker) directory builds a container ready to run in an Azure App Service
+Web App using built-in Active Directory (ok, Entra) authentication. See the dockerbuild.sh script for an example
+of building and pushing the image. Basic steps are pretty simple:
+
+1. Create a storage account
+2. Create App Service / Web App
+3. Specify your container
+4. Add an environment variable "RepertoireStorageEndpoint" with the storage account endpoint, e.g., https://STORAGEACCTNAME.blob.core.windows.net/
+5. Enable a system-assigned managed identity and grant it "Storage Blob Data Contributor" rights on the storage account.
+6. Under Authentication, enable the Microsoft identity provider, creating a new app registration and ensuring that the token store is ON.
+
+At this point anyone with an Azure AD account will be able to log in, upload repertoire files and use the system.
+
+See the source code for optional use of custom app roles VDJ_UploadToAnyUserId, VDJ_AssumeUserId_XXX and VDJ_AdminUser.
+
+If you would like to enable sample import from Adaptive's Agate system, do the following:
+
+1. Add an environment variable "AgateAuthType" with the value "UserPass"
+2. Under the client app API Permissions, add:
+ * https://storage.azure.com/ user_impersonation
+ * https://database.windows.net/ user_impersonation
+ * Your client app user_impersonation
+3. Using Azure resource explorer, navigate to subscriptions/SUB/resourceGroups/GROUP/providers/Microsoft.Web/sites/SITE/config/authSettingsV2 and under identityProviders/azureActiveDirectory/login add a field "loginParameters" with the value ["scope=openid profile email CLIENTID/user_impersonation"]
+4. Troubleshooting:
+ * If some users have already logged into the app, you may need to force admin re-consent by visiting the url https://login.microsoftonline.com/TENANTID/adminconsent?client_id=CLIENTID
+ * If you still have trouble, try logging in with an incognito window and/or hitting https://YOURSITE/.auth/logout to force a relogin. There are a bunch of weird semi-documented caches in play here.
+ 
+ 
+

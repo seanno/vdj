@@ -2,9 +2,6 @@
 // KEYSORTER.JAVA
 // 
 
-// TODO: seems like these might like to be cached, but let's see
-// how things play out before adding that complexity to the mix
-
 package com.shutdownhook.vdj.vdjlib;
 
 import java.io.BufferedReader;
