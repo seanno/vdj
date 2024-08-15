@@ -42,13 +42,13 @@ If you would like to enable sample import from Adaptive's Agate system, do the f
 
 1. Add an environment variable "AgateAuthType" with the value "UserPass"
 2. Under the client app API Permissions, add:
-  * https://storage.azure.com/ user_impersonation
-  * https://database.windows.net/ user_impersonation
-  * Your client app user_impersonation
+    * https://storage.azure.com/ user_impersonation
+    * https://database.windows.net/ user_impersonation
+    * Your client app user_impersonation
 3. Using Azure resource explorer, navigate to subscriptions/SUB/resourceGroups/GROUP/providers/Microsoft.Web/sites/SITE/config/authSettingsV2 and under identityProviders/azureActiveDirectory/login add a field "loginParameters" with the value ["scope=openid profile email CLIENTID/user_impersonation"]
 4. Troubleshooting:
-  * If some users have already logged into the app, you may need to force admin re-consent by visiting the url https://login.microsoftonline.com/TENANTID/adminconsent?client_id=CLIENTID
-  * If you still have trouble, try logging in with an incognito window and/or hitting https://YOURSITE/.auth/logout to force a relogin. There are a bunch of weird semi-documented caches in play here.
+    * If some users have already logged into the app, you may need to force admin re-consent by visiting the url https://login.microsoftonline.com/TENANTID/adminconsent?client_id=CLIENTID
+    * If you still have trouble, try logging in with an incognito window and/or hitting https://YOURSITE/.auth/logout to force a relogin. There are a bunch of weird semi-documented caches in play here.
  
  
 
