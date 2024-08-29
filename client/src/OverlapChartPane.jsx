@@ -37,21 +37,35 @@ export default memo(function OverlapChartPane({ context, repertoires, params, rk
 	
   }, []);
 
+  // +---------------+
+  // | Normalization |
+  // +---------------+
+
+  function getNormLabel(rep) {
+	if (rep.TotalMilliliters > 0.0) return("per ML");
+	if (rep.TotalCells > 0) return("% Cells");
+	return("Count");
+  }
+
+  function getNormValue(rep, count) {
+	if (rep.TotalMilliliters > 0.0) return(count / rep.TotalMilliliters);
+	if (rep.TotalCells > 0) return(Math.min(count / rep.TotalCells * 1000000, 1000000));
+	return(count);
+  }
+
+  function getNormString(rep, count) {
+	const countStr = count.toLocaleString();
+	const val = getNormValue(rep, count);
+	if (rep.TotalMilliliters > 0.0) return(`${countStr} (${Math.round(val).toLocaleString()} per ML)`);
+	if (rep.TotalCells > 0) return(`${countStr} (${(val/10000).toFixed(4)}% of Cells)}`);
+	return(countStr);
+	
+  }
+
   // +-------------+
   // | chartEvents |
   // +-------------+
 
-  function formatFraction(rep, count) {
-	
-	const useVolume = (rep.TotalMilliliters > 0.0);
-
-	const val = (useVolume
-				 ? count / rep.TotalMilliliters
-				 : (rep.TotalCells > 0 ? count / rep.TotalCells * 100 : 0.0));
-
-	return(val.toFixed(3) + (useVolume ? ' Count/ML' : ' % Cells'));
-  }
-  
   const chartEvents = [
 	{
 	  eventName: 'select',
@@ -64,18 +78,18 @@ export default memo(function OverlapChartPane({ context, repertoires, params, rk
 		  const item = results.Items[selection[0].row];
 
 		  const rep0 = results.Repertoires[0];
-		  const count0 = item.Counts[0];
-		  const valTxt0 = formatFraction(rep0, count0);
-
+		  const txt0 = getNormString(rep0, item.Counts[0]);
+			
 		  const rep1 = results.Repertoires[1];
-		  const count1 = item.Counts[1];
-		  const valTxt1 = formatFraction(rep1, count1);
+		  const txt1 = getNormString(rep1, item.Counts[1]);
+
+		  const key = item.Key.replaceAll(', ', '<br/>').replaceAll('...', '<br/>...');
 
 		  const newDeets =
-				`${rep0.Name}: ${count0} (${valTxt0})<br/>` +
-				`${rep1.Name}: ${count1} (${valTxt1})<br/>` +
-				'<br/>' +
-				item.Key.replaceAll(', ', '<br/>').replaceAll('...', '<br/>...');
+				`${rep0.Name}: ${txt0}<br/>` +
+				`${rep1.Name}: ${txt1}<br/>` +
+				'<br/>' + key +
+				(key.endsWith("...") ? ` (${item.KeyCount} total sequences)` : '');
 				
 		  setDetails(newDeets);
 		}
@@ -105,12 +119,15 @@ export default memo(function OverlapChartPane({ context, repertoires, params, rk
 
   function renderResults() {
 
-	const r1 = results.Repertoires[0].Name;
-	const r2 = results.Repertoires[1].Name;
+	const rep0 = results.Repertoires[0];
+	const rep1 = results.Repertoires[1];
+	
+	const title0 = rep0.Name + ' (' + getNormLabel(rep0) + ')';
+	const title1 = rep1.Name + ' (' + getNormLabel(rep1) + ')';
 
 	const data = [[
-	  { type: 'number', r1 },
-	  { type: 'number', r2 }
+	  { type: 'number', title0 },
+	  { type: 'number', title1 }
 	]];
 
 	var maxVal = 0.0;
@@ -118,14 +135,16 @@ export default memo(function OverlapChartPane({ context, repertoires, params, rk
 	for (const i in results.Items) {
 
 	  const item = results.Items[i];
-	  
-	  const val1 = Math.log10(item.Counts[0]);
-	  if (val1 > maxVal) maxVal = val1;
-	  
-	  const val2 = Math.log10(item.Counts[1]);
-	  if (val2 > maxVal) maxVal = val2;
 
-	  data.push([ val1, val2 ]);
+	  const count0 = item.Counts[0];
+	  const val0 = (count0 === 0 ? -0.25 : Math.max(Math.log10(getNormValue(rep0, count0)), 0));
+	  if (val0 > maxVal) maxVal = val0;
+	  
+	  const count1 = item.Counts[1];
+	  const val1 = (count1 === 0 ? -0.25 : Math.max(Math.log10(getNormValue(rep1, count1)), 0));
+	  if (val1 > maxVal) maxVal = val1;
+
+	  data.push([ val0, val1 ]);
 	}
 
 	maxVal = Math.floor(maxVal + 1);
@@ -134,15 +153,17 @@ export default memo(function OverlapChartPane({ context, repertoires, params, rk
 	
 	const options = {
 	  hAxis: {
-		title: r1,
-		ticks: ticks
+		title: title0,
+		ticks: ticks,
+		viewWindow: { min: -0.25, max: maxVal }
 	  },
 	  vAxis: {
-		title: r2,
-		ticks: ticks
+		title: title1,
+		ticks: ticks,
+		viewWindow: { min: -0.25, max: maxVal }
 	  },
 	  legend: 'none',
-	  chartArea: { top: 20, width: 380, height: 380 }
+	  chartArea: { right:20, top: 20, width: 380, height: 380 }
 	};
 
 	return(
