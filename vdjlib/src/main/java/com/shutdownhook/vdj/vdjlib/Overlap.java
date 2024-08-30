@@ -69,12 +69,15 @@ public class Overlap
 	public static class OverlapResultItem
 	{
 		public String Key;
+		public int KeyCount;
 		public int PresentIn;
 		public long[] Counts;
 		public long MaxCount;
 
 		public void appendKey(String newKey, int cchMax) {
 
+			++KeyCount;
+			
 			// already full
 			if (Key.endsWith("...")) return;
 			
@@ -290,6 +293,7 @@ public class Overlap
 		OverlapResultItem resultItem = new OverlapResultItem();
 				
 		resultItem.Key = state.Key;
+		resultItem.KeyCount = 1;
 		resultItem.PresentIn = state.KeyMatches;
 				
 		resultItem.Counts = new long[items.length];

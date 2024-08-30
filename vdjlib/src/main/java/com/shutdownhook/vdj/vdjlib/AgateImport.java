@@ -316,7 +316,7 @@ public class AgateImport implements Closeable
 				s.TsvPath = rs.getString("current_rearrangement_tsv_file");
 
 				Double dblCells = rs.getDouble("sample_cells");
-				if (dblCells == null) dblCells = rs.getDouble("sample_cells_mass_estimate");
+				if (dblCells == null || dblCells == 0.0) dblCells = rs.getDouble("sample_cells_mass_estimate");
 				if (dblCells != null) s.TotalCells = (long) Math.round(dblCells);
 			}
 

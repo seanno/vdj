@@ -54,8 +54,8 @@ export default function RearrangementsTable({ repertoire, rearrangements, rkey, 
 			  <tr key={`${rkey}-rt-${irow}`}>
 				<td>{r.Locus}</td>
 				<td style={{textAlign: 'right'}}>{r.Count}</td>
-				<td style={{textAlign: 'right'}}>{(r.FractionOfLocus * 100).toFixed(3)}</td>
-				<td style={{textAlign: 'right'}}>{(useVolume ? r.CountPerMilliliter : r.FractionOfCells * 100).toFixed(3)}</td>
+				<td style={{textAlign: 'right'}}>{(Math.min(r.FractionOfLocus * 100,100)).toFixed(4)}</td>
+				<td style={{textAlign: 'right'}}>{(useVolume ? r.CountPerMilliliter : Math.min(r.FractionOfCells * 100,100)).toFixed(4)}</td>
 				<td style={{textAlign: 'right'}}><a href="#" onClick={ (evt) => window.launchIMGT(r.Locus,r.Rearrangement, evt) }>{colorizeRearrangement(r)}</a></td>
 				<td>{r.AminoAcid}</td>
 				<td>{r.VResolved}</td>
