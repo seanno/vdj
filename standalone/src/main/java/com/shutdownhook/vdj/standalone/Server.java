@@ -582,7 +582,7 @@ public class Server implements Closeable
 
 		// for importing
 		public String SaveUser;
-		public AgateImport.Sample Sample;
+		public AgateImport.PipelineSample Sample;
 
 		// for query
 		public String Query;
@@ -640,7 +640,7 @@ public class Server implements Closeable
 
 	private void getAgateSamples(ApiInfo info, AgateParams params, AgateImport agate) throws Exception {
 
-		List<AgateImport.Sample> samples = agate.listSamplesAsync(params.SearchString).get();
+		List<AgateImport.PipelineSample> samples = agate.listSamplesPipelineAsync(params.SearchString).get();
 		if (samples == null) throw new Exception("failed listing agate samples");
 		info.Response.setJson(gson.toJson(samples));
 	}
@@ -652,11 +652,7 @@ public class Server implements Closeable
 		try {
 			stm = agate.getTsvStreamAsync(params.Sample.TsvPath).get();
 			if (stm == null) throw new Exception("failed getting agate tsv stream");
-
-			saveRepertoireInternal(info, params.SaveUser, stm,
-								   params.Sample.TotalCells,
-								   params.Sample.TotalMilliliters);
-			
+			saveRepertoireInternal(info, params.SaveUser, stm, null, null);
 		}
 		finally {
 			if (stm != null) stm.close();

@@ -81,7 +81,8 @@ public class SideLoadedTsv
 	public static int TEST_PIPELINE_TCRG = 3;
 	public static int TEST_CELLFREE_EOS = 4;
 	public static int TEST_AGATE_1 = 5;
-	public static int TEST_TSV_COUNT = 6; // keep me updated!
+	public static int TEST_TCRB_ITE_DIFF = 6;
+	public static int TEST_TSV_COUNT = 7; // keep me updated!
 
 	public static SideLoadedTsv getTsv(int which) throws Exception {
 		ensureTestTsvs();
@@ -99,6 +100,7 @@ public class SideLoadedTsv
 		tsvs[TEST_PIPELINE_TCRG] = new SideLoadedTsv("A_TCRG_ID.tsv", PIPELINE);
 		tsvs[TEST_CELLFREE_EOS] = new SideLoadedTsv("D_BCell_Cellfree_MRD.tsv", PIPELINE);
 		tsvs[TEST_AGATE_1] = new SideLoadedTsv("agate_1.tsv", AGATE, 61781L, 0.0);
+		tsvs[TEST_TCRB_ITE_DIFF] = new SideLoadedTsv("tcrb-ite-diff.tsv", PIPELINE);
 	}
 
 	private static SideLoadedTsv[] tsvs = null;
@@ -180,6 +182,7 @@ public class SideLoadedTsv
 		BufferedReader resBufferedReader = new BufferedReader(resStreamReader);
 
 		String line;
+		int ifldInputTemplateEstimate = -1;
 
 		while ((line = resBufferedReader.readLine()) != null) {
 
@@ -213,9 +216,16 @@ public class SideLoadedTsv
 
 			matrix.add(fields);
 
-			// skip the header row
-			if (matrix.size() > 1) {
-
+			if (matrix.size() == 1) {
+				// header row
+				for (int ifld = 0; ifld < fields.length; ++ifld) {
+					if (fields[ifld].equalsIgnoreCase("inputTemplateEstimate")) {
+						ifldInputTemplateEstimate = ifld;
+						break;
+					}
+				}
+			}
+			else {
 				// grab cell count if available
 				if (matrix.size() == 2) {
 					if (CELL_COLS[ver][0] != -1) {
@@ -237,6 +247,14 @@ public class SideLoadedTsv
 				String jTies = fields[COLS[ver][16]];
 				
 				long c = Long.parseLong(fields[COLS[ver][3]]);
+				if (ifldInputTemplateEstimate != -1) {
+					long ite = Long.parseLong(fields[ifldInputTemplateEstimate]);
+					if (c != ite) {
+						fields[COLS[ver][3]] = Long.toString(ite);
+						c = ite;
+					}
+				}
+				
 				repertoire.accumulateCount(locusFromGene(v,d,j,vTies,dTies,jTies), c);
 			}
 		}

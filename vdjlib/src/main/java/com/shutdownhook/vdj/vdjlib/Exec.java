@@ -14,25 +14,34 @@ public class Exec
 	private final static int SHUTDOWN_SECONDWAIT_SECONDS = 2;
 	
 	private static ExecutorService pool;
-	protected static ExecutorService getPool() { return(pool); }
+	public static ExecutorService getPool() { return(pool); }
 
+	public static void shutdownPool() {
+		
+		if (pool == null) return;
+		
+		try {
+			pool.shutdown();
+			pool.awaitTermination(SHUTDOWN_FIRSTWAIT_SECONDS, TimeUnit.SECONDS);
+			pool.shutdownNow();
+			pool.awaitTermination(SHUTDOWN_SECONDWAIT_SECONDS, TimeUnit.SECONDS);
+		}
+		catch (InterruptedException e) {
+			/* eat it */
+		}
+		finally {
+			pool = null;
+		}
+		
+	}
+	
 	static {
 
 		pool = Executors.newCachedThreadPool();
 
 		Runtime.getRuntime().addShutdownHook(new Thread() {
-			public void run() {
-				try {
-					pool.shutdown();
-					pool.awaitTermination(SHUTDOWN_FIRSTWAIT_SECONDS, TimeUnit.SECONDS);
-					pool.shutdownNow();
-					pool.awaitTermination(SHUTDOWN_SECONDWAIT_SECONDS, TimeUnit.SECONDS);
-				}
-				catch (InterruptedException e) {
-					/* eat it */
-				}
-			}
+			public void run() { shutdownPool(); }
 		});
 	}
-	
+
 }

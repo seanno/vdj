@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.ZipInputStream;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 
@@ -120,7 +122,117 @@ public class AgateImport implements Closeable
 		int status = conn.getResponseCode();
 		if (status < 200 || status >= 300) return(null);
 
+		int ichLastDot = tsvPath.lastIndexOf(".");
+		String ext = (ichLastDot == -1 ? "" : tsvPath.substring(ichLastDot + 1));
+
+		if (ext.equalsIgnoreCase("gz")) return(new GZIPInputStream(conn.getInputStream()));
+		if (ext.equalsIgnoreCase("zip")) return(new ZipInputStream(conn.getInputStream()));
 		return(conn.getInputStream());
+	}
+
+	// +--------------------------+
+	// | listSamplesPipelineAsync |
+	// | listSamplesPipeline      |
+	// +--------------------------+
+
+	private static String PIPELINE_SAMPLES_SQL =
+		"select " +
+		"  s.sample_name, " +
+		"  coalesce(s.project_group_name, s.order_name) as group_name, " +
+		"  coalesce(s.collection_date, s.upload_date) as effective_date, " +
+		"  rf.path as pipeline_tsv_path " +
+		"from  " +
+		"  samples s " +
+		"inner join " +
+		"  clearinghouse_sequencing_run csr " +
+		"  on s.sample_name = csr.identity_name " +
+		"inner join " +
+		"  related_files rf " +
+		"  on csr.item_id = rf.item_id and rf.file_key = 'PIPELINE_TSV' " +
+		"where " +
+		"  s.sample_name like concat('%',?,'%') or " +
+		"  project_group_name like concat('%',?,'%') or " +
+		"  order_name like concat('%',?,'%') " +
+		"order by " +
+		"  s.sample_name desc, " +
+		"  rf.file_version desc, " +
+		"  rf.upload_date desc ";
+	
+	public static class PipelineSample
+	{
+		public String Name;
+		public String Project;
+		public Date Date;
+		public String TsvPath;
+	}
+	
+	public CompletableFuture<List<PipelineSample>> listSamplesPipelineAsync(String search) {
+
+		CompletableFuture<List<PipelineSample>> future =
+			new CompletableFuture<List<PipelineSample>>();
+
+		Exec.getPool().submit(() -> {
+
+			try {
+				future.complete(listSamplesPipeline(search));
+			}
+			catch (Exception e) {
+				log.warning(Utility.exMsg(e, "listSamplesPipelineAsync", true));
+				future.complete(null);
+			}
+		});
+
+		return(future);
+	}
+	
+	public List<PipelineSample> listSamplesPipeline(String search) throws SQLException, IllegalArgumentException {
+
+		ensureConnection();
+		
+		if (search == null || search.length() < cfg.MinSearchLength) {
+			throw new IllegalArgumentException(String.format("search must be at least %d chars",
+															 cfg.MinSearchLength));
+		}
+		
+		log.info(String.format("Fetching Agate (pipeline) samples matching %s", search));
+
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+
+		try {
+			stmt = cxn.prepareStatement(PIPELINE_SAMPLES_SQL);
+			stmt.setString(1, search);
+			stmt.setString(2, search);
+			stmt.setString(3, search);
+			rs = stmt.executeQuery();
+
+			log.info("Starting Agate pipeline fetch loop");
+
+			List<PipelineSample> samples = new ArrayList<PipelineSample>();
+			String lastName = null;
+			
+			while (rs != null && rs.next()) {
+
+				String thisName = rs.getString("sample_name");
+				if (lastName != null && lastName.equals(thisName)) continue;
+				lastName = thisName;
+				
+				PipelineSample s = new PipelineSample();
+				samples.add(s);
+				
+				s.Name = thisName;
+				s.Project = rs.getString("group_name");
+				s.Date = rs.getDate("effective_date");
+				s.TsvPath = rs.getString("pipeline_tsv_path");
+			}
+
+			log.info(String.format("Fetched %d (pipeline) samples matching %s", samples.size(), search));
+			return(samples);
+		}
+		finally {
+			if (rs != null) safeClose(rs);
+			if (stmt != null) safeClose(stmt);
+		}
 	}
 
 	// +------------------+
@@ -318,6 +430,13 @@ public class AgateImport implements Closeable
 				}
 				break;
 
+			case "pipeline":
+				List<PipelineSample> psamples = agate.listSamplesPipelineAsync(args[1]).get();
+				for (PipelineSample s : psamples) {
+					System.out.println(String.format("%s\t%s\t%s\n%s\n", s.Name, s.Project, s.Date, s.TsvPath));
+				}
+				break;
+
 			case "tsv":
 				int maxLines = (args.length > 2 ? Integer.parseInt(args[2]) : 10);
 				InputStream stm = agate.getTsvStreamAsync(args[1]).get();
@@ -331,6 +450,7 @@ public class AgateImport implements Closeable
 		}
 		
 		agate.close();
+		Exec.shutdownPool();
 	}
 
 	private static void printHead(InputStream stm, int lines) throws Exception {

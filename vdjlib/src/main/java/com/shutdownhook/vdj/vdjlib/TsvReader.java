@@ -134,9 +134,15 @@ public class TsvReader implements Closeable
 		String strVSHMIndices = optionalField(fields, IHDR_VSHMINDICES);
 		String strCloneProbability = optionalField(fields, IHDR_CLONE_PROBABILITY);
 		String strLogCloneProbability = optionalField(fields, IHDR_LOG_CLONE_PROBABILITY);
+		String strInputTemplateEstimate = optionalField(fields, IHDR_INPUT_TEMPLATE_ESTIMATE);
+
+		r.Count = Long.parseLong(strCount);
+		if (strInputTemplateEstimate != null) {
+			long ite = Long.parseLong(strInputTemplateEstimate);
+			if (r.Count != ite) r.Count = ite;
+		}
 
 		r.FrameType = FrameType.valueOf(strFrameType);
-		r.Count = Long.parseLong(strCount);
 		r.Cdr3Length = Integer.parseInt(strCdr3Length);
 		r.VIndex = Integer.parseInt(strVIndex);
 		r.DIndex = Integer.parseInt(strDIndex);
@@ -259,6 +265,7 @@ public class TsvReader implements Closeable
 			case "count": index = IHDR_COUNT; break;
 			case "cloneprobability": index = IHDR_CLONE_PROBABILITY; break;
 			case "logcloneprobability": index = IHDR_LOG_CLONE_PROBABILITY; break;
+			case "inputtemplateestimate": index = IHDR_INPUT_TEMPLATE_ESTIMATE; break;
 			
 			// Analyzer V2
 			case "nucleotide":  index = IHDR_REARRANGEMENT; break;
@@ -379,6 +386,7 @@ public class TsvReader implements Closeable
 
 	private static int IHDR_CLONE_PROBABILITY = 19;
 	private static int IHDR_LOG_CLONE_PROBABILITY = 20;
+	private static int IHDR_INPUT_TEMPLATE_ESTIMATE = 21;
 	
-	private static int HEADER_COUNT = 21; // KEEP ME UPDATED!
+	private static int HEADER_COUNT = 22; // KEEP ME UPDATED!
 }

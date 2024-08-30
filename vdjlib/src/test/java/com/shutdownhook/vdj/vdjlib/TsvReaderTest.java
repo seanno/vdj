@@ -44,6 +44,11 @@ public class TsvReaderTest
 		basic(SideLoadedTsv.TEST_CELLFREE_EOS, 20);
 	}
 
+	@Test
+    public void basicIteDiff() throws Exception {
+		basic(SideLoadedTsv.TEST_TCRB_ITE_DIFF, 500);
+	}
+
     private void basic(int which, int batchSize) throws Exception {
 
 		SideLoadedTsv truth = SideLoadedTsv.getTsv(which);
