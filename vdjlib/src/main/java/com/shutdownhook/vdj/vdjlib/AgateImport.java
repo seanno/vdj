@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipInputStream;
+import java.util.zip.ZipException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 
@@ -108,6 +109,17 @@ public class AgateImport implements Closeable
 	
 	public InputStream getTsvStream(String tsvPath) throws IOException {
 
+		try {
+			return(getTsvStreamInternal(tsvPath, true));
+		}
+		catch (ZipException ze) {
+			log.warning(String.format("Agate says gz/zip but nope; falling back (%s)", tsvPath));
+			return(getTsvStreamInternal(tsvPath, false));
+		}
+	}
+
+	public InputStream getTsvStreamInternal(String tsvPath, boolean tryZips) throws IOException {
+
 		URL url = new URL(tsvPath);
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
@@ -122,11 +134,15 @@ public class AgateImport implements Closeable
 		int status = conn.getResponseCode();
 		if (status < 200 || status >= 300) return(null);
 
-		int ichLastDot = tsvPath.lastIndexOf(".");
-		String ext = (ichLastDot == -1 ? "" : tsvPath.substring(ichLastDot + 1));
+		if (tryZips) {
+			
+			int ichLastDot = tsvPath.lastIndexOf(".");
+			String ext = (ichLastDot == -1 ? "" : tsvPath.substring(ichLastDot + 1));
 
-		if (ext.equalsIgnoreCase("gz")) return(new GZIPInputStream(conn.getInputStream()));
-		if (ext.equalsIgnoreCase("zip")) return(new ZipInputStream(conn.getInputStream()));
+			if (ext.equalsIgnoreCase("gz")) return(new GZIPInputStream(conn.getInputStream()));
+			if (ext.equalsIgnoreCase("zip")) return(new ZipInputStream(conn.getInputStream()));
+		}
+		
 		return(conn.getInputStream());
 	}
 
