@@ -29,6 +29,13 @@ export default function RepertoirePicker({ selectedContext,
 	onRepertoiresChange(newRepertoires);
   }
 
+  function listOnKeyDown(evt) {
+	if (evt.key === 'a' && evt.ctrlKey) {
+	  evt.preventDefault();
+	  onRepertoiresChange([...repertoireList]);
+	}
+  }
+  
   function isChecked(name) {
 	return(findRepertoireIndex(selectedRepertoires, name) !== -1);
   }
@@ -83,7 +90,11 @@ export default function RepertoirePicker({ selectedContext,
 	  
 	  { selectedContext && repertoireList &&
 		<List
-		  sx={{ width: '100%' }}>
+		  onKeyDown={ (evt) => listOnKeyDown(evt) }
+		  sx={{ width: '100%',
+				overflow: 'auto',
+				maxHeight: '300px',
+				mt: 1, mb: 2 }}>
 
 		  {
 			repertoireList.map((r) => {
