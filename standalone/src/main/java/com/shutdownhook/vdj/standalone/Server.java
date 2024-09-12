@@ -6,6 +6,7 @@
 package com.shutdownhook.vdj.standalone;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -27,6 +28,7 @@ import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.FactoryType;
 import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.OnBehalfOfParams;
 import com.shutdownhook.vdj.vdjlib.AgateImport;
 import com.shutdownhook.vdj.vdjlib.ContextRepertoireStore;
+import com.shutdownhook.vdj.vdjlib.Export;
 import com.shutdownhook.vdj.vdjlib.RearrangementKey;
 import com.shutdownhook.vdj.vdjlib.RearrangementKey.KeyType;
 import com.shutdownhook.vdj.vdjlib.RepertoireResult;
@@ -91,7 +93,10 @@ public class Server implements Closeable
 		public String AgateAuthType;
 		public AgateImport.Config Agate;
 		public String AgateClientSecretEnvVar = "microsoft-provider-authentication-secret";
-		
+
+		// Export
+		public Export.Config Export = new Export.Config();
+
 		public String ApiBase = "/api";
 		public String ContextScope = "contexts";
 		public String SearchScope = "search";
@@ -99,6 +104,7 @@ public class Server implements Closeable
 		public String UserScope = "user";
 		public String TopXScope = "topx";
 		public String AgateScope = "agate";
+		public String ExportScope = "export";
 		public String AdminScope = "admin";
 
 		public String ClientSiteZip = "@clientSite.zip";
@@ -178,6 +184,8 @@ public class Server implements Closeable
 
 	// POST   /api/agate                => return list of matching samples (JSON post body; see method)
 	// POST   /api/agate/CTX/REP/import => import agate sample into REP context CTX (JSON post body; see method)
+
+	// GET    /api/export/CTX/REP    => export repoertoire (QS fmt)
 
 	// POST   /api/admin/copy        => copy repertoire (JSON post body; see method)
 
@@ -274,6 +282,13 @@ public class Server implements Closeable
 
 					if (request.Method.equals("POST")) {
 						handleAgateRequest(info);
+						handled = true;
+					}
+				}
+				else if (info.Scope.equals(cfg.ExportScope)) {
+
+					if (request.Method.equals("GET")) {
+						handleExportRequest(info);
 						handled = true;
 					}
 				}
@@ -656,6 +671,46 @@ public class Server implements Closeable
 		}
 		finally {
 			if (stm != null) stm.close();
+		}
+	}
+
+	// +---------------------+
+	// | handleExportRequest |
+	// +---------------------+
+	
+	private void handleExportRequest(ApiInfo info) throws Exception {
+
+		String formatStr = info.Request.QueryParams.get("fmt");
+		Export.Format format = Export.Format.valueOf(formatStr);
+
+		Export.Params params = new Export.Params();
+		params.CRS = new ContextRepertoireStore(store, info.UserId, info.ContextName);
+		params.Repertoire = info.RepertoireName;
+		params.Format = format;
+
+		File exportFile = null;
+
+		try {
+
+			exportFile = new Export(cfg.Export).exportAsync(params).get();
+			if (exportFile == null) throw new Exception("failed exporting repertoire");
+
+			String name = Easy.urlEncode(info.RepertoireName) + "." + format.getExtension();
+
+			info.Response.Status = 200;
+			info.Response.addHeader("Content-Disposition", "attachment; filename=" + name);
+			info.Response.ContentType = "application/octet-stream";
+			info.Response.BodyFile = exportFile;
+			info.Response.DeleteBodyFile = true;
+		}
+		catch (Exception e) {
+
+			if (exportFile != null) {
+				try { exportFile.delete(); }
+				catch (Exception de) { /* eat it */ }
+			}
+
+			throw e;
 		}
 	}
 

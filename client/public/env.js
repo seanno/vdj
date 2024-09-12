@@ -51,3 +51,6 @@ window.topXCount = 100;
 
 window.agateMinSearchLength = 5;
 
+// EXPORT
+
+window.exportDefaultFormat = 'Original';

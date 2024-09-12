@@ -125,6 +125,18 @@ export default function NavigationBar({ user, addTab, clearTabs, showError, refr
 	addTab(newTab);
   }
 
+  function openExport() {
+
+	const newTab = {
+	  view: 'export',
+	  name: `Export - ${selectedRepertoires[0].Name}`,
+	  context: selectedContext,
+	  repertoire: selectedRepertoires[0]
+	};
+
+	addTab(newTab);
+  }
+
   // +--------+
   // | Render |
   // +--------+
@@ -216,6 +228,17 @@ export default function NavigationBar({ user, addTab, clearTabs, showError, refr
 		  disabled={selectionCount() < 1}
 		  onClick={openDelete}>
 		  Delete
+		</Button>
+	  }
+	  
+	  { selectedContext &&
+		
+		<Button
+		  variant='contained'
+		  sx={{ mr: 1, mb: 1 }}
+		  disabled={selectionCount() !== 1}
+		  onClick={openExport}>
+		  Export
 		</Button>
 	  }
 

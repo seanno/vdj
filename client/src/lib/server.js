@@ -1,4 +1,18 @@
 
+// +------------------+
+// | exportRepertoire |
+// +------------------+
+
+export function exportRepertoire(ctx, rep, fmt) {
+
+  const url = window.serverBase + 'api/export' +
+		'/' + encodeURIComponent(ctx) +
+		'/' + encodeURIComponent(rep) +
+		'?fmt=' + fmt;
+
+  window.location.href = url;
+}
+
 // +----------+
 // | Wrappers |
 // +----------+

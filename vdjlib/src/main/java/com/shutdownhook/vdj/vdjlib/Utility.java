@@ -14,6 +14,7 @@ import java.lang.IllegalArgumentException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -98,6 +99,18 @@ public class Utility
 
 	public static void stringToFile(String path, String data) throws IOException {
 		Files.write(Paths.get(path), data.getBytes("UTF-8"));
+	}
+
+	public static Path getTempPath(String overridePath) throws IOException {
+		if (overridePath != null) return(Paths.get(overridePath));
+		String envPath = System.getProperty("java.io.tmpdir");
+		return(Paths.get(Utility.nullOrEmpty(envPath) ? "/tmp" : envPath));
+	}
+
+	public static File getTempFile(String tmpOverridePath) throws IOException {
+		File file = Files.createTempFile(getTempPath(tmpOverridePath), "vdj", ".vdj").toFile();
+		file.deleteOnExit();
+		return(file);
 	}
 
 	// +------------+
