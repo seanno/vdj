@@ -135,6 +135,7 @@ public class TsvReader implements Closeable
 		String strCloneProbability = optionalField(fields, IHDR_CLONE_PROBABILITY);
 		String strLogCloneProbability = optionalField(fields, IHDR_LOG_CLONE_PROBABILITY);
 		String strInputTemplateEstimate = optionalField(fields, IHDR_INPUT_TEMPLATE_ESTIMATE);
+		String strSequenceTags = optionalField(fields, IHDR_SEQUENCE_TAGS);
 
 		r.Count = Long.parseLong(strCount);
 		if (strInputTemplateEstimate != null) {
@@ -162,6 +163,16 @@ public class TsvReader implements Closeable
 		}
 		else if (!Utility.nullOrEmpty(strLogCloneProbability)) {
 			r.Probability = Double.parseDouble(strLogCloneProbability);
+		}
+
+		r.Dx = false;
+		if (!Utility.nullOrEmpty(strSequenceTags)) {
+			for (String tag : strSequenceTags.split(",")) {
+				if (tag.trim().toLowerCase().equals("dx")) {
+					r.Dx = true;
+					break;
+				}
+			}
 		}
 		
 		if (cellCount == null) {
@@ -266,6 +277,7 @@ public class TsvReader implements Closeable
 			case "cloneprobability": index = IHDR_CLONE_PROBABILITY; break;
 			case "logcloneprobability": index = IHDR_LOG_CLONE_PROBABILITY; break;
 			case "inputtemplateestimate": index = IHDR_INPUT_TEMPLATE_ESTIMATE; break;
+			case "sequencetags": index = IHDR_SEQUENCE_TAGS; break;
 			
 			// Analyzer V2
 			case "nucleotide":  index = IHDR_REARRANGEMENT; break;
@@ -306,6 +318,7 @@ public class TsvReader implements Closeable
 			case "v_family_ties": index = IHDR_VFAMILY_TIES; break;
 			case "d_family_ties": index = IHDR_DFAMILY_TIES; break;
 			case "j_family_ties": index = IHDR_JFAMILY_TIES; break;
+			case "sequence_tags": index = IHDR_SEQUENCE_TAGS; break;
 		}
 
 		if (index != -1) headerIndices[index] = i;
@@ -387,6 +400,8 @@ public class TsvReader implements Closeable
 	private static int IHDR_CLONE_PROBABILITY = 19;
 	private static int IHDR_LOG_CLONE_PROBABILITY = 20;
 	private static int IHDR_INPUT_TEMPLATE_ESTIMATE = 21;
+
+	private static int IHDR_SEQUENCE_TAGS = 22;
 	
-	private static int HEADER_COUNT = 22; // KEEP ME UPDATED!
+	private static int HEADER_COUNT = 23; // KEEP ME UPDATED!
 }

@@ -47,6 +47,8 @@ public class SideLoadedTsv
 		{ -1, -1 }
 	};
 
+	public static int[] SEQUENCE_COL = { -1, 90, 79, -1 };
+
 	public SideLoadedTsv(String resourceName, int ver) throws IOException {
 		this(resourceName, ver, null, null);
 	}
@@ -158,6 +160,13 @@ public class SideLoadedTsv
 							  : Math.log10(Double.parseDouble(strProb)));
 
 			Assert.assertEquals(dblProb, r.Probability, 0.000001);
+		}
+
+		// dx tag --- note, some pipeline files have it and some don't
+		if (r.Dx) {
+			String strTags = truth[SEQUENCE_COL[ver]];
+			System.out.println(String.format("parsed Dx Tag (truth=%s)", strTags));
+			Assert.assertTrue(strTags.toLowerCase().indexOf("dx") != -1);
 		}
 	}
 
