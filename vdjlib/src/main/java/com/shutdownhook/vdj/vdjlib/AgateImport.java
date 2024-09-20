@@ -171,9 +171,9 @@ public class AgateImport implements Closeable
 		"  project_group_name like concat('%',?,'%') or " +
 		"  order_name like concat('%',?,'%') " +
 		"order by " +
+		"  effective_date desc, " +
 		"  s.sample_name desc, " +
-		"  rf.file_version desc, " +
-		"  rf.upload_date desc ";
+		"  rf.file_version desc ";
 	
 	public static class PipelineSample
 	{
@@ -272,6 +272,7 @@ public class AgateImport implements Closeable
 		"where " +
 		"  sample_name like concat('%',?,'%') " +
 		"order by " +
+		"  effective_date desc, " + 
 		"  sample_name desc";
 	
 	public static class Sample
