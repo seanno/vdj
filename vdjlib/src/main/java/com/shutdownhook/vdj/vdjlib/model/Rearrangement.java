@@ -35,6 +35,8 @@ public class Rearrangement
 	public double Probability;
 	public int[] VSHMIndices;
 
+	public boolean Dx;
+
 	// On-Demand calculations
 
 	public double getFractionOfLocus(Repertoire repertoire) {

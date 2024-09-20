@@ -17,6 +17,7 @@ export default memo(function UploadPane({ user, context, refresh, rkey }) {
   const [userId, setUserId] = useState(user.CanUploadToAnyUserId ? user.AssumeUserId : '');
   const [contextName, setContextName] = useState(context === undefined ? '' : context);
   const [repertoireName, setRepertoireName] = useState('');
+  const [date, setDate] = useState('');
   const [file, setFile] = useState(undefined);
 
   function onFileChange(newFile) {
@@ -39,7 +40,7 @@ export default memo(function UploadPane({ user, context, refresh, rkey }) {
 	
 	const uploadFile = async () => {
 
-	  serverFetchUpload(userId, contextName, repertoireName, file)
+	  serverFetchUpload(userId, contextName, repertoireName, file, date)
 		.then(result => {
 		  if (result.httpStatus && result.httpStatus === 409) {
 			setError('Repertoire already exists');
@@ -106,6 +107,17 @@ export default memo(function UploadPane({ user, context, refresh, rkey }) {
 		  />
 		</div>
 
+		<div className={styles.dialogTxt}>
+		  <TextField
+			type='date'
+			label='Collection / Sample Date (Optional)'
+			value={date}
+			InputLabelProps= {{ shrink: true }}
+			sx={{ width: '100%' }}
+			onChange={(evt) => setDate(evt.target.value)}
+		  />
+		</div>
+		
 		<div className={styles.dialogTxt}>
 		  <input
 			type="file"

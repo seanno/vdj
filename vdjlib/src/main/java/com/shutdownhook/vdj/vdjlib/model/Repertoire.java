@@ -4,6 +4,7 @@
 
 package com.shutdownhook.vdj.vdjlib.model;
 
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.HashMap;
 
@@ -14,6 +15,7 @@ public class Repertoire
 	// Members
 
 	public String Name;
+	public LocalDate Date;
 	public long TotalCells = 0;
 	public long TotalCount = 0;
 	public long TotalUniques = 0;

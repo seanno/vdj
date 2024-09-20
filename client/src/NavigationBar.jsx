@@ -246,6 +246,10 @@ export default function NavigationBar({ user, addTab, clearTabs, showError, refr
 		<a title={user.AuthUserId} href="#" onClick={(evt) => logout(evt)}>logout</a>
 	  </div>
 
+	  <div>
+		<a target="_blank" href="https://docs.google.com/viewer?url=https://github.com/seanno/vdj/raw/main/docs/VDJ%20User%20Manual.pdf">help</a>
+	  </div>
+
 	  { user.IsAdmin &&
 		<div>
 		  <a href="#" onClick={(evt) => openAdmin(evt)}>admin</a>

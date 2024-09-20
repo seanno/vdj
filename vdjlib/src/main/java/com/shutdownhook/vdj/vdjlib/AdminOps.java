@@ -89,7 +89,7 @@ public class AdminOps
 			rdr = new InputStreamReader(stm);
 
 			return(TsvReceiver.receive(rdr, store, new RepertoireSpec(params.To, params.From),
-									   repFrom.TotalCells, repFrom.TotalMilliliters).get());
+									   repFrom.TotalCells, repFrom.TotalMilliliters, repFrom.Date).get());
 		}
 		finally {
 			if (rdr != null) Utility.safeClose(rdr);

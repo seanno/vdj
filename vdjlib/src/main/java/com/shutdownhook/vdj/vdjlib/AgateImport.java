@@ -18,6 +18,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -170,15 +171,15 @@ public class AgateImport implements Closeable
 		"  project_group_name like concat('%',?,'%') or " +
 		"  order_name like concat('%',?,'%') " +
 		"order by " +
+		"  effective_date desc, " +
 		"  s.sample_name desc, " +
-		"  rf.file_version desc, " +
-		"  rf.upload_date desc ";
+		"  rf.file_version desc ";
 	
 	public static class PipelineSample
 	{
 		public String Name;
 		public String Project;
-		public Date Date;
+		public LocalDate Date;
 		public String TsvPath;
 	}
 	
@@ -238,8 +239,10 @@ public class AgateImport implements Closeable
 				
 				s.Name = thisName;
 				s.Project = rs.getString("group_name");
-				s.Date = rs.getDate("effective_date");
 				s.TsvPath = rs.getString("pipeline_tsv_path");
+
+				Date d = rs.getDate("effective_date");
+				s.Date = (d == null ? null : d.toLocalDate());
 			}
 
 			log.info(String.format("Fetched %d (pipeline) samples matching %s", samples.size(), search));
@@ -269,13 +272,14 @@ public class AgateImport implements Closeable
 		"where " +
 		"  sample_name like concat('%',?,'%') " +
 		"order by " +
+		"  effective_date desc, " + 
 		"  sample_name desc";
 	
 	public static class Sample
 	{
 		public String Id;
 		public String Name;
-		public Date Date;
+		public LocalDate Date;
 		public long TotalCells;
 		public double TotalMilliliters = 0.0; // agate doesn't support this yet
 		public String TsvPath;
@@ -328,9 +332,11 @@ public class AgateImport implements Closeable
 				
 				s.Id = rs.getString("item_id");
 				s.Name = rs.getString("sample_name");
-				s.Date = rs.getDate("effective_date");
 				s.TsvPath = rs.getString("current_rearrangement_tsv_file");
 
+				Date d = rs.getDate("effective_date");
+				s.Date = (d == null ? null : d.toLocalDate());
+				
 				Double dblCells = rs.getDouble("sample_cells");
 				if (dblCells == null || dblCells == 0.0) dblCells = rs.getDouble("sample_cells_mass_estimate");
 				if (dblCells != null) s.TotalCells = (long) Math.round(dblCells);

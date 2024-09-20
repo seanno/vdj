@@ -120,6 +120,7 @@ public class Helpers
 		
 		Assert.assertEquals(rT.TotalMilliliters, rE.TotalMilliliters, 0.000001);
 		Assert.assertEquals(rT.TotalCells, rE.TotalCells);
+		Assert.assertEquals(rT.Date, rE.Date);
 		Assert.assertEquals(rT.TotalCount, rE.TotalCount);
 		Assert.assertEquals(rT.TotalUniques, rE.TotalUniques);
 

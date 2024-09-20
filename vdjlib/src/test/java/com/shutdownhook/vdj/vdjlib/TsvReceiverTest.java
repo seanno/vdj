@@ -3,6 +3,7 @@
 
 package com.shutdownhook.vdj.vdjlib;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -98,11 +99,12 @@ public class TsvReceiverTest
 		Helpers.ResourceStreamReader rdr = new Helpers.ResourceStreamReader(name);
 
 		Long totalCells = (sendCells ? truth.getRepertoire().TotalCells : null);
+		LocalDate date = (sendCells ? truth.getRepertoire().Date : null);
 						   
 		CompletableFuture<ReceiveResult> future =
 			TsvReceiver.receive(rdr.get(), store.get(),
 								new RepertoireSpec(TEST_USER, TEST_CONTEXT, name),
-								totalCells, null);
+								totalCells, null, date);
 
 		ReceiveResult result = future.get();
 		rdr.close();
