@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.time.LocalDate;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
@@ -37,11 +38,12 @@ public class TsvReceiver
 	public static CompletableFuture<ReceiveResult> receive(InputStreamReader stm, RepertoireStore store,
 														   RepertoireSpec spec) {
 		
-		return(receive(stm, store, spec, null, null));
+		return(receive(stm, store, spec, null, null, null));
 	}
 	
 	public static CompletableFuture<ReceiveResult> receive(InputStreamReader stm, RepertoireStore store,
-														   RepertoireSpec spec, Long totalCells, Double sampleMillis) {
+														   RepertoireSpec spec, Long totalCells,
+														   Double sampleMillis, LocalDate effectiveDate) {
 		
 		CompletableFuture<ReceiveResult> future = new CompletableFuture<ReceiveResult>();
 
@@ -77,6 +79,7 @@ public class TsvReceiver
 
 				Repertoire repertoire = new Repertoire();
 				repertoire.Name = spec.Name;
+				repertoire.Date = effectiveDate;
 				
 				Rearrangement r;
 

@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -170,7 +171,7 @@ public class Server implements Closeable
 	// GET    /api/contexts          => list contexts
 	// GET    /api/contexts/CTX      => return repertoires in context CTX
 	// GET    /api/contexts/CTX/REP  => return repertoire REP in context CTX (QS start/count)
-	// POST   /api/contexts/CTX/REP  => save repertoire from body into REP context CTX (QS user)
+	// POST   /api/contexts/CTX/REP  => save repertoire from body into REP context CTX (QS user, date)
 	// DELETE /api/contexts/CTX/REPS => delete repertoire(s) REPS in context CTX
 
 	// GET    /api/search/CTX/REPS   => search REPS in CTX for (QS motif/type/muts/full)
@@ -389,17 +390,21 @@ public class Server implements Closeable
 
 	private void saveRepertoire(ApiInfo info) throws Exception {
 
+		String strDate = info.Request.QueryParams.get("date");
+		LocalDate date = (Easy.nullOrEmpty(strDate) ? null : LocalDate.parse(strDate));
+			
 		saveRepertoireInternal(info,
 							   info.Request.QueryParams.get("user"),
 							   info.Request.BodyStream,
-							   null, null);
+							   null, null, date);
 	}
 	
 	private void saveRepertoireInternal(ApiInfo info,
 										String userOverride,
 										InputStream stm,
 										Long totalCells,
-										Double sampleMillis) throws Exception {
+										Double sampleMillis,
+										LocalDate effectiveDate) throws Exception {
 
 		String saveUserId = userOverride;
 		
@@ -427,7 +432,8 @@ public class Server implements Closeable
 
 			RepertoireSpec spec = new RepertoireSpec(saveUserId, info.ContextName, info.RepertoireName);
 			ReceiveResult result = TsvReceiver.receive(rdr, store, spec, 
-													   totalCells, sampleMillis).get();
+													   totalCells, sampleMillis,
+													   effectiveDate).get();
 
 			switch (result) {
 				case OK:
@@ -667,7 +673,7 @@ public class Server implements Closeable
 		try {
 			stm = agate.getTsvStreamAsync(params.Sample.TsvPath).get();
 			if (stm == null) throw new Exception("failed getting agate tsv stream");
-			saveRepertoireInternal(info, params.SaveUser, stm, null, null);
+			saveRepertoireInternal(info, params.SaveUser, stm, null, null, params.Sample.Date);
 		}
 		finally {
 			if (stm != null) stm.close();

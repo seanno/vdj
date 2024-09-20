@@ -82,12 +82,15 @@ export async function serverFetchTopX(ctx, rep, sort) {
 }
 
 // upload
-export async function serverFetchUpload(userId, context, repertoire, file) {
+export async function serverFetchUpload(userId, context, repertoire, file, dateStr) {
+
+  const dateParam = (dateStr ? 'date=' + new Date(dateStr).toISOString().substring(0, 10) : '');
 
   const url =
 		'/contexts/' + encodeURIComponent(context) +
 		'/' + encodeURIComponent(repertoire) +
-		(userId ? '?user=' + encodeURIComponent(userId) : '');
+		(userId ? '?user=' + encodeURIComponent(userId) : '') +
+		(dateParam ? (userId ? '&' : '?') + dateParam : '');
 
   const nameLower = file.name.toLowerCase();
   const contentType = (nameLower.endsWith(".gz") ? "application/gzip" :
