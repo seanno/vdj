@@ -2,30 +2,59 @@ import { createElement } from 'react';
 
 export function colorizeRearrangement(r) {
 
-  // set up our array of indices - "C" is for the start of CDR3 if called
+  const spans = getSpans(r);
+  return(createElement('div', {}, ...spans));
+}
 
-  const colorClasses = ['V', 'C', 'V', 'N1', 'D', 'N2', 'J'];
-  
-  const indices = [0, r.VIndex, (r.VIndex === -1 ? -1 : r.VIndex + 3),
-				   r.N1Index, r.DIndex, r.N2Index, r.JIndex, r.Rearrangement.length];
-  
-  // fix up out-of-order calls. in convo with Lik Wee & Lanny, it seems that our
-  // J calls are "more trustable" that D/N1... so we do this correction right to left
-  // which encapsulates that. May have to keep playing with this!
+function getSpans(r) {
 
-  var runningMin = indices[indices.length-1];
-  for (var i = indices.length - 2; i >=0; i--) {
-	if (indices[i] < -1) { indices[i] = -1; continue; } // wtf man
-	if (indices[i] == -1) continue;
-	if (indices[i] > runningMin) {
-	  indices[i] = -1; // must be wrong
-	}
-	else {
-	  runningMin = indices[i];
+  // n1/n2 is a mess. Pipeline puts n2 between V-D and n1 between D-J.
+  // analyzer and agate "clean this up" and swap them. But we don't really
+  // know what we're looking at (usually pipeline, but not always),
+  // so we try to figure it out based on ordering in the file. eew.
+  // END RESULT => V-N1-D-N2-J
+
+  var n1 = r.N1Index;
+  var n2 = r.N2Index;
+  var swap = false;
+
+  if (n1 !== -1 && n2 !== -1) {
+	if (n1 > n2) swap = true;
+  }
+  else if (r.DIndex !== -1) {
+	if ((n1 !== -1 && n1 > r.DIndex) ||
+		(n2 !== -1 && n2 < r.DIndex)) {
+	  swap = true;
 	}
   }
 
-  const jsx = [];
+  if (swap) {
+	n1 = r.N2Index;
+	n2 = r.N1Index;
+  }
+
+  // set up indices in order
+
+  const indices = [ 0, n1, r.DIndex, n2, r.JIndex, r.Rearrangement.length ];
+
+  console.log(JSON.stringify(indices));
+  
+  const colorClasses = ['V', 'N1', 'D', 'N2', 'J'];
+
+  // first look for broken calls --- other than -1 entires, values must grow
+  // monotonically from left to right
+
+  var max = (r.VIndex === -1 ? 0 : r.vIndex);
+  for (var i = 1; i < indices.length; ++i) {
+	if (indices[i] === -1) continue;
+	if (indices[i] <= max) return([ <span className='V'>{r.Rearrangement}</span> ]);
+	max = indices[i];
+  }
+
+  // OK at least the values conceivably make sense.
+  // note weird handling of r.VIndex. We have it in the index
+
+  const spans = [];
   
   for (var i = 0; i < colorClasses.length; ++i) {
 
@@ -41,11 +70,10 @@ export function colorizeRearrangement(r) {
 	}
 	
 	const seg = r.Rearrangement.substring(indices[i], indices[j]);
-	jsx.push(<span className={colorClasses[i]}>{seg}</span>);
+	spans.push(<span className={colorClasses[i]}>{seg}</span>);
   }
 
-  // this dumb construct avoids react's key warning which is ignorable here
-  return(createElement('div', {}, ...jsx));
+  return(spans);
 }
 
 
