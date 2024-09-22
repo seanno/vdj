@@ -16,8 +16,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
-import com.google.gson.Gson;
-
 import com.shutdownhook.toolbox.Easy;
 import com.shutdownhook.toolbox.WebServer;
 import com.shutdownhook.toolbox.WebServer.Request;
@@ -45,6 +43,7 @@ import com.shutdownhook.vdj.vdjlib.TopXRearrangements.TopXSort;
 import com.shutdownhook.vdj.vdjlib.TsvReader;
 import com.shutdownhook.vdj.vdjlib.TsvReceiver;
 import com.shutdownhook.vdj.vdjlib.TsvReceiver.ReceiveResult;
+import com.shutdownhook.vdj.vdjlib.Utility;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 
@@ -112,7 +111,7 @@ public class Server implements Closeable
 		public Boolean StaticPagesRouteHtmlWithoutExtension = false;
 
 		public static Config fromJson(String json) {
-			return(new Gson().fromJson(json, Config.class));
+			return(Utility.getGson().fromJson(json, Config.class));
 		}
 	}
 	
@@ -124,8 +123,6 @@ public class Server implements Closeable
 		if (cfg.WebServer.StaticPagesDirectory == null) {
 			this.cfg.WebServer.StaticPagesZip = cfg.ClientSiteZip;
 		}
-
-		this.gson = new Gson();
 
 		store = createStore();
 
@@ -315,7 +312,7 @@ public class Server implements Closeable
 
 	private void listContexts(ApiInfo info) throws Exception {
 		String[] contexts = store.getUserContexts(info.UserId);
-		info.Response.setJson(gson.toJson(contexts));
+		info.Response.setJson(Utility.getGson().toJson(contexts));
 	}
 	
 	// +-----------------+
@@ -327,7 +324,7 @@ public class Server implements Closeable
 		Repertoire[] repertoires =
 			store.getContextRepertoires(info.UserId, info.ContextName);
 
-		info.Response.setJson(gson.toJson(repertoires));
+		info.Response.setJson(Utility.getGson().toJson(repertoires));
 	}
 
 	// +---------------+
@@ -479,7 +476,7 @@ public class Server implements Closeable
 			responses[i].Result = (ok ? "Deleted OK" : "Error");
 		}
 		
-		info.Response.setJson(gson.toJson(responses));
+		info.Response.setJson(Utility.getGson().toJson(responses));
 	}
 
 	// +-------------------+
@@ -533,7 +530,7 @@ public class Server implements Closeable
 		params.Mode = mode;
 		
 		Overlap.OverlapResult result = overlap.overlapAsync(params).get();
-		info.Response.setJson(gson.toJson(result));
+		info.Response.setJson(Utility.getGson().toJson(result));
 	}
 
 	// +---------+
@@ -564,7 +561,7 @@ public class Server implements Closeable
 
 		ui.LogoutPath = cfg.WebServer.LogoutPath;
 		
-		info.Response.setJson(gson.toJson(ui));
+		info.Response.setJson(Utility.getGson().toJson(ui));
 	}
 
 	// +---------+
@@ -619,7 +616,7 @@ public class Server implements Closeable
 
 		try {
 			String body = new String(info.Request.BodyStream.readAllBytes(), StandardCharsets.UTF_8);
-			AgateParams params = gson.fromJson(body, AgateParams.class);
+			AgateParams params = Utility.getGson().fromJson(body, AgateParams.class);
 			agate = getAgate(params, info);
 
 			if (info.ContextName == null) {
@@ -663,7 +660,7 @@ public class Server implements Closeable
 
 		List<AgateImport.PipelineSample> samples = agate.listSamplesPipelineAsync(params.SearchString).get();
 		if (samples == null) throw new Exception("failed listing agate samples");
-		info.Response.setJson(gson.toJson(samples));
+		info.Response.setJson(Utility.getGson().toJson(samples));
 	}
 	
 	private void importAgateSample(ApiInfo info, AgateParams params, AgateImport agate) throws Exception {
@@ -742,7 +739,7 @@ public class Server implements Closeable
 	// adminCopy
 	private void adminCopyRepertoire(ApiInfo info, String body) throws Exception {
 
-		AdminOps.MoveCopyParams params = gson.fromJson(body, AdminOps.MoveCopyParams.class);
+		AdminOps.MoveCopyParams params = Utility.getGson().fromJson(body, AdminOps.MoveCopyParams.class);
 
 		ReceiveResult result = AdminOps.copyRepertoireAsync(store, params).get();
 
@@ -758,7 +755,7 @@ public class Server implements Closeable
 	// adminMove
 	private void adminMoveRepertoire(ApiInfo info, String body) throws Exception {
 		
-		AdminOps.MoveCopyParams params = gson.fromJson(body, AdminOps.MoveCopyParams.class);
+		AdminOps.MoveCopyParams params = Utility.getGson().fromJson(body, AdminOps.MoveCopyParams.class);
 
 		boolean success = AdminOps.moveRepertoireAsync(store, params).get();
 
@@ -783,9 +780,9 @@ public class Server implements Closeable
 
 	// adminQueryAgate
 	private void adminQueryAgate(ApiInfo info, String body) throws Exception {
-		AgateParams params = gson.fromJson(body, AgateParams.class);
+		AgateParams params = Utility.getGson().fromJson(body, AgateParams.class);
 		AgateImport agate = getAgate(params, info);
-		info.Response.setJson(gson.toJson(agate.query(params.Query)));
+		info.Response.setJson(Utility.getGson().toJson(agate.query(params.Query)));
 	}
 
 	// +---------+
@@ -922,7 +919,6 @@ public class Server implements Closeable
 
 	private Config cfg;
 	private WebServer server;
-	private Gson gson;
 
 	private RepertoireStore store;
 

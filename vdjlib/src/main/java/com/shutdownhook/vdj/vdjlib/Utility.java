@@ -11,6 +11,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.IllegalArgumentException;
+import java.lang.reflect.Type;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.file.Files;
@@ -18,8 +19,19 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
 import java.util.Base64;
 import java.util.logging.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSerializationContext;
 
 public class Utility
 {
@@ -131,6 +143,48 @@ public class Utility
 		e.printStackTrace(pw);
 		return(sw.toString());
 	}
+
+	// +------+
+	// | Gson |
+	// +------+
+
+	public static class LdSerializer implements JsonDeserializer<LocalDate>,
+												JsonSerializer<LocalDate>
+	{
+		public LocalDate deserialize(JsonElement json, Type typeOfT,
+									 JsonDeserializationContext context)
+			throws JsonParseException {
+
+			JsonObject j = json.getAsJsonObject();
+			return(LocalDate.of(j.get("year").getAsInt(),
+								j.get("month").getAsInt(),
+								j.get("day").getAsInt()));
+		}
+
+		public JsonElement serialize(LocalDate ld, Type typeOfT,
+									 JsonSerializationContext context) {
+
+			JsonObject j = new JsonObject();
+			j.addProperty("year", ld.getYear());
+			j.addProperty("month", ld.getMonthValue());
+			j.addProperty("day", ld.getDayOfMonth());
+
+			return(j);
+		}
+	}
+
+	public static Gson getGson() {
+		return(smartGson);
+	}
+
+	private static Gson smartGson = new GsonBuilder()
+		.setPrettyPrinting()
+		.registerTypeAdapter(LocalDate.class, new LdSerializer())
+		.create();
+
+	// +---------+
+	// | Members |
+	// +---------+
 
 	private final static Logger log = Logger.getLogger(Utility.class.getName());
 	

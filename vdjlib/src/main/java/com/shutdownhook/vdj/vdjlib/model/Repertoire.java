@@ -8,7 +8,7 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.HashMap;
 
-import com.google.gson.Gson;
+import com.shutdownhook.vdj.vdjlib.Utility;
 
 public class Repertoire
 {
@@ -39,19 +39,19 @@ public class Repertoire
 	// Serialization
 
 	public static Repertoire fromJson(String json) {
-		return(gson.fromJson(json, Repertoire.class));
+		return(Utility.getGson().fromJson(json, Repertoire.class));
 	}
 
 	public static Repertoire[] fromJsonArray(String json) {
-		return(gson.fromJson(json, Repertoire[].class));
+		return(Utility.getGson().fromJson(json, Repertoire[].class));
 	}
 
 	public String toJson() {
-		return(gson.toJson(this));
+		return(Utility.getGson().toJson(this));
 	}
 
 	public static String toJsonArray(Repertoire[] reps) {
-		return(gson.toJson(reps));
+		return(Utility.getGson().toJson(reps));
 	}
 
 	// Array mgmt
@@ -103,7 +103,4 @@ public class Repertoire
 		return(null);
 	}
 
-	// Members
-
-	private static Gson gson = new Gson();
 }
