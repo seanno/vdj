@@ -8,34 +8,9 @@ export function colorizeRearrangement(r) {
 
 function getSpans(r) {
 
-  // n1/n2 is a mess. Pipeline puts n2 between V-D and n1 between D-J.
-  // analyzer and agate "clean this up" and swap them. But we don't really
-  // know what we're looking at (usually pipeline, but not always),
-  // so we try to figure it out based on ordering in the file. eew.
-  // END RESULT => V-N1-D-N2-J
-
-  var n1 = r.N1Index;
-  var n2 = r.N2Index;
-  var swap = false;
-
-  if (n1 !== -1 && n2 !== -1) {
-	if (n1 > n2) swap = true;
-  }
-  else if (r.DIndex !== -1) {
-	if ((n1 !== -1 && n1 > r.DIndex) ||
-		(n2 !== -1 && n2 < r.DIndex)) {
-	  swap = true;
-	}
-  }
-
-  if (swap) {
-	n1 = r.N2Index;
-	n2 = r.N1Index;
-  }
-
   // set up indices in order
 
-  const indices = [ 0, n1, r.DIndex, n2, r.JIndex, r.Rearrangement.length ];
+  const indices = [ 0, r.N1Index, r.DIndex, r.N2Index, r.JIndex, r.Rearrangement.length ];
 
   console.log(JSON.stringify(indices));
   

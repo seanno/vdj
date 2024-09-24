@@ -36,7 +36,8 @@ public class TsvReader implements Closeable
 		this.startRowIndex = startRowIndex;
 		this.peeker = peeker;
 		this.cellCount = null; 
-		this.sampleMillis = null; 
+		this.sampleMillis = null;
+		this.isPipeline = false;
 	}
 	
 	public void close() {
@@ -148,8 +149,8 @@ public class TsvReader implements Closeable
 		r.VIndex = Integer.parseInt(strVIndex);
 		r.DIndex = Integer.parseInt(strDIndex);
 		r.JIndex = Integer.parseInt(strJIndex);
-		r.N1Index = Integer.parseInt(strN1Index);
-		r.N2Index = Integer.parseInt(strN2Index);
+		r.N1Index = Integer.parseInt(isPipeline ? strN2Index : strN1Index);
+		r.N2Index = Integer.parseInt(isPipeline ? strN1Index : strN2Index);
 
 		r.Locus = Locus.fromGene(r.VResolved, r.DResolved, r.JResolved,
 								 getField(fields, IHDR_VFAMILY_TIES),
@@ -225,6 +226,7 @@ public class TsvReader implements Closeable
 
 			if (trimmed.startsWith("#")) {
 
+				isPipeline = true;
 				String[] nv = trimmed.substring(1).split("=");
 				
 				if (nv.length < 2 || Utility.nullOrEmpty(nv[1])) continue;
@@ -359,6 +361,7 @@ public class TsvReader implements Closeable
 	private int nextRowIndex;
 	private int[] headerIndices;
 
+	private Boolean isPipeline;
 	private Long cellCount;
 	private Double sampleMillis;
 
