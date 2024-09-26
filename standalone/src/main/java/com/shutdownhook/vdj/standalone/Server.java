@@ -578,11 +578,11 @@ public class Server implements Closeable
 
 		TopXRearrangements.Params params = new TopXRearrangements.Params();
 		params.CRS = new ContextRepertoireStore(store, info.UserId, info.ContextName);
-		params.Repertoire = info.RepertoireName;
+		params.Repertoires = new String[] {info.RepertoireName };
 		params.Sort = sort;
 		params.Count = count;
 
-		RepertoireResult result = topx.getAsync(params).get();
+		RepertoireResult result = topx.getAsync(params).get()[0];
 		info.Response.setJson(result.toJson());
 	}
 

@@ -30,6 +30,8 @@ public class TopXTest
 	private static String REP_1 = "subject9-v2.tsv";
 	private static String REP_2 = "subject9-v3.tsv";
 	private static String REP_3 = "02583-02BH.tsv";
+	private static String REP_DX_1 = "A_BCell_ID.tsv";
+	private static String REP_DX_2 = "D_BCell_Cellfree_MRD.tsv";
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -37,6 +39,8 @@ public class TopXTest
 		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, REP_1));
 		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, REP_2));
 		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, REP_3));
+		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, REP_DX_1));
+		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, REP_DX_2));
 
 		crs = new ContextRepertoireStore(store.get(), TEST_USER, TEST_CONTEXT);
 		topx = new TopXRearrangements(new TopXRearrangements.Config());
@@ -56,11 +60,11 @@ public class TopXTest
 
 		TopXRearrangements.Params params = new TopXRearrangements.Params();
 		params.CRS = crs;
-		params.Repertoire = REP_1;
+		params.Repertoires = new String[] { REP_1 };
 		params.Sort = TopXSort.Count;
 		params.Count = 100;
 
-		RepertoireResult result = topx.getAsync(params).get();
+		RepertoireResult result = topx.getAsync(params).get()[0];
 
 		Assert.assertEquals(100, result.Rearrangements.size());
 		
@@ -76,11 +80,11 @@ public class TopXTest
 
 		TopXRearrangements.Params params = new TopXRearrangements.Params();
 		params.CRS = crs;
-		params.Repertoire = REP_2;
+		params.Repertoires = new String[] { REP_2 };
 		params.Sort = TopXSort.FractionOfCells;
 		params.Count = 10;
 
-		RepertoireResult result = topx.getAsync(params).get();
+		RepertoireResult result = topx.getAsync(params).get()[0];
 
 		Assert.assertEquals(10, result.Rearrangements.size());
 		
@@ -95,6 +99,39 @@ public class TopXTest
 
 		Assert.assertEquals("NNNNTGTCGGCTGCTCCCTCCCAGACATCTGTGTACTTCTGTGCCGGCCAAAGGGCAACAGGTTCCTACGAGCAGTACTTCGGGCCG",
 							result.Rearrangements.get(9).Rearrangement);
+	}
+
+	// +-------------+
+	// | DxPotential |
+	// +-------------+
+
+	@Test
+	public void testDxPotential() throws Exception {
+
+		TopXRearrangements.Params params = new TopXRearrangements.Params();
+		params.CRS = crs;
+		params.Repertoires = new String[] { REP_DX_1, REP_DX_2 };
+		params.Sort = TopXSort.DxPotential;
+		params.Count = 10;
+
+		RepertoireResult[] results = topx.getAsync(params).get();
+
+		assertDxRearrangement(results[0], 0, true, 0.985811, "TCCGTAGACACGTCCAAGAACCAGTTCTCCCTGAAGCTGAGCTCTGTGACCGCCGCAGACACGGCTGTGTATTACTGGAGGGAAATATTGTAGTAGTACCAGCTGCTATGCGGCTACTTTGACTACTGGGGCCAGGGAACC");
+
+		assertDxRearrangement(results[0], 9, false, 0.000080, "CTGCGGACACGGCTGTGTATTACTGGAGGGAAATATTGTAGTAGTACCAGCTGCTATGCGGCTACTTTGACTACTGGGGCCAGGGAACC");
+
+		assertDxRearrangement(results[1], 0, true, 0.981481, "GATATTGGAGTTTATTATTGCATGCAACGTATAGAGTTTCCGTACACTTTTGGCCAGGGG");
+		
+		assertDxRearrangement(results[1], 9, false, 0.001425, "CCTGAAGATTTTGCAACTTATTACTGTCTACAAGATTACAGGCTCTTGAACGTGCGGTATTTGGCAGCCCAGGG");
+	}
+
+	private void assertDxRearrangement(RepertoireResult result, int i, boolean dxExpected,
+									   double fractionExpected, String rearrangementExpected) {
+
+		Rearrangement r = result.Rearrangements.get(i);
+		Assert.assertEquals(dxExpected, r.Dx);
+		Assert.assertEquals(fractionExpected, r.getFractionOfLocus(result.Repertoire), 0.000001);
+		Assert.assertEquals(rearrangementExpected, r.Rearrangement);
 	}
 
 	// +---------+

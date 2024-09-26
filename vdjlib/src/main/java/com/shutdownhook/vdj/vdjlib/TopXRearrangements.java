@@ -6,6 +6,7 @@ package com.shutdownhook.vdj.vdjlib;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -39,23 +40,70 @@ public class TopXRearrangements
 		Count,
 		FractionOfCells,
 		FractionOfLocus,
-		FractionOfCount
+		FractionOfCount,
+		DxPotential
 	}
 
 	public static class Params
 	{
 		public ContextRepertoireStore CRS;
-		public String Repertoire;
+		public String[] Repertoires;
 		public TopXSort Sort;
 		public Integer Count;
 	}
 	
 	// +----------+
 	// | getAsync |
-	// | get      |
 	// +----------+
 
-	public CompletableFuture<RepertoireResult> getAsync(Params params) {
+	public CompletableFuture<RepertoireResult[]> getAsync(Params params) {
+		
+		CompletableFuture<RepertoireResult[]> future = new CompletableFuture<RepertoireResult[]>();
+
+		Exec.getPool().submit(() -> {
+
+			RepertoireResult[] results = null;
+				
+			try {
+				results = get(params);
+			}
+			catch (Exception e) {
+				log.warning(Utility.exMsg(e, "getAsync TopX", true));
+			}
+			
+			future.complete(results);
+		});
+
+		return(future);
+	}
+
+	private RepertoireResult[] get(Params params) throws Exception {
+
+		RepertoireResult[] results = new RepertoireResult[params.Repertoires.length];
+		
+		List<CompletableFuture<RepertoireResult>> futures =
+			new ArrayList<CompletableFuture<RepertoireResult>>();
+
+		for (int i = 0; i < params.Repertoires.length; ++i) {
+			futures.add(getOneAsync(params, i));
+		}
+
+		CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()])).join();
+
+		for (int i = 0; i < params.Repertoires.length; ++i) {
+			results[i] = futures.get(i).get();
+		}
+
+		return(results);
+	}
+	
+
+	// +-------------+
+	// | getOneAsync |
+	// | getOne      |
+	// +-------------+
+
+	private CompletableFuture<RepertoireResult> getOneAsync(Params params, int irep) {
 
 		CompletableFuture<RepertoireResult> future = new CompletableFuture<RepertoireResult>();
 
@@ -64,7 +112,7 @@ public class TopXRearrangements
 			RepertoireResult result = new RepertoireResult();
 				
 			try {
-				result = get(params);
+				result = getOne(params, irep);
 			}
 			catch (Exception e) {
 				log.warning(Utility.exMsg(e, "getAsync", true));
@@ -76,15 +124,15 @@ public class TopXRearrangements
 		return(future);
 	}
 
-	private RepertoireResult get(Params params) throws Exception {
+	private RepertoireResult getOne(Params params, int irep) throws Exception {
 
 		if (params.Count > cfg.MaxCount) {
 			throw new Exception(String.format("TopX count %d above cfg max %d",
 											  params.Count, cfg.MaxCount));
 		}
 		
-		Repertoire rep = params.CRS.findRepertoire(params.Repertoire);
-		if (rep == null) throw new Exception("Repertoire " + params.Repertoire + " not found");
+		Repertoire rep = params.CRS.findRepertoire(params.Repertoires[irep]);
+		if (rep == null) throw new Exception("Repertoire " + params.Repertoires[irep] + " not found");
 
 		Comparator<Rearrangement> cmp = getComparator(params.Sort, rep);
 
@@ -164,10 +212,40 @@ public class TopXRearrangements
 			case FractionOfCells: cmp = Comparator.comparingDouble(r -> r.getFractionOfCells(rep)); break;
 			case FractionOfLocus: cmp = Comparator.comparingDouble(r -> r.getFractionOfLocus(rep)); break;
 			case FractionOfCount: cmp = Comparator.comparingDouble(r -> r.getFractionOfCount(rep)); break;
+			case DxPotential:     cmp = new DxPotentialComparator(rep); break;
 			default: return(null);
 		}
 
 		return(cmp);
+	}
+
+	public static class DxPotentialComparator implements Comparator<Rearrangement>
+	{
+		public DxPotentialComparator(Repertoire rep) {
+			this.rep = rep;
+		}
+		
+		public int compare(Rearrangement r1, Rearrangement r2) {
+
+			// nulls
+			if (r1 == null && r2 == null) return(0);
+			if (r1 == null) return(1);
+			if (r2 == null) return(-1);
+
+			// dx
+			if (r1.Dx && !r2.Dx) return(1);
+			if (!r1.Dx && r2.Dx) return(-1);
+
+			// fraction of locus
+			double dbl1 = r1.getFractionOfLocus(rep);
+			double dbl2 = r2.getFractionOfLocus(rep);
+
+			if (dbl1 < dbl2) return(-1);
+			if (dbl1 > dbl2) return(1);
+			return(0);
+		}
+
+		private Repertoire rep;
 	}
 
 	// +---------+
