@@ -75,27 +75,22 @@ public class KeySorter implements Closeable
 
 	public CompletableFuture<Boolean> sortAsync() {
 		
-		CompletableFuture<Boolean> future = new CompletableFuture<Boolean>();
+		return(Exec.runAsync("sort", new Exec.AsyncOperation() {
 
-		Exec.getPool().submit(() -> {
-
-			try {
-				
+			public Boolean execute() throws Exception {
 				if (!fetchFromCache()) {
 					sort();
 					reader = new KeyReader(files.get(0));
 					maybeSaveToCache();
 				}
-				
-				future.complete(true);
+				return(true);
 			}
-			catch (Exception e) {
-				log.warning(Utility.exMsg(e, "sort", true));
-				future.complete(false);
-			}
-		});
 
-		return(future);
+			public Boolean exceptionResult() {
+				return(false);
+			}
+				
+		}));
 	}
 	
 	private void sort() throws Exception {
@@ -163,21 +158,18 @@ public class KeySorter implements Closeable
 	
 	private CompletableFuture<Boolean> mergeFilePairAsync(File f1, File f2) {
 		
-		CompletableFuture<Boolean> future = new CompletableFuture<Boolean>();
+		return(Exec.runAsync("search", new Exec.AsyncOperation() {
 
-		Exec.getPool().submit(() -> {
-
-			try {
+			public Boolean execute() throws Exception {
 				mergeFilePair(f1, f2);
-				future.complete(true);
+				return(true);
 			}
-			catch (Exception e) {
-				log.warning(Utility.exMsg(e, "searchAsync", true));
-				future.complete(false);
-			}
-		});
 
-		return(future);
+			public Boolean exceptionResult() {
+				return(false);
+			}
+				
+		}));
 	}
 
 	private void mergeFilePair(File f1, File f2) throws IOException {

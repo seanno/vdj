@@ -4,17 +4,58 @@
 
 package com.shutdownhook.vdj.vdjlib;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 public class Exec
 {
-	private final static int SHUTDOWN_FIRSTWAIT_SECONDS = 1;
-	private final static int SHUTDOWN_SECONDWAIT_SECONDS = 2;
+	// +---------+
+	// | getPool |
+	// +---------+
 	
 	private static ExecutorService pool;
 	public static ExecutorService getPool() { return(pool); }
+
+	// +----------+
+	// | runAsync |
+	// +----------+
+
+	public interface AsyncOperation<T> {
+		public T execute() throws Exception;
+		default public T exceptionResult() { return(null); }
+	}
+	
+	public static <T> CompletableFuture<T> runAsync(String label, AsyncOperation<T> op) {
+		
+		CompletableFuture<T> future = new CompletableFuture<T>();
+
+		getPool().submit(() -> {
+
+			T result = null;
+				
+			try {
+				result = op.execute();
+			}
+			catch (Exception e) {
+				log.warning(Utility.exMsg(e, "runAsync (" + label + ")", true));
+				result = op.exceptionResult();
+			}
+			
+			future.complete(result);
+		});
+
+		return(future);
+	}
+
+	// +----------+
+	// | Shutdown |
+	// +----------+
+
+	private final static int SHUTDOWN_FIRSTWAIT_SECONDS = 1;
+	private final static int SHUTDOWN_SECONDWAIT_SECONDS = 2;
 
 	public static void shutdownPool() {
 		
@@ -34,6 +75,10 @@ public class Exec
 		}
 		
 	}
+
+	// +-------+
+	// | Setup |
+	// +-------+
 	
 	static {
 
@@ -43,5 +88,7 @@ public class Exec
 			public void run() { shutdownPool(); }
 		});
 	}
+
+	private final static Logger log = Logger.getLogger(Exec.class.getName());
 
 }

@@ -67,21 +67,11 @@ public class Export
 	// +-------------+
 
 	public CompletableFuture<File> exportAsync(Params params) {
-
-		CompletableFuture<File> future = new CompletableFuture<File>();
-
-		Exec.getPool().submit(() -> {
-
-			try {
-				future.complete(export(params));
+		return(Exec.runAsync("export", new Exec.AsyncOperation() {
+			public File execute() throws Exception {
+				return(export(params));
 			}
-			catch (Exception e) {
-				log.warning(Utility.exMsg(e, "exportAsync", true));
-				future.complete(null);
-			}
-		});
-
-		return(future);
+		}));
 	}
 
 	private File export(Params params) throws IOException {

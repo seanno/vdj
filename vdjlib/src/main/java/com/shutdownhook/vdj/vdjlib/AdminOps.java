@@ -22,20 +22,14 @@ public class AdminOps
 	public static CompletableFuture<Boolean>
 		moveRepertoireAsync(RepertoireStore store, MoveCopyParams params) {
 
-		CompletableFuture<Boolean> future = new CompletableFuture<Boolean>();
-
-		Exec.getPool().submit(() -> {
-			try {
-				boolean success = moveRepertoire(store, params);
-				future.complete(success);
+		return(Exec.runAsync("moveRepertoire", new Exec.AsyncOperation() {
+			public Boolean execute() throws Exception {
+				return(moveRepertoire(store, params));
 			}
-			catch (Exception e) {
-				log.severe(Utility.exMsg(e, "moveRepertoireAsync", true));
-				future.complete(false);
+			public Boolean exceptionResult() {
+				return(false);
 			}
-		});
-
-		return(future);
+		}));
 	}
 
 	public static boolean
@@ -59,20 +53,14 @@ public class AdminOps
 	public static CompletableFuture<ReceiveResult>
 		copyRepertoireAsync(RepertoireStore store, MoveCopyParams params) {
 
-		CompletableFuture<ReceiveResult> future = new CompletableFuture<ReceiveResult>();
-
-		Exec.getPool().submit(() -> {
-			try {
-				ReceiveResult result = copyRepertoire(store, params);
-				future.complete(result);
+		return(Exec.runAsync("copyRepertoire", new Exec.AsyncOperation() {
+			public ReceiveResult execute() throws Exception {
+				return(copyRepertoire(store, params));
 			}
-			catch (Exception e) {
-				log.severe(Utility.exMsg(e, "copyRepertoireAsync", true));
-				future.complete(ReceiveResult.Error);
+			public ReceiveResult exceptionResult() {
+				return(ReceiveResult.Error);
 			}
-		});
-
-		return(future);
+		}));
 	}
 	
 	public static ReceiveResult

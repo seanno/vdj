@@ -91,21 +91,11 @@ public class AgateImport implements Closeable
 	// +-------------------+
 
 	public CompletableFuture<InputStream> getTsvStreamAsync(String tsvPath) {
-
-		CompletableFuture<InputStream> future = new CompletableFuture<InputStream>();
-
-		Exec.getPool().submit(() -> {
-
-			try {
-				future.complete(getTsvStream(tsvPath));
+		return(Exec.runAsync("getTsvStream", new Exec.AsyncOperation() {
+			public InputStream execute() throws Exception {
+				return(getTsvStream(tsvPath));
 			}
-			catch (Exception e) {
-				log.warning(Utility.exMsg(e, "getTsvStreamAsync", true));
-				future.complete(null);
-			}
-		});
-
-		return(future);
+		}));
 	}
 	
 	public InputStream getTsvStream(String tsvPath) throws IOException {
@@ -184,22 +174,11 @@ public class AgateImport implements Closeable
 	}
 	
 	public CompletableFuture<List<PipelineSample>> listSamplesPipelineAsync(String search) {
-
-		CompletableFuture<List<PipelineSample>> future =
-			new CompletableFuture<List<PipelineSample>>();
-
-		Exec.getPool().submit(() -> {
-
-			try {
-				future.complete(listSamplesPipeline(search));
+		return(Exec.runAsync("listSamplesPipeline", new Exec.AsyncOperation() {
+			public List<PipelineSample> execute() throws Exception {
+				return(listSamplesPipeline(search));
 			}
-			catch (Exception e) {
-				log.warning(Utility.exMsg(e, "listSamplesPipelineAsync", true));
-				future.complete(null);
-			}
-		});
-
-		return(future);
+		}));
 	}
 	
 	public List<PipelineSample> listSamplesPipeline(String search) throws SQLException, IllegalArgumentException {
@@ -286,21 +265,11 @@ public class AgateImport implements Closeable
 	}
 	
 	public CompletableFuture<List<Sample>> listSamplesAsync(String search) {
-
-		CompletableFuture<List<Sample>> future = new CompletableFuture<List<Sample>>();
-
-		Exec.getPool().submit(() -> {
-
-			try {
-				future.complete(listSamples(search));
+		return(Exec.runAsync("listSamples", new Exec.AsyncOperation() {
+			public List<Sample> execute() throws Exception {
+				return(listSamples(search));
 			}
-			catch (Exception e) {
-				log.warning(Utility.exMsg(e, "listSamplesAsync", true));
-				future.complete(null);
-			}
-		});
-
-		return(future);
+		}));
 	}
 	
 	public List<Sample> listSamples(String search) throws SQLException, IllegalArgumentException {

@@ -57,26 +57,12 @@ public class TopXRearrangements
 	// +----------+
 
 	public CompletableFuture<RepertoireResult[]> getAsync(Params params) {
-		
-		CompletableFuture<RepertoireResult[]> future = new CompletableFuture<RepertoireResult[]>();
-
-		Exec.getPool().submit(() -> {
-
-			RepertoireResult[] results = null;
-				
-			try {
-				results = get(params);
+		return(Exec.runAsync("TopX", new Exec.AsyncOperation() {
+			public RepertoireResult[] execute() throws Exception {
+				return(get(params));
 			}
-			catch (Exception e) {
-				log.warning(Utility.exMsg(e, "getAsync TopX", true));
-			}
-			
-			future.complete(results);
-		});
-
-		return(future);
+		}));
 	}
-
 	private RepertoireResult[] get(Params params) throws Exception {
 
 		RepertoireResult[] results = new RepertoireResult[params.Repertoires.length];
@@ -104,24 +90,11 @@ public class TopXRearrangements
 	// +-------------+
 
 	private CompletableFuture<RepertoireResult> getOneAsync(Params params, int irep) {
-
-		CompletableFuture<RepertoireResult> future = new CompletableFuture<RepertoireResult>();
-
-		Exec.getPool().submit(() -> {
-
-			RepertoireResult result = new RepertoireResult();
-				
-			try {
-				result = getOne(params, irep);
+		return(Exec.runAsync("TopXOne", new Exec.AsyncOperation() {
+			public RepertoireResult execute() throws Exception {
+				return(getOne(params, irep));
 			}
-			catch (Exception e) {
-				log.warning(Utility.exMsg(e, "getAsync", true));
-			}
-			
-			future.complete(result);
-		});
-
-		return(future);
+		}));
 	}
 
 	private RepertoireResult getOne(Params params, int irep) throws Exception {

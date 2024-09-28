@@ -71,22 +71,11 @@ public class TsvReader implements Closeable
 
 	public CompletableFuture<List<Rearrangement>> readNextBatchAsync(int maxCount) {
 
-		CompletableFuture<List<Rearrangement>> future =
-			new CompletableFuture<List<Rearrangement>>();
-
-		Exec.getPool().submit(() -> {
-			List<Rearrangement> results = null;
-			try {
-				results = readBatch(maxCount);
+		return(Exec.runAsync("readNextBatch", new Exec.AsyncOperation() {
+			public List<Rearrangement> execute() throws Exception {
+				return(readBatch(maxCount));
 			}
-			catch (Exception e) {
-				log.warning(Utility.exMsg(e, "readNextBatchAsync", true));
-			}
-			
-			future.complete(results);
-		});
-
-		return(future);
+		}));
 	}
 
 	public List<Rearrangement> readBatch(int maxCount) throws IOException {

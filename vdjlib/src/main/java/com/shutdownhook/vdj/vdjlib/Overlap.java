@@ -106,23 +106,11 @@ public class Overlap
 
 	public CompletableFuture<OverlapResult> overlapAsync(Params params) {
 		
-		CompletableFuture<OverlapResult> future = new CompletableFuture<OverlapResult>();
-
-		Exec.getPool().submit(() -> {
-				
-			OverlapResult result = null;
-			
-			try {
-				result = overlap(params);
+		return(Exec.runAsync("overlap", new Exec.AsyncOperation() {
+			public OverlapResult execute() throws Exception {
+				return(overlap(params));
 			}
-			catch (Exception e) {
-				log.warning(Utility.exMsg(e, "overlapAsync", true));
-			}
-			
-			future.complete(result);
-		});
-
-		return(future);
+		}));
 	}
 
 	public OverlapResult overlap(Params params) throws Exception {

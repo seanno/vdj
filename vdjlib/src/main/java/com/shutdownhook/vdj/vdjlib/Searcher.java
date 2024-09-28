@@ -51,24 +51,11 @@ public class Searcher
 	// +-------------+
 
 	public CompletableFuture<RepertoireResult[]> searchAsync(Params params) {
-
-		CompletableFuture<RepertoireResult[]> future = new CompletableFuture<RepertoireResult[]>();
-
-		Exec.getPool().submit(() -> {
-
-			RepertoireResult[] results = null;
-				
-			try {
-				results = search(params);
+		return(Exec.runAsync("search", new Exec.AsyncOperation() {
+			public RepertoireResult[] execute() throws Exception {
+				return(search(params));
 			}
-			catch (Exception e) {
-				log.warning(Utility.exMsg(e, "searchAsync", true));
-			}
-			
-			future.complete(results);
-		});
-
-		return(future);
+		}));
 	}
 
 	private RepertoireResult[] search(Params params) throws Exception {
@@ -100,20 +87,11 @@ public class Searcher
 	public CompletableFuture<RepertoireResult>
 		searchOneRepertoireAsync(Params params, Repertoire repertoire) {
 
-		CompletableFuture<RepertoireResult> future = new CompletableFuture<RepertoireResult>();
-
-		Exec.getPool().submit(() -> {
-
-			try {
-				future.complete(searchOneRepertoire(params, repertoire));
+		return(Exec.runAsync("searchOne", new Exec.AsyncOperation() {
+			public RepertoireResult execute() throws Exception {
+				return(searchOneRepertoire(params, repertoire));
 			}
-			catch (Exception e) {
-				log.warning(Utility.exMsg(e, "searchOneRepertoireAsync", true));
-				future.complete(null);
-			}
-		});
-
-		return(future);
+		}));
 	}
 
 	private RepertoireResult searchOneRepertoire(Params params, Repertoire repertoire)
