@@ -22,6 +22,28 @@ public class Repertoire
 	public double TotalMilliliters = 0.0;
 	public Map<LocusGroup,Long> LocusCounts = new HashMap<LocusGroup,Long>();
 
+	// normalizers
+	
+	public boolean isCellfree() { return(TotalMilliliters > 0.0); }
+	
+	public double getFractionOfLocus(long count, Locus locus) {
+		return(((double) count) / ((double) LocusCounts.get(locus.getGroup())));
+	}
+
+	public double getFractionOfCount(long count) {
+		return(((double) count) / ((double) TotalCount));
+	}
+
+	public double getFractionOfCells(long count) {
+		if (TotalCells == 0) return(0.0);
+		return(((double) count / ((double) TotalCells)));
+	}
+
+	public double getCountPerMilliliter(long count) {
+		if (TotalMilliliters == 0.0) return(0.0);
+		return(((double) count) / TotalMilliliters);
+	}
+
 	// Helpers
 
 	public void accumulateCount(Locus locus, long count) {

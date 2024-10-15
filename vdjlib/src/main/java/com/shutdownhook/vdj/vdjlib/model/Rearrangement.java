@@ -40,21 +40,19 @@ public class Rearrangement
 	// On-Demand calculations
 
 	public double getFractionOfLocus(Repertoire repertoire) {
-		return(((double) Count) / ((double) repertoire.LocusCounts.get(Locus.getGroup())));
+		return(repertoire.getFractionOfLocus(Count, Locus));
 	}
 
 	public double getFractionOfCount(Repertoire repertoire) {
-		return(((double) Count) / ((double) repertoire.TotalCount));
+		return(repertoire.getFractionOfCount(Count));
 	}
 
 	public double getFractionOfCells(Repertoire repertoire) {
-		if (repertoire.TotalCells == 0) return(0.0);
-		return(((double) Count / ((double) repertoire.TotalCells)));
+		return(repertoire.getFractionOfCells(Count));
 	}
 
 	public double getCountPerMilliliter(Repertoire repertoire) {
-		if (repertoire.TotalMilliliters == 0.0) return(0.0);
-		return(((double) Count) / repertoire.TotalMilliliters);
+		return(repertoire.getCountPerMilliliter(Count));
 	}
 
 	// Cached calculations
