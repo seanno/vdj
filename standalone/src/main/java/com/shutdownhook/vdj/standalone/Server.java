@@ -38,6 +38,7 @@ import com.shutdownhook.vdj.vdjlib.RepertoireStore_Blobs;
 import com.shutdownhook.vdj.vdjlib.Overlap;
 import com.shutdownhook.vdj.vdjlib.Overlap.OverlapMode;
 import com.shutdownhook.vdj.vdjlib.Searcher;
+import com.shutdownhook.vdj.vdjlib.Tracking;
 import com.shutdownhook.vdj.vdjlib.TopXRearrangements;
 import com.shutdownhook.vdj.vdjlib.TopXRearrangements.TopXSort;
 import com.shutdownhook.vdj.vdjlib.TsvReader;
@@ -97,6 +98,9 @@ public class Server implements Closeable
 		// Export
 		public Export.Config Export = new Export.Config();
 
+		// Tracking
+		public Tracking.Config Tracking = new Tracking.Config();
+
 		public String ApiBase = "/api";
 		public String ContextScope = "contexts";
 		public String SearchScope = "search";
@@ -106,6 +110,8 @@ public class Server implements Closeable
 		public String AgateScope = "agate";
 		public String ExportScope = "export";
 		public String AdminScope = "admin";
+		public String DxScope = "dxopt";
+		public String TrackingScope = "track";
 
 		public String ClientSiteZip = "@clientSite.zip";
 		public Boolean StaticPagesRouteHtmlWithoutExtension = false;
@@ -175,7 +181,7 @@ public class Server implements Closeable
 
 	// GET    /api/overlap/CTX/REPS  => find overlaps in REPS in CTX (QS type/mode)
 
-	// GET    /api/topx/CTX/REP      => return top COUNT rearrangements from REP in CTX sorted 
+	// GET    /api/topx/CTX/REPS     => return top COUNT rearrangements from REPS in CTX sorted 
 	//                                  descending by SORT (QS sort/count)
 
 	// GET    /api/user              => return user info (for AUTH user)
@@ -186,6 +192,11 @@ public class Server implements Closeable
 	// GET    /api/export/CTX/REP    => export repoertoire (QS fmt)
 
 	// POST   /api/admin/copy        => copy repertoire (JSON post body; see method)
+
+	// GET    /api/dxopt/CTX/REPS    => return potential "dx" rearrangemnets from REPS in CTX
+	
+	// POST   /api/track/CTX/REPS    => return potential "dx" rearrangemnets from REPS in CTX
+	//                                  (JSON post body = array of Rearrangements to track)
 
 	private void registerApi() throws Exception {
 
@@ -294,6 +305,20 @@ public class Server implements Closeable
 
 					if (isAdmin(info.Request)) {
 						handleAdminRequest(info);
+						handled = true;
+					}
+				}
+				else if (info.Scope.equals(cfg.DxScope)) {
+
+					if (request.Method.equals("GET")) {
+						handleDxOptionsRequest(info);
+						handled = true;
+					}
+				}
+				else if (info.Scope.equals(cfg.TrackingScope)) {
+
+					if (request.Method.equals("POST")) {
+						handleTrackingRequest(info);
 						handled = true;
 					}
 				}
@@ -715,6 +740,36 @@ public class Server implements Closeable
 
 			throw e;
 		}
+	}
+
+	// +----------+
+	// | Tracking |
+	// +----------+
+
+	private void handleDxOptionsRequest(ApiInfo info) throws Exception {
+
+		Tracking track = new Tracking(cfg.Tracking);
+		ContextRepertoireStore crs = new ContextRepertoireStore(store, info.UserId, info.ContextName);
+
+		List<Tracking.RepertoireResultSelections> options =
+			track.getDxOptionsAsync(crs, info.RepertoireNames).get();
+
+		info.Response.setJson(Utility.getGson().toJson(options));
+	}
+
+	private void handleTrackingRequest(ApiInfo info) throws Exception {
+		
+		Tracking.Params params = new Tracking.Params();
+		params.CRS = new ContextRepertoireStore(store, info.UserId, info.ContextName);
+		params.Repertoires = info.RepertoireNames;
+		
+		String body = new String(info.Request.BodyStream.readAllBytes(), StandardCharsets.UTF_8);
+		params.Targets = Utility.getGson().fromJson(body, Rearrangement[].class);
+
+		Tracking track = new Tracking(cfg.Tracking);
+		Tracking.Results results = track.trackAsync(params).get();
+
+		info.Response.setJson(Utility.getGson().toJson(results));
 	}
 
 	// +--------------------+
