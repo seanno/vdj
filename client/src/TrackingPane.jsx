@@ -3,13 +3,15 @@ import { memo, useState, useEffect } from 'react';
 import { Button } from '@mui/material';
 
 import RearrangementsTable from './RearrangementsTable.jsx';
-import { serverFetchDxOptions } from './lib/server.js';
+import { serverFetchDxOptions, serverFetchTracking } from './lib/server.js';
 
 import styles from './Pane.module.css'
 
 export default memo(function TrackingPane({ context, repertoires, rkey }) {
 
   const [dxOptions, setDxOptions] = useState(undefined);
+  const [startTracking, setStartTracking] = useState(false);
+  const [trackingResults, setTrackingResults] = useState(undefined);
   const [error,setError] = useState(undefined);
 
   function bubbleSelections(rep, newSelections) {
@@ -56,6 +58,35 @@ export default memo(function TrackingPane({ context, repertoires, rkey }) {
 	
   }, []);
 
+  useEffect(() => {
+
+	if (!startTracking) return;
+
+	const trackStuff = async () => {
+
+	  const rearrangements = [];
+	  for (var i = 0; i < dxOptions.length; ++i) {
+		if (!dxOptions[i].SelectionIndices) continue;
+		for (var j = 0; j < dxOptions[i].SelectionIndices.length; ++j) {
+		  const k = dxOptions[i].SelectionIndices[j];
+		  rearrangements.push(dxOptions[i].Rearrangements[k]);
+		}
+	  }
+	
+	  serverFetchTracking(context, repertoires, rearrangements) 
+		.then(result => {
+		  setTrackingResults(result);
+		})
+		.catch(error => {
+		  console.error(error);
+		  setError('Error fetching tracking report');
+		});
+	}
+
+	trackStuff();
+	
+  }, [startTracking]);
+
   // +---------------+
   // | renderOptions |
   // +---------------+
@@ -81,13 +112,31 @@ export default memo(function TrackingPane({ context, repertoires, rkey }) {
 		<Button
 		  variant='contained'
 		  sx={{ mr: 1, mb: 1 }}
-		  disabled={!somethingSelected()}>
+		  disabled={!somethingSelected()}
+		  onClick={() => setStartTracking(true)} >
 		  Go
 		</Button>
 	  </>
 	);
   }
   
+  // +---------------+
+  // | renderResults |
+  // +---------------+
+
+  function renderResults() {
+	// nyi
+	return(<pre><code>{ JSON.stringify(trackingResults, null, 2) }</code></pre>);
+  }
+  
+  // +---------------+
+  // | renderLoading |
+  // +---------------+
+
+  function renderLoading() {
+	return(<div>Tracking...</div>);
+  }
+
   // +--------+
   // | render |
   // +--------+
@@ -96,7 +145,9 @@ export default memo(function TrackingPane({ context, repertoires, rkey }) {
 
 	<div className={styles.container}>
 
-	  { dxOptions && renderOptions() }
+	  { !startTracking && dxOptions && renderOptions() }
+	  { startTracking && !trackingResults && renderLoading() }
+	  { startTracking && trackingResults && renderResults() }
 	  { error && <div className={styles.hdr}>{error}</div> }
 
 	</div>

@@ -154,6 +154,19 @@ export async function serverFetchDxOptions(ctx, reps) {
   return(await serverFetch(url));
 }
 
+// tracking - report
+
+export async function serverFetchTracking(ctx, reps, rearrangements) {
+  
+  const body = JSON.stringify(rearrangements);
+
+  const url =
+		'/track/' + encodeURIComponent(ctx) +
+		'/' + encodeURIComponent(reps.map((r) => r.Name).join(','));
+
+  return(await serverFetch(url, body));
+}
+
 // +-------------+
 // | serverFetch |
 // +-------------+
