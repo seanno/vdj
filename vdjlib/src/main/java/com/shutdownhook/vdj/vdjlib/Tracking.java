@@ -180,23 +180,18 @@ public class Tracking
 	// | getDxOptions(Async) |
 	// +---------------------+
 
-	public static class RepertoireResultSelections extends RepertoireResult
-	{
-		public List<Integer> SelectionIndices;
-	}
-
-	public CompletableFuture<List<RepertoireResultSelections>>
+	public CompletableFuture<RepertoireResult[]>
 		getDxOptionsAsync(ContextRepertoireStore crs, String[] repertoires) {
 		
 		return(Exec.runAsync("getDxOptions", new Exec.AsyncOperation() {
-			public List<RepertoireResultSelections> execute() throws Exception {
+			public RepertoireResult[] execute() throws Exception {
 				return(getDxOptions(crs, repertoires));
 			}
 		}));
 	}
 
-	private List<RepertoireResultSelections> getDxOptions(ContextRepertoireStore crs,
-														  String[] repertoires) throws Exception {
+	private RepertoireResult[] getDxOptions(ContextRepertoireStore crs,
+											String[] repertoires) throws Exception {
 
 		// 1. Get potential dx rearrangements and sort results
 		TopXRearrangements.Params topxParams = new TopXRearrangements.Params();
@@ -210,7 +205,7 @@ public class Tracking
 		Arrays.sort(potentials, new RepertoireResultComparator());
 
 		// 2. Add rearrangements that pass threshold and pre-select unique "Dx" clones
-		List<RepertoireResultSelections> results = new ArrayList<RepertoireResultSelections>();
+		List<RepertoireResult> results = new ArrayList<RepertoireResult>();
 
 		List<Rearrangement> seen = new ArrayList<Rearrangement>();
 		
@@ -218,18 +213,18 @@ public class Tracking
 
 			if (potentials[i].Rearrangements.size() == 0) continue;
 
-			RepertoireResultSelections rrs = new RepertoireResultSelections();
-			rrs.Repertoire = potentials[i].Repertoire;
-			rrs.Rearrangements = new ArrayList<Rearrangement>();
-			rrs.SelectionIndices = new ArrayList<Integer>();
+			RepertoireResult rr = new RepertoireResult();
+			rr.Repertoire = potentials[i].Repertoire;
+			rr.Rearrangements = new ArrayList<Rearrangement>();
+			rr.SelectionIndices = new ArrayList<Integer>();
 
 			for (int j = 0; j < potentials[i].Rearrangements.size(); ++j) {
 
 				Rearrangement r = potentials[i].Rearrangements.get(j);
-				double fractionOfLocus = r.getFractionOfLocus(rrs.Repertoire);
+				double fractionOfLocus = r.getFractionOfLocus(rr.Repertoire);
 				
 				if (r.Dx || fractionOfLocus >= cfg.DxOptionsMinFractionOfLocus) {
-					rrs.Rearrangements.add(r);
+					rr.Rearrangements.add(r);
 				}
 
 				if (r.Dx) {
@@ -241,18 +236,18 @@ public class Tracking
 					}
 					
 					if (iseen == seen.size()) {
-						rrs.SelectionIndices.add(rrs.Rearrangements.size() - 1);
+						rr.SelectionIndices.add(rr.Rearrangements.size() - 1);
 						seen.add(r);
 					}
 				}
 			}
 
-			if (rrs.Rearrangements.size() > 0) {
-				results.add(rrs);
+			if (rr.Rearrangements.size() > 0) {
+				results.add(rr);
 			}
 		}
 
-		return(results);
+		return(results.toArray(new RepertoireResult[results.size()]));
 	}
 
 	// +----------+

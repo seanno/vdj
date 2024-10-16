@@ -5,11 +5,6 @@ import styles from './Tables.module.css';
 
 export default function RearrangementsTable({ repertoire, rearrangements, rkey, caption }) {
 
-  function renderCaption() {
-	if (!caption) return(undefined);
-	return(<h2>{caption}</h2>);
-  }
-
   // +------------+
   // | no results |
   // +------------+

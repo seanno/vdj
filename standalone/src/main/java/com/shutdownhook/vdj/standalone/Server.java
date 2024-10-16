@@ -751,10 +751,10 @@ public class Server implements Closeable
 		Tracking track = new Tracking(cfg.Tracking);
 		ContextRepertoireStore crs = new ContextRepertoireStore(store, info.UserId, info.ContextName);
 
-		List<Tracking.RepertoireResultSelections> options =
+		RepertoireResult[] options =
 			track.getDxOptionsAsync(crs, info.RepertoireNames).get();
 
-		info.Response.setJson(Utility.getGson().toJson(options));
+		info.Response.setJson(RepertoireResult.resultsToJson(options));
 	}
 
 	private void handleTrackingRequest(ApiInfo info) throws Exception {

@@ -13,7 +13,6 @@ import org.junit.Test;
 import org.junit.Ignore;
 
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
-import com.shutdownhook.vdj.vdjlib.Tracking.RepertoireResultSelections;
 
 public class TrackingTest 
 {
@@ -50,13 +49,13 @@ public class TrackingTest
 
 		Tracking tracking = new Tracking(new Tracking.Config());
 		
-		List<RepertoireResultSelections> dxOptions =
+		RepertoireResult[] dxOptions =
 			tracking.getDxOptionsAsync(crs, new String[] { REP_ID, REP_MRD }).get();
 
 		verifyDxOptions(dxOptions);
 
 		// add one non-dx selection just for kicks
-		dxOptions.get(1).SelectionIndices.add(0);
+		dxOptions[1].SelectionIndices.add(0);
 
 		Tracking.Params params = new Tracking.Params();
 		params.CRS = crs;
@@ -87,33 +86,33 @@ public class TrackingTest
 		
 	}
 
-	private void verifyDxOptions(List<RepertoireResultSelections> dxOptions) {
+	private void verifyDxOptions(RepertoireResult[] dxOptions) {
 
-		Assert.assertEquals(2, dxOptions.size());
+		Assert.assertEquals(2, dxOptions.length);
 		
-		RepertoireResultSelections rrs = dxOptions.get(0);
-		Assert.assertEquals(3, rrs.SelectionIndices.size());
-		Assert.assertEquals(REP_ID, rrs.Repertoire.Name);
-		Assert.assertTrue(rrs.Rearrangements.get(0).Dx);
-		Assert.assertEquals("TCCGTAGACACGTCCAAGAACCAGTTCTCCCTGAAGCTGAGCTCTGTGACCGCCGCAGACACGGCTGTGTATTACTGGAGGGAAATATTGTAGTAGTACCAGCTGCTATGCGGCTACTTTGACTACTGGGGCCAGGGAACC", rrs.Rearrangements.get(0).Rearrangement);
+		RepertoireResult rr = dxOptions[0];
+		Assert.assertEquals(3, rr.SelectionIndices.size());
+		Assert.assertEquals(REP_ID, rr.Repertoire.Name);
+		Assert.assertTrue(rr.Rearrangements.get(0).Dx);
+		Assert.assertEquals("TCCGTAGACACGTCCAAGAACCAGTTCTCCCTGAAGCTGAGCTCTGTGACCGCCGCAGACACGGCTGTGTATTACTGGAGGGAAATATTGTAGTAGTACCAGCTGCTATGCGGCTACTTTGACTACTGGGGCCAGGGAACC", rr.Rearrangements.get(0).Rearrangement);
 
-		rrs = dxOptions.get(1);
-		Assert.assertEquals(0, rrs.SelectionIndices.size());
-		Assert.assertEquals(REP_MRD, rrs.Repertoire.Name);
-		Assert.assertFalse(rrs.Rearrangements.get(0).Dx);
-		Assert.assertEquals("GTTTGTGTCTGGGCAGGAACAGGGACTGTGTCCCTGTGTGATGCTTTTGATATCTGGGGCCAAGGGACA", rrs.Rearrangements.get(0).Rearrangement);
+		rr = dxOptions[1];
+		Assert.assertEquals(0, rr.SelectionIndices.size());
+		Assert.assertEquals(REP_MRD, rr.Repertoire.Name);
+		Assert.assertFalse(rr.Rearrangements.get(0).Dx);
+		Assert.assertEquals("GTTTGTGTCTGGGCAGGAACAGGGACTGTGTCCCTGTGTGATGCTTTTGATATCTGGGGCCAAGGGACA", rr.Rearrangements.get(0).Rearrangement);
 	}
 
-	private Rearrangement[] getDefaultOptions(List<RepertoireResultSelections> dxOptions) {
+	private Rearrangement[] getDefaultOptions(RepertoireResult[] dxOptions) {
 
 		List<Rearrangement> rearrangements = new ArrayList<Rearrangement>();
 
-		for (int i = 0; i < dxOptions.size(); ++i) {
+		for (int i = 0; i < dxOptions.length; ++i) {
 			
-			RepertoireResultSelections rrs = dxOptions.get(i);
+			RepertoireResult rr = dxOptions[i];
 			
-			for (int j = 0; j < rrs.SelectionIndices.size(); ++j) {
-				rearrangements.add(rrs.Rearrangements.get(rrs.SelectionIndices.get(j)));
+			for (int j = 0; j < rr.SelectionIndices.size(); ++j) {
+				rearrangements.add(rr.Rearrangements.get(rr.SelectionIndices.get(j)));
 			}
 		}
 

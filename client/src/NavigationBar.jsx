@@ -91,6 +91,18 @@ export default function NavigationBar({ user, addTab, clearTabs, showError, refr
 	addTab(newTab);
   }
 
+  function openTracking() {
+
+	const newTab = {
+	  view: 'track',
+	  name: 'Tracking',
+	  context: selectedContext,
+	  repertoires: selectedRepertoires
+	};
+
+	addTab(newTab);
+  }
+
   function openUpload() {
 
 	const newTab = {
@@ -197,6 +209,24 @@ export default function NavigationBar({ user, addTab, clearTabs, showError, refr
 			</Button>
 		  </div>
 
+		  <div>
+			<Button
+			  variant='contained'
+			  sx={{ mr: 1, mb: 1 }}
+			  disabled={selectionCount() < 1}
+			  onClick={openTracking}>
+			  Track
+			</Button>
+			
+			<Button
+			  variant='contained'
+			  sx={{ mr: 1, mb: 1 }}
+			  disabled={selectionCount() !== 1}
+			  onClick={openExport}>
+			  Export
+			</Button>
+		  </div>
+
 		</>
 	  }
 
@@ -231,17 +261,6 @@ export default function NavigationBar({ user, addTab, clearTabs, showError, refr
 		</Button>
 	  }
 	  
-	  { selectedContext &&
-		
-		<Button
-		  variant='contained'
-		  sx={{ mr: 1, mb: 1 }}
-		  disabled={selectionCount() !== 1}
-		  onClick={openExport}>
-		  Export
-		</Button>
-	  }
-
 	  <div style={{ 'marginTop': '30px' }}>
 		<a title={user.AuthUserId} href="#" onClick={(evt) => logout(evt)}>logout</a>
 	  </div>

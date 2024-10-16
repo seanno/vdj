@@ -15,6 +15,7 @@ import TopXPane from "./TopXPane.jsx";
 import DeletePane from "./DeletePane.jsx";
 import AdminPane from "./AdminPane.jsx";
 import ExportPane from "./ExportPane.jsx";
+import TrackingPane from "./TrackingPane.jsx";
 
 import { serverFetchUser } from './lib/server.js';
 
@@ -204,6 +205,10 @@ export default function App() {
 										   repertoire={t.repertoire} 
 										   rkey={`p-${t.name}`} /> }
 
+				{ t.view === 'track' && <TrackingPane
+										   context={t.context}
+										   repertoires={t.repertoires} 
+										   rkey={`p-${t.name}`} /> }
 			  </div>
 			);
 		  })

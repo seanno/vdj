@@ -144,6 +144,16 @@ export async function serverFetchAdmin(operation, body) {
   return(await serverFetch(url, body));
 }
 
+// tracking - dx options
+export async function serverFetchDxOptions(ctx, reps) {
+
+  const url =
+		'/dxopt/' + encodeURIComponent(ctx) +
+		'/' + encodeURIComponent(reps.map((r) => r.Name).join(','));
+
+  return(await serverFetch(url));
+}
+
 // +-------------+
 // | serverFetch |
 // +-------------+
