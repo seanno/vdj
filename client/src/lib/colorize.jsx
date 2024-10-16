@@ -12,7 +12,7 @@ function getSpans(r) {
 
   const indices = [ 0, r.N1Index, r.DIndex, r.N2Index, r.JIndex, r.Rearrangement.length ];
 
-  console.log(JSON.stringify(indices));
+  //console.log(JSON.stringify(indices));
   
   const colorClasses = ['V', 'N1', 'D', 'N2', 'J'];
 

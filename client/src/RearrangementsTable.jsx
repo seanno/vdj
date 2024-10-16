@@ -1,9 +1,49 @@
 
+import { useState } from 'react';
+import { Checkbox } from '@mui/material';
+
 import { colorizeRearrangement } from './lib/colorize.jsx';
 
 import styles from './Tables.module.css';
 
-export default function RearrangementsTable({ repertoire, rearrangements, rkey, caption }) {
+export default function RearrangementsTable({ repertoire, rearrangements, rkey, caption,
+											  initialSelections = [], bubbleSelections }) {
+
+  const [selections,setSelections] = useState(initialSelections);
+
+  // +------------+
+  // | selections |
+  // +------------+
+
+  function isInteractive() {
+	return(bubbleSelections);
+  }
+  
+  function isSelected(irow) {
+	return(findSelectionIndex(irow) !== -1);
+  }
+
+  function toggleCheckbox(irow) {
+	
+	const i = findSelectionIndex(irow);
+	const newSelections = [...selections];
+
+	if (i === -1) newSelections.push(irow);
+	else newSelections.splice(i, 1);
+
+	setSelections(newSelections);
+
+	const bubble = [];
+	for (var j = 0; j < newSelections.length; ++j) bubble.push(rearrangements[j]);
+	bubbleSelections(repertoire, bubble);
+  }
+  
+  function findSelectionIndex(irow) {
+	for (var i = 0; i < selections.length; ++i) {
+	  if (selections[i] == irow) return(i); 
+	}
+	return(-1);
+  }
 
   // +------------+
   // | no results |
@@ -30,6 +70,7 @@ export default function RearrangementsTable({ repertoire, rearrangements, rkey, 
 	  { caption && <caption>{caption}</caption> }
 	  <thead>
 		<tr>
+		  { isInteractive() && <th>&nbsp;</th> }
 		  <th>Locus</th>
 		  <th>Count</th>
 		  <th>% Locus</th>
@@ -47,6 +88,19 @@ export default function RearrangementsTable({ repertoire, rearrangements, rkey, 
 		  rearrangements.map((r, irow) => {
 			return(
 			  <tr key={`${rkey}-rt-${irow}`}>
+
+				{ isInteractive() &&
+				  <td>
+					<Checkbox
+					  onClick={() => toggleCheckbox(irow)}
+					  checked={isSelected(irow)}
+					  tabIndex={-1}
+					  disableRipple
+					  sx={{ padding: '1px' }}
+					/>
+				  </td>
+				}
+				
 				<td>{r.Locus}</td>
 				<td style={{textAlign: 'right'}}>{r.Count}</td>
 				<td style={{textAlign: 'right'}}>{(Math.min(r.FractionOfLocus * 100,100)).toFixed(4)}</td>
