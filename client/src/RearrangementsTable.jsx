@@ -32,10 +32,7 @@ export default function RearrangementsTable({ repertoire, rearrangements, rkey, 
 	else newSelections.splice(i, 1);
 
 	setSelections(newSelections);
-
-	const bubble = [];
-	for (var j = 0; j < newSelections.length; ++j) bubble.push(rearrangements[j]);
-	bubbleSelections(repertoire, bubble);
+	bubbleSelections(repertoire, newSelections);
   }
   
   function findSelectionIndex(irow) {
