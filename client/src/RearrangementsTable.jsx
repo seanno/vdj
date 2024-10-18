@@ -78,6 +78,7 @@ export default function RearrangementsTable({ repertoire, rearrangements, rkey, 
 		  <th>D Resolved</th>
 		  <th>J Resolved</th>
 		  <th>logProb</th>
+		  <th>&nbsp;</th>
 		</tr>
 	  </thead>
 	  <tbody>
@@ -102,12 +103,13 @@ export default function RearrangementsTable({ repertoire, rearrangements, rkey, 
 				<td style={{textAlign: 'right'}}>{r.Count}</td>
 				<td style={{textAlign: 'right'}}>{(Math.min(r.FractionOfLocus * 100,100)).toFixed(4)}</td>
 				<td style={{textAlign: 'right'}}>{(useVolume ? r.CountPerMilliliter : Math.min(r.FractionOfCells * 100,100)).toFixed(4)}</td>
-				<td style={{textAlign: 'right'}}><a href="#" onClick={ (evt) => window.launchIMGT(r.Locus,r.Rearrangement, evt) }>{colorizeRearrangement(r)}</a></td>
+				<td style={{textAlign: 'right'}}>{colorizeRearrangement(r)}</td>
 				<td>{r.AminoAcid}</td>
 				<td>{r.VResolved}</td>
 				<td>{r.DResolved}</td>
 				<td>{r.JResolved}</td>
 				<td style={{textAlign: 'right'}}>{(r.Probability === 0.0 ? '' : r.Probability.toFixed(3))}</td>
+				<td><a href="#" onClick={ (evt) => window.launchIMGT(r.Locus,r.Rearrangement, evt) }>imgt</a></td>
 			  </tr>
 			);
 		  })

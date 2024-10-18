@@ -206,9 +206,10 @@ export default function App() {
 										   rkey={`p-${t.name}`} /> }
 
 				{ t.view === 'track' && <TrackingPane
-										   context={t.context}
-										   repertoires={t.repertoires} 
-										   rkey={`p-${t.name}`} /> }
+										  context={t.context}
+										  repertoires={t.repertoires} 
+										  addTab={addTab}
+										  rkey={`p-${t.name}`} /> }
 			  </div>
 			);
 		  })
