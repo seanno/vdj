@@ -46,6 +46,7 @@ public class AgateImport implements Closeable
 		public String Database = "agate";
 
 		public Integer MinSearchLength = 5;
+		public Boolean EnablePatientSearchExpansion = true;
 		
 		public String AgateClientId = "fdcf242b-a25b-4b35-aff2-d91d8100225d";
 		public String AgateTenantId = "720cf133-4325-491c-b6a9-159d0497fc65";
@@ -224,6 +225,12 @@ public class AgateImport implements Closeable
 				s.Date = (d == null ? null : d.toLocalDate());
 			}
 
+			List<PipelineSample> expandedSamples = maybeExpandPatientSearch(search, samples);
+			if (expandedSamples != null) {
+				log.info("Expanded patient search for " + search);
+				return(expandedSamples);
+			}
+
 			log.info(String.format("Fetched %d (pipeline) samples matching %s", samples.size(), search));
 			return(samples);
 		}
@@ -231,6 +238,42 @@ public class AgateImport implements Closeable
 			if (rs != null) safeClose(rs);
 			if (stmt != null) safeClose(stmt);
 		}
+	}
+
+	// this helper turns "D-*" searches that return a samples that matches 
+	// the clinical sample format into a patient id search ... so that external users
+	// can use a D- number to find all samples for a patient
+	private List<PipelineSample> maybeExpandPatientSearch(String search,
+														  List<PipelineSample> samples)
+		throws SQLException, IllegalArgumentException {
+
+		// quick bails
+		if (samples.size() == 0) return(null);
+		if (!cfg.EnablePatientSearchExpansion) return(null);
+		if (!search.toLowerCase().startsWith("d-")) return(null);
+
+		// check the sample names ... they all have to start with patient ids
+		// AND be the same patient id ... I think there were some clinical tests
+		// where we did multiple assays and want to be sure I handle that.
+		
+		String patientId = null;
+		
+		for (int i = 0; i < samples.size(); ++i) {
+			
+			String sampleName = samples.get(i).Name;
+			int ichHyphen = sampleName.indexOf("-");
+			if (ichHyphen == -1) return(null);
+
+			String thisPatientId = sampleName.substring(0, ichHyphen);
+			try { Integer.parseInt(patientId); }
+			catch (NumberFormatException e) { return(null); }
+
+			if (patientId != null && !patientId.equals(thisPatientId)) return(null);
+			patientId = thisPatientId;
+		}
+
+		// ok I believe you
+		return(listSamplesPipeline(patientId + "-"));
 	}
 
 	// +------------------+
