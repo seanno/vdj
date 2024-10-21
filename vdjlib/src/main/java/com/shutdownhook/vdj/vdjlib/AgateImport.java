@@ -265,7 +265,7 @@ public class AgateImport implements Closeable
 			if (ichHyphen == -1) return(null);
 
 			String thisPatientId = sampleName.substring(0, ichHyphen);
-			try { Integer.parseInt(patientId); }
+			try { Integer.parseInt(thisPatientId); }
 			catch (NumberFormatException e) { return(null); }
 
 			if (patientId != null && !patientId.equals(thisPatientId)) return(null);
