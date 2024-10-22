@@ -52,7 +52,7 @@ public class Tracking
 	public static class TargetValues
 	{
 		public Rearrangement Target;
-		public double[] Values; // in order of Repertoires
+		public long[] Values; // in order of Repertoires
 	}
 	
 	public static class Results
@@ -104,24 +104,16 @@ public class Tracking
 		for (int itarget = 0; itarget < params.Targets.length; ++itarget) {
 			TargetValues values = new TargetValues();
 			results.TargetValues[itarget] = values;
-			
 			values.Target = params.Targets[itarget];
-			values.Values = new double[results.Repertoires.length];
-			for (int irep = 0; irep < values.Values.length; ++irep) values.Values[irep] = 0.0;
+			values.Values = new long[results.Repertoires.length];
 		}
 
 		for (int irep = 0; irep < results.Repertoires.length; ++irep) {
 
-			Repertoire rep = results.Repertoires[irep];
 			long[] targetCounts = futures.get(irep).get();
 
 			for (int itarget = 0; itarget < targetCounts.length; ++itarget) {
-
-				double normCount = (rep.isCellfree()
-									? rep.getCountPerMilliliter(targetCounts[itarget])
-									: rep.getFractionOfCells(targetCounts[itarget]));
-				
-				results.TargetValues[itarget].Values[irep] = normCount;
+				results.TargetValues[itarget].Values[irep] = targetCounts[itarget];
 			}
 		}
 

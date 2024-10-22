@@ -3,6 +3,7 @@ import { memo, useState, useEffect, Fragment } from 'react';
 import { Button } from '@mui/material';
 import { Chart } from "react-google-charts";
 
+import { colorizeRearrangement } from './lib/colorize.jsx';
 import RearrangementsTable from './RearrangementsTable.jsx';
 import { serverFetchDxOptions, serverFetchTracking } from './lib/server.js';
 
@@ -60,15 +61,38 @@ export default memo(function TrackingPane({ context, repertoires, addTab, rkey }
 	}
 	return(cellular && cellfree);
   }
+
+  const CELLFREE_LABEL = "log10 per ML";
+  const CELLULAR_LABEL = "log10 per Million Cells";
+  const COUNT_LABEL = "log10 Count";
   
-  function convertValue(inputValue, rep) {
-	if (isCellfree(rep)) return(inputValue);
-	return(Math.min(inputValue * 100, 100));
+  function getNormLabel(rep) {
+	if (rep.TotalMilliliters > 0.0) return(CELLFREE_LABEL);
+	if (rep.TotalCells > 0) return(CELLULAR_LABEL);
+	return(COUNT_LABEL);
   }
 
-  function convertAndFormatValue(inputValue, rep) {
-	if (isCellfree(rep)) return(`${Math.round(inputValue).toLocaleString()}/ML`);
-	return(`${Math.min(inputValue * 100, 100).toFixed(4)}%`);
+  function getNormValue(rep, count) {
+	
+	if (rep.TotalMilliliters > 0.0) return(count / rep.TotalMilliliters);
+	if (rep.TotalCells > 0) return(Math.min(count / rep.TotalCells * 1000000, 1000000));
+	return(count);
+
+  }
+
+  function getLogNormValue(rep, count) {
+	return(Math.max(Math.log10(getNormValue(rep, count)), 0));
+  }
+
+  function getNormString(rep, count) {
+
+	const val = getNormValue(rep, count);
+	
+	if (rep.TotalMilliliters > 0.0) return(`${Math.round(val).toLocaleString()}/ML`);
+	if (rep.TotalCells > 0) return(`${(val/10000).toFixed(4)}%`);
+	
+	return(val.toLocaleString());
+	
   }
 
   // +-----------+
@@ -202,11 +226,11 @@ export default memo(function TrackingPane({ context, repertoires, addTab, rkey }
 	  for (var itarget = 0; itarget < trackingResults.TargetValues.length; ++itarget) {
 		const tv = trackingResults.TargetValues[itarget];
 		if (mixedMode) {
-		  row.push(isCellfree(rep) ? undefined : convertValue(tv.Values[irep], rep));
-		  row.push(isCellfree(rep) ? convertValue(tv.Values[irep], rep) : undefined);
+		  row.push(isCellfree(rep) ? undefined : getLogNormValue(rep, tv.Values[irep]));
+		  row.push(isCellfree(rep) ? getLogNormValue(rep, tv.Values[irep]) : undefined);
 		}
 		else {
-		  row.push(convertValue(tv.Values[irep], rep));
+		  row.push(getLogNormValue(rep, tv.Values[irep]));
 		}
 	  }
 	}
@@ -226,8 +250,8 @@ export default memo(function TrackingPane({ context, repertoires, addTab, rkey }
 	if (mixedMode) {
 
 	  options.vAxes = {
-		0: { title: '% Cells' },
-		1: { title: 'Count/ML' }
+		0: { title: CELLULAR_LABEL },
+		1: { title: CELLFREE_LABEL }
 	  };
 
 	  options.series = {};
@@ -247,10 +271,9 @@ export default memo(function TrackingPane({ context, repertoires, addTab, rkey }
 	  }
 	}
 	else {
-	  
-	  const isCF = isCellfree(trackingResults.Repertoires[0]);
+
 	  options.vAxes = {
-		0: { title: (isCF ? 'Count/ML' : '% Cells') }
+		0: { title: getNormLabel(trackingResults.Repertoires[0]) }
 	  };
 
 	  options.series = {};
@@ -325,7 +348,7 @@ export default memo(function TrackingPane({ context, repertoires, addTab, rkey }
 	  const vals = tv.Values.map((val, ival) => {
 		return(
 		  <td className={tableStyles.right} key={`${rkey}-tvrow-${itv}-${ival}`}>
-			{convertAndFormatValue(val, trackingResults.Repertoires[ival])}
+			{getNormString(trackingResults.Repertoires[ival], val)}
 		  </td>
 		);
 	  });
@@ -337,8 +360,6 @@ export default memo(function TrackingPane({ context, repertoires, addTab, rkey }
 		fontWeight: 'bold'
 	  };
 
-	  const r = tv.Target.Rearrangement;
-			
 	  return(
 	  <tr key={`${rkey}-tvrow-${itv}`}>
 		<td style={labelStyle} onClick={() => labelClick(itv)} >
@@ -348,8 +369,11 @@ export default memo(function TrackingPane({ context, repertoires, addTab, rkey }
 		<td>
 		  {tv.Target.Locus}
 		</td>
+		<td className={tableStyles.right}>
+		  {colorizeRearrangement(tv.Target)}
+		</td>
 		<td>
-		  <a href="#" onClick={() => openSearch(r)}>{r}</a>
+		  <a href="#" onClick={() => openSearch(tv.Target.Rearrangement)}>search</a>
 		</td>
 	  </tr>
 	  );
@@ -363,6 +387,7 @@ export default memo(function TrackingPane({ context, repertoires, addTab, rkey }
 			{ repertoireHeaders }
 			<th className={tableStyles.top}>Locus</th>
 			<th className={tableStyles.top}>Rearrangement</th>
+			<th className={tableStyles.top}>&nbsp;</th>
 		  </tr>
 		</thead>
 		<tbody>

@@ -69,19 +69,21 @@ public class TrackingTest
 
 	private void verifyTrackingResults(Tracking.Results results) {
 
+		// System.out.println(Utility.getGson().toJson(results));
+		
 		Assert.assertEquals(2, results.Repertoires.length);
 		Assert.assertEquals(REP_ID, results.Repertoires[0].Name);
 		Assert.assertEquals(REP_MRD, results.Repertoires[1].Name);
 		Assert.assertEquals(4, results.TargetValues.length);
 		
 		Tracking.TargetValues tv = results.TargetValues[0];
-		Assert.assertEquals(0.7964449787471556, tv.Values[0], .000001);
-		Assert.assertEquals(1.740349427740596E-4, tv.Values[1], .000001);
+		Assert.assertEquals(37100, tv.Values[0]);
+		Assert.assertEquals(182, tv.Values[1]);
 		Assert.assertEquals("TCCGTAGACACGTCCAAGAACCAGTTCTCCCTGAAGCTGAGCTCTGTGACCGCCGCAGACACGGCTGTGTATTACTGGAGGGAAATATTGTAGTAGTACCAGCTGCTATGCGGCTACTTTGACTACTGGGGCCAGGGAACC", tv.Target.Rearrangement);
 
 		tv = results.TargetValues[3];
-		Assert.assertEquals(0.0, tv.Values[0], .000001);
-		Assert.assertEquals(2.658335939076295E-4, tv.Values[1], .000001);
+		Assert.assertEquals(0, tv.Values[0]);
+		Assert.assertEquals(278, tv.Values[1]);
 		Assert.assertEquals("GTTTGTGTCTGGGCAGGAACAGGGACTGTGTCCCTGTGTGATGCTTTTGATATCTGGGGCCAAGGGACA", tv.Target.Rearrangement);
 		
 	}
