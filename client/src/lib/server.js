@@ -56,12 +56,14 @@ export async function serverFetchOverlap(ctx, reps, type, mode) {
 }
 
 // search
-export async function serverFetchSearch(ctx, reps, seq, type, muts, full) {
+export async function serverFetchSearch(ctx, reps, seq, type, muts, full, ichJ) {
+
+  const motif = (type === 'MRD' ? ichJ.toString() + ':' + seq : seq);
 
   const url =
 		'/search/' + encodeURIComponent(ctx) +
 		'/' + encodeURIComponent(reps.map((r) => r.Name).join(',')) +
-		'?motif=' + encodeURIComponent(seq) +
+		'?motif=' + encodeURIComponent(motif) +
 		'&type=' + encodeURIComponent(type) +
 		'&muts=' + muts.toString() +
 		'&full=' + (full ? 'true' : 'false');

@@ -28,6 +28,7 @@ import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.OnBehalfOfParams;
 import com.shutdownhook.vdj.vdjlib.AgateImport;
 import com.shutdownhook.vdj.vdjlib.ContextRepertoireStore;
 import com.shutdownhook.vdj.vdjlib.Export;
+import com.shutdownhook.vdj.vdjlib.MrdEngine;
 import com.shutdownhook.vdj.vdjlib.RearrangementKey;
 import com.shutdownhook.vdj.vdjlib.RearrangementKey.KeyType;
 import com.shutdownhook.vdj.vdjlib.RepertoireResult;
@@ -98,8 +99,9 @@ public class Server implements Closeable
 		// Export
 		public Export.Config Export = new Export.Config();
 
-		// Tracking
+		// Tracking & MRD
 		public Tracking.Config Tracking = new Tracking.Config();
+		public MrdEngine.Config Mrd = new MrdEngine.Config();
 
 		public String ApiBase = "/api";
 		public String ContextScope = "contexts";
@@ -135,6 +137,7 @@ public class Server implements Closeable
 		searcher = new Searcher(cfg.Searcher);
 		topx = new TopXRearrangements(cfg.TopX);
 		overlap = new Overlap(cfg.Overlap);
+		mrd = new MrdEngine(cfg.Mrd);
 		
 		setupWebServer();
 	}
@@ -511,7 +514,6 @@ public class Server implements Closeable
 	private void searchRepertoires(ApiInfo info) throws Exception {
 
 		String typeStr = info.Request.QueryParams.get("type");
-		KeyType keyType = (Easy.nullOrEmpty(typeStr) ? cfg.DefaultSearchType : KeyType.valueOf(typeStr));
 		
 		String strMuts = info.Request.QueryParams.get("muts");
 		int muts = (Easy.nullOrEmpty(strMuts) ? cfg.DefaultSearchMuts : Integer.parseInt(strMuts));
@@ -527,8 +529,16 @@ public class Server implements Closeable
 		params.CRS = new ContextRepertoireStore(store, info.UserId, info.ContextName);
 		params.Repertoires = info.RepertoireNames;
 		params.Motif = motif;
-		params.Extractor = RearrangementKey.getExtractor(keyType);
-		params.Matcher = RearrangementKey.getMatcher(keyType, muts, full);
+
+		if (typeStr.equalsIgnoreCase("mrd")) {
+			params.Extractor = mrd.getExtractor();
+			params.Matcher = mrd.getMatcher();
+		}
+		else {
+			KeyType keyType = (Easy.nullOrEmpty(typeStr) ? cfg.DefaultSearchType : KeyType.valueOf(typeStr));
+			params.Extractor = RearrangementKey.getExtractor(keyType);
+			params.Matcher = RearrangementKey.getMatcher(keyType, muts, full);
+		}
 
 		RepertoireResult[] results = searcher.searchAsync(params).get();
 		info.Response.setJson(RepertoireResult.resultsToJson(results));
@@ -748,7 +758,7 @@ public class Server implements Closeable
 
 	private void handleDxOptionsRequest(ApiInfo info) throws Exception {
 
-		Tracking track = new Tracking(cfg.Tracking);
+		Tracking track = new Tracking(cfg.Tracking, cfg.Mrd);
 		ContextRepertoireStore crs = new ContextRepertoireStore(store, info.UserId, info.ContextName);
 
 		RepertoireResult[] options =
@@ -766,7 +776,7 @@ public class Server implements Closeable
 		String body = new String(info.Request.BodyStream.readAllBytes(), StandardCharsets.UTF_8);
 		params.Targets = Utility.getGson().fromJson(body, Rearrangement[].class);
 
-		Tracking track = new Tracking(cfg.Tracking);
+		Tracking track = new Tracking(cfg.Tracking, cfg.Mrd);
 		Tracking.Results results = track.trackAsync(params).get();
 
 		info.Response.setJson(Utility.getGson().toJson(results));
@@ -980,6 +990,7 @@ public class Server implements Closeable
 	private Searcher searcher;
 	private TopXRearrangements topx;
 	private Overlap overlap;
+	private MrdEngine mrd;
 
 	private final static Logger log = Logger.getLogger(Server.class.getName());
 }

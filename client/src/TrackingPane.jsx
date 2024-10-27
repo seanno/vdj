@@ -305,7 +305,7 @@ export default memo(function TrackingPane({ context, repertoires, addTab, rkey }
   // | renderResultsTable |
   // +--------------------+
 
-  function openSearch(rearrangement) {
+  function openSearch(r) {
 
 	const newTab = {
 	  view: 'search',
@@ -314,10 +314,9 @@ export default memo(function TrackingPane({ context, repertoires, addTab, rkey }
 	  repertoires: repertoires,
 
 	  params: {
-		type: 'Rearrangement',
-		motif: rearrangement,
-		muts: 0,
-		full: true,
+		type: 'MRD',
+		motif: r.Rearrangement,
+		jIndex: r.JIndex,
 		start: true
 	  }
 	};
@@ -373,7 +372,7 @@ export default memo(function TrackingPane({ context, repertoires, addTab, rkey }
 		  {colorizeRearrangement(tv.Target)}
 		</td>
 		<td>
-		  <a href="#" onClick={() => openSearch(tv.Target.Rearrangement)}>search</a>
+		  <a href="#" onClick={() => openSearch(tv.Target)}>search</a>
 		</td>
 	  </tr>
 	  );

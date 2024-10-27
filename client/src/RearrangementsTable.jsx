@@ -78,6 +78,7 @@ export default function RearrangementsTable({ repertoire, rearrangements, rkey, 
 		  <th>D Resolved</th>
 		  <th>J Resolved</th>
 		  <th>logProb</th>
+		  <th>J Index</th>
 		  <th>&nbsp;</th>
 		</tr>
 	  </thead>
@@ -109,6 +110,7 @@ export default function RearrangementsTable({ repertoire, rearrangements, rkey, 
 				<td>{r.DResolved}</td>
 				<td>{r.JResolved}</td>
 				<td style={{textAlign: 'right'}}>{(r.Probability === 0.0 ? '' : r.Probability.toFixed(3))}</td>
+				<td>{r.JIndex}</td>
 				<td><a href="#" onClick={ (evt) => window.launchIMGT(r.Locus,r.Rearrangement, evt) }>imgt</a></td>
 			  </tr>
 			);

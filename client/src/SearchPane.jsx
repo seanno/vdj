@@ -11,16 +11,20 @@ import styles from './Pane.module.css'
 
 export default memo(function SearchPane({ context, repertoires, params, rkey }) {
 
+  const MRD_TYPE = 'MRD';
+
   const textDefault = (params && params.motif !== undefined  ? params.motif : '');
   const mutsDefault = (params && params.muts !== undefined ? params.muts : window.searchMutsDefault);
   const typeDefault = (params && params.type !== undefined ? params.type : window.searchTypeDefault);
   const fullDefault = (params && params.full !== undefined ? params.full : window.searchFullDefault);
+  const jIndexDefault = (params && params.jIndex !== undefined ? params.jIndex : window.searchJIndexDefault);
   const startDefault = (params && params.start !== undefined ? params.start : false);
   
   const [searchText, setSearchText] = useState(textDefault);
   const [searchMuts, setSearchMuts] = useState(mutsDefault);
   const [searchType, setSearchType] = useState(typeDefault);
   const [searchFull, setSearchFull] = useState(fullDefault);
+  const [searchJIndex, setSearchJIndex] = useState(jIndexDefault);
   const [startSearch, setStartSearch] = useState(startDefault);
 
   const [results, setResults] = useState(undefined);
@@ -45,7 +49,7 @@ export default memo(function SearchPane({ context, repertoires, params, rkey }) 
 	
 	const loadResults = async () => {
 
-	  serverFetchSearch(context, repertoires, searchText, searchType, searchMuts, searchFull) 
+	  serverFetchSearch(context, repertoires, searchText, searchType, searchMuts, searchFull, searchJIndex) 
 		.then(result => {
 		  setResults(result);
 		})
@@ -65,10 +69,12 @@ export default memo(function SearchPane({ context, repertoires, params, rkey }) 
 
   function renderSearch() {
 
-	const lengthOK = ((searchText.length >= searchConfig.minLength) || (searchText.length > 0 && searchFull));
-	const mutsOK = (searchMuts >= 0 && searchMuts <= searchConfig.maxMuts);
+	const lengthOK = ((searchText.length >= searchConfig.minLength) ||
+					  (searchType !== MRD_TYPE && searchText.length > 0 && searchFull));
+	
+	const mutsOK = (searchType === MRD_TYPE || (searchMuts >= 0 && searchMuts <= searchConfig.maxMuts));
 
-	const lengthHelper = (searchFull
+	const lengthHelper = ((searchType !== MRD_TYPE && searchFull)
 						  ? 'sequence required'
 						  : `at least ${searchConfig.minLength} ${searchConfig.unit} required`);
 
@@ -87,6 +93,7 @@ export default memo(function SearchPane({ context, repertoires, params, rkey }) 
 			  <FormControlLabel value='Rearrangement' control={<Radio/>} label='Nucleotide' />
 			  <FormControlLabel value='CDR3' control={<Radio/>} label='CDR3' />
 			  <FormControlLabel value='AminoAcid' control={<Radio/>} label ='Amino Acid' />
+			  <FormControlLabel value='MRD' control={<Radio/>} label ='MRD' />
 			</RadioGroup>
 		  </FormControl>
 		</div>
@@ -104,42 +111,59 @@ export default memo(function SearchPane({ context, repertoires, params, rkey }) 
 		  />
 		</div>
 
-		<div className={styles.dialogTxt}>
-		  <ListItem disablePadding>
-			<ListItemButton
-			  rule={undefined}
-			  onClick={() => toggleFullCheckbox()}>
-			  <ListItemIcon sx={{ minWidth: '20px' }}>
-				<Checkbox
-				  edge='start'
-				  checked={searchFull}
-				  tabIndex={-1}
-				  disableRipple
-				  inputProps={{ 'aria-labelledby': `${rkey}-full` }}
-				  sx={{ padding: '0px' }}
-				/>
-			  </ListItemIcon>
-
-			  <ListItemText
-				sx={{ margin: '0px' }}
-				id={`${rkey}-full`}
-				primary='Match full sequence'
+		{ searchType === MRD_TYPE &&
+			<div className={styles.dialogTxt}>
+			  <TextField
+				error={!mutsOK}
+				label='J Index'
+				variant='outlined'
+				type='number'
+				value={searchJIndex}
+				onChange={(evt) => setSearchJIndex(evt.target.value)}
 			  />
-			</ListItemButton>
-		  </ListItem>
-		</div>
+			</div>
+		}
 
-		<div className={styles.dialogTxt}>
-		  <TextField
-			error={!mutsOK}
-			label='Allowed Mutations'
-			variant='outlined'
-			type='number'
-			value={searchMuts}
-			onChange={(evt) => setSearchMuts(evt.target.value)}
-			helperText={mutsOK ? undefined : `0 to ${searchConfig.maxMuts} mutations allowed`}
-		  />
-		</div>
+		{ searchType !== MRD_TYPE &&
+		  <>
+			<div className={styles.dialogTxt}>
+			  <ListItem disablePadding>
+				<ListItemButton
+				  rule={undefined}
+				  onClick={() => toggleFullCheckbox()}>
+				  <ListItemIcon sx={{ minWidth: '20px' }}>
+					<Checkbox
+					  edge='start'
+					  checked={searchFull}
+					  tabIndex={-1}
+					  disableRipple
+					  inputProps={{ 'aria-labelledby': `${rkey}-full` }}
+					  sx={{ padding: '0px' }}
+					/>
+				  </ListItemIcon>
+
+				  <ListItemText
+					sx={{ margin: '0px' }}
+					id={`${rkey}-full`}
+					primary='Match full sequence'
+				  />
+				</ListItemButton>
+			  </ListItem>
+			</div>
+
+			<div className={styles.dialogTxt}>
+			  <TextField
+				error={!mutsOK}
+				label='Allowed Mutations'
+				variant='outlined'
+				type='number'
+				value={searchMuts}
+				onChange={(evt) => setSearchMuts(evt.target.value)}
+				helperText={mutsOK ? undefined : `0 to ${searchConfig.maxMuts} mutations allowed`}
+			  />
+			</div>
+		  </>
+		}
 
 		<Button
 		  variant='outlined'
@@ -181,8 +205,21 @@ export default memo(function SearchPane({ context, repertoires, params, rkey }) 
 	  <>
 		<div className={styles.hdr}>
 		  { searchConfig.label }: { searchText }<br/>
-		  { searchMuts } mutation{ searchMuts == 1 ? '' : 's'} allowed;
-		  { searchFull ? ' full sequence match' : ' substring match' }
+
+		  { searchType === 'MRD' &&
+			<>
+			  J Index: {searchJIndex}
+			</>
+			
+		  }
+
+		  { searchType !== 'MRD' &&
+			<>
+			  { searchMuts } mutation{ searchMuts == 1 ? '' : 's'} allowed;
+			  { searchFull ? ' full sequence match' : ' substring match' }
+			</>
+		  }
+		  
 		</div>
 		{ tables }
 	  </>

@@ -13,7 +13,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 import com.shutdownhook.vdj.vdjlib.RearrangementKey;
-import com.shutdownhook.vdj.vdjlib.RearrangementKey.KeyType;
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
 

@@ -17,6 +17,7 @@ window.overlapMaxSamples = 6;
 window.searchTypeDefault = 'Rearrangement';
 window.searchFullDefault = false;
 window.searchMutsDefault = 0;
+window.searchJIndexDefault = -1;
 
 window.searchTypeConfig = {
   
@@ -39,7 +40,15 @@ window.searchTypeConfig = {
 	'maxMuts': 2,
 	'unit': 'bases',
 	'label': 'CDR3'
+  },
+
+  'MRD': {
+	'minLength': 25,
+	'maxMuts': 0,
+	'unit': 'bases',
+	'label': 'MRD'
   }
+  
 };
 
 // TOPX

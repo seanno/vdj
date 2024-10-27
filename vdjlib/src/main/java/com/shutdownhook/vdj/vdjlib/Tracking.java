@@ -24,15 +24,15 @@ public class Tracking
 
 	public static class Config
 	{
-		public Integer MinMatchLength = 25;
 		public Integer MaxTargets = 50;
 		public Integer DxOptionsCount = 20;
 		public Double DxOptionsMinFractionOfLocus = .05;
 	}
 	
-	public Tracking(Config cfg) {
+	public Tracking(Config cfg, MrdEngine.Config cfgMrd) {
 		this.cfg = cfg;
-	}
+		this.mrd = new MrdEngine(cfgMrd);
+}
 
 	// +--------+
 	// | Params |
@@ -153,7 +153,7 @@ public class Tracking
 
 			while ((r = tsv.readNext()) != null) {
 				for (int i = 0; i < counts.length; ++i) {
-					if (mrdMatch(params.Targets[i], r, cfg.MinMatchLength)) {
+					if (mrd.match(params.Targets[i], r)) {
 						counts[i] += r.Count;
 					}
 				}
@@ -223,7 +223,7 @@ public class Tracking
 
 					int iseen = 0;
 					while (iseen < seen.size()) {
-						if (mrdMatch(r, seen.get(iseen), cfg.MinMatchLength)) break;
+						if (mrd.match(r, seen.get(iseen))) break;
 						++iseen;
 					}
 					
@@ -240,59 +240,6 @@ public class Tracking
 		}
 
 		return(results.toArray(new RepertoireResult[results.size()]));
-	}
-
-	// +----------+
-	// | mrdMatch |
-	// +----------+
-
-	// since mrd tracking is done across multiple assay versions, we detect matches
-	// by aligning on the J index and scanning left and right --- if the rearrangements
-	// fully match the length of the shorter of the two seqeunces we call it good.
-	// At least the last time I looked at it, the Adaptive version did not impose a
-	// minimum match, which caused "compression" errors where very short sequences
-	// over-matched; so we parameterize that herek. Not if either rearrangment doesn't
-	// call a J index, we just match from the J side edge.
-
-	public static boolean mrdMatch(Rearrangement r1, Rearrangement r2, int cchMatchMin) {
-
-		// align on J index (or J edge if necessary)
-		int cch1 = r1.Rearrangement.length();
-		int cch2 = r2.Rearrangement.length();
-
-		int ichJ1 = (r1.JIndex == -1 || r1.JIndex > cch1 ? cch1 : r1.JIndex);
-		int ichJ2 = (r2.JIndex == -1 || r2.JIndex > cch2 ? cch2 : r2.JIndex);
-
-		boolean match = true;
-		int cchMatch = 0;
-		char ch1, ch2;
-
-		// search right
-		int ich1 = ichJ1;
-		int ich2 = ichJ2;
-
-		while (ich1 < cch1 && ich2 < cch2) {
-			ch1 = Character.toLowerCase(r1.Rearrangement.charAt(ich1));
-			ch2 = Character.toLowerCase(r2.Rearrangement.charAt(ich2));
-			if (ch1 != ch2) { match = false; break; }
-			ich1++; ich2++; cchMatch++;
-		}
-
-		if (!match) return(false);
-		
-		// and left
-		ich1 = ichJ1 - 1;
-		ich2 = ichJ2 - 1;
-
-		while (ich1 >= 0 && ich2 >= 0) {
-			ch1 = Character.toLowerCase(r1.Rearrangement.charAt(ich1));
-			ch2 = Character.toLowerCase(r2.Rearrangement.charAt(ich2));
-			if (ch1 != ch2) { match = false; break; }
-			ich1--; ich2--; cchMatch++;
-		}
-
-		// and out
-		return(match && cchMatch >= cchMatchMin);
 	}
 
 	// +-----------------+
@@ -323,6 +270,7 @@ public class Tracking
 	// +---------+
 
 	private Config cfg;
+	private MrdEngine mrd;
 	
 	private final static Logger log = Logger.getLogger(Tracking.class.getName());
 }
