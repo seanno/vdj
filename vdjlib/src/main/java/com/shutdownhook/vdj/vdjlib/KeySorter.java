@@ -38,7 +38,7 @@ public class KeySorter implements Closeable
 	{
 		public int InitialChunkSize = 500000;
 		public Boolean UseCache = true;
-		public String WorkingPath = "/tmp";
+		public String WorkingPath = System.getProperty("java.io.tmpdir");
 	}
 
 	// +------------------+
