@@ -1,0 +1,1 @@
+VDJ is an open source, MIT-licensed tool for viewing and investigating T- and B-cell receptor repertoires. It is provided without warranties or guarantees of any kind. Click the buttons below to use the tool or learn more. By doing so, you agree to accept responsibility for your use of the application.

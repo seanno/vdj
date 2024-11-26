@@ -108,7 +108,7 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 
   // imports
 
-  function addResult(sample, msg) {
+  function addResult(sample, msg, contextName) {
 	const newResults = [...results];
 	newResults.push(`${sample.Name}: ${msg}`);
 	setResults(newResults);
@@ -134,11 +134,11 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 					   ? 'repertoire already exists'
 					   : `successfully uploaded ${result.TotalUniques} unique sequences`);
 			
-		  addResult(sample, msg);
+		  addResult(sample, msg, contextName);
 		})
 		.catch(error => {
 		  console.error(error);
-		  addResult(sample, 'failed importing repertoire');
+		  addResult(sample, 'failed importing repertoire', contextName);
 		});
 	}
 

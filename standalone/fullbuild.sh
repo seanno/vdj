@@ -26,7 +26,15 @@ fi
 # build standalone
 
 pushd $SCRIPTDIR
+
+BUILDFILE=src/main/resources/build.txt
+
+date > $BUILDFILE
+git branch --show-current --no-color >> $BUILDFILE
+git rev-parse HEAD >> $BUILDFILE
+
 mvn clean package
+
 popd
 
 

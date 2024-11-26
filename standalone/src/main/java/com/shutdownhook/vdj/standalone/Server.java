@@ -124,6 +124,9 @@ public class Server implements Closeable
 	}
 	
 	public Server(Config cfg) throws Exception {
+
+		try { log.info("BUILD: " + Easy.stringFromResource("build.txt").replace("\n", " ")); }
+		catch (Exception e) { log.info("BUILD: no build.txt resource"); }
 		
 		this.cfg = cfg;
 		cfg.WebServer.ReadBodyAsString = false;

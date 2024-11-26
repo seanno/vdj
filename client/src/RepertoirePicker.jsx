@@ -1,18 +1,15 @@
 
-import { useState, useEffect } from 'react';
-import { serverFetchRepertoires } from './lib/server.js';
-
 import { List, ListItem, ListItemButton, ListItemIcon,
 		 Checkbox, ListItemText } from '@mui/material';
 
-export default function RepertoirePicker({ selectedContext,
+export default function RepertoirePicker({ repertoireList,
 										   selectedRepertoires,
-										   onRepertoiresChange,
-										   refreshCounter,
-										   showError }) {
+										   changeSelection }) {
 
-  const [repertoireList,setRepertoireList] = useState(undefined);
-
+  // +---------+
+  // | actions |
+  // +---------+
+  
   function toggleCheckbox(name) {
 
 	const idxSel = findRepertoireIndex(selectedRepertoires, name);
@@ -26,13 +23,13 @@ export default function RepertoirePicker({ selectedContext,
 	  newRepertoires.splice(idxSel, 1);
 	}
 
-	onRepertoiresChange(newRepertoires);
+	changeSelection(newRepertoires);
   }
 
   function listOnKeyDown(evt) {
 	if (evt.key === 'a' && evt.ctrlKey) {
 	  evt.preventDefault();
-	  onRepertoiresChange([...repertoireList]);
+	  changeSelection([...repertoireList]);
 	}
   }
   
@@ -47,35 +44,6 @@ export default function RepertoirePicker({ selectedContext,
 	return(-1);
   }
   
-  // +-----------+
-  // | useEffect |
-  // +-----------+
-
-  // initial load of user contexts
-  
-  useEffect(() => {
-
-	if (!selectedContext) {
-	  setRepertoireList(undefined);
-	  return;
-	}
-
-	const loadRepertoires = async () => {
-	  serverFetchRepertoires(selectedContext)
-		.then(result => {
-		  setRepertoireList(result);
-		  onRepertoiresChange([]);
-		})
-		.catch(error => {
-		  console.error(error);
-		  showError('Error loading user contexts');
-		});
-	}
-
-	loadRepertoires();
-	
-  }, [selectedContext, refreshCounter]);
-
   // +--------+
   // | Render |
   // +--------+
@@ -84,59 +52,53 @@ export default function RepertoirePicker({ selectedContext,
 
     <div>
 
-	  { selectedContext && !repertoireList &&
-		<p>Loading Repertoires...</p>
-	  }
-	  
-	  { selectedContext && repertoireList &&
-		<List
-		  onKeyDown={ (evt) => listOnKeyDown(evt) }
-		  sx={{ width: '100%',
-				overflow: 'auto',
-				maxHeight: '300px',
-				mt: 1, mb: 2 }}>
+	  <List
+		onKeyDown={ (evt) => listOnKeyDown(evt) }
+		sx={{ width: '100%',
+			  overflow: 'auto',
+			  maxHeight: '300px',
+			  mt: 1, mb: 2 }}>
 
-		  {
-			repertoireList.map((r) => {
+		{
+		  repertoireList.map((r) => {
 
-			  const labelId = `checkbox-list-label-${r.Name}`;
-			  
-			  return(
-				  <ListItem
-					key={r.Name}
-					disablePadding>
+			const labelId = `checkbox-list-label-${r.Name}`;
+			
+			return(
+			  <ListItem
+				key={r.Name}
+				disablePadding>
 
-					<ListItemButton
-					  rule={undefined}
-					  onClick={() => toggleCheckbox(r.Name)}>
+				<ListItemButton
+				  rule={undefined}
+				  onClick={() => toggleCheckbox(r.Name)}>
 
-					  <ListItemIcon
-						sx={{ minWidth: '20px' }}>
-						
-						<Checkbox
-						  edge='start'
-						  checked={isChecked(r.Name)}
-						  tabIndex={-1}
-						  disableRipple
-						  inputProps={{ 'aria-labelledby': labelId }}
-						  sx={{ padding: '0px' }}
-						/>
-					  </ListItemIcon>
+				  <ListItemIcon
+					sx={{ minWidth: '20px' }}>
+					
+					<Checkbox
+					  edge='start'
+					  checked={isChecked(r.Name)}
+					  tabIndex={-1}
+					  disableRipple
+					  inputProps={{ 'aria-labelledby': labelId }}
+					  sx={{ padding: '0px' }}
+					/>
+				  </ListItemIcon>
 
-					  <ListItemText
-						sx={{ margin: '0px' }}
-						id={labelId}
-						primary={r.Name}
-					  />
-						
-					</ListItemButton>
-				  </ListItem>
-			  );
-			})
-		  }
+				  <ListItemText
+					sx={{ margin: '0px' }}
+					id={labelId}
+					primary={r.Name}
+				  />
+				  
+				</ListItemButton>
+			  </ListItem>
+			);
+		  })
+		}
 
-		</List>
-	  }
+	  </List>
 
 	</div>
 	

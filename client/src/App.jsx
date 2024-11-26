@@ -234,7 +234,6 @@ export default function App() {
 		  user={user}
 		  addTab={addTab}
 		  clearTabs={clearTabs}
-		  showError={showError}
 		  refreshCounter={refreshCounter} />
 	  </div>
 
