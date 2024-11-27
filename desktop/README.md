@@ -6,9 +6,9 @@ The VDJ tool can be run on your local machine (Windows, Mac or Linux) by followi
 
 1. If necessary, install Java v21 or higher using this link: [Java Downloads | Oracle](https://www.oracle.com/java/technologies/downloads/)
 
-2. Download this file to your computer and save it anywhere: [VDJ-Desktop.jar](https://github.com/seanno/vdj/raw/refs/heads/main/desktop/VDJ-Desktop.jar)
+2. Download this file to your computer and save it anywhere: [VDJ-Desktop.jar](https://github.com/seanno/vdj/raw/refs/heads/main/desktop/VDJ-Desktop.jar).
 
-3. Double-click the VDJ-Desktop.jar file you just downloaded to run the application.
+3. Double-click the VDJ-Desktop.jar file you just downloaded to run the application. (On Linux you may need to right-click the downloaded file, choose properties, permissions, and check the "executable" box.)
 
 ### Troubleshooting & Support
 
