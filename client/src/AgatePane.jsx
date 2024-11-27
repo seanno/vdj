@@ -351,8 +351,11 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 								` (${currentImportIdx+1} of ${selections.length})...`, false)
 					: undefined);
 
+	const xmsg = (contextName === context ? ''
+				  : ` Select "${contextName}" in the top-left dropdown to view your data.`);
+	
 	const postMsg = (currentImportIdx === selections.length
-					 ? renderMsg('Import complete.', true)
+					 ? renderMsg('Import complete.' + xmsg, true)
 					 : undefined);
 
 	const resultsMsgs = results.map((r, irow) => {

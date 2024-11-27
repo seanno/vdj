@@ -156,6 +156,29 @@ export default memo(function UploadPane({ user, context, refresh, rkey }) {
 	);
   }
 
+  // +----------------+
+  // | renderComplete |
+  // +----------------+
+
+  function renderComplete() {
+
+	const msg = `Successfully uploaded ${confirmation.TotalUniques} ` +
+		  `unique sequences to repertoire "${confirmation.Name}".`;
+
+	const xmsg = (contextName === context ? undefined
+				  : ` Select "${contextName}" in the top-left dropdown to view your data.`);
+
+	return(
+	  <>
+		<div>{msg}</div>
+		{ xmsg && <div>{xmsg}</div> }
+		<br/>
+		<div className={styles.hdr}>Close this tab with the [X] icon above.</div> 
+	  </>
+	);
+
+  }
+
   // +--------+
   // | render |
   // +--------+
@@ -174,8 +197,7 @@ export default memo(function UploadPane({ user, context, refresh, rkey }) {
 		renderMsg(`An error occurred: ${error}.`, true) }
 	  
 	  { confirmation &&
-		renderMsg(`Successfully uploaded ${confirmation.TotalUniques} ` +
-				  `unique sequences to repertoire ${confirmation.Name}.`, true) }
+		renderComplete() }
 
 	</div>
 	
