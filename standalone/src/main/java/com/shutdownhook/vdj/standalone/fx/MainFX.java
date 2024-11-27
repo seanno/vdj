@@ -29,7 +29,7 @@ public class MainFX extends Application {
 	private final static int VGAP = 10;
 
 	private final static int WINDOW_WIDTH = 550;
-	private final static int WINDOW_HEIGHT = 200;
+	private final static int WINDOW_HEIGHT = 250;
 	private final static int PADDING_SIZE = 20;
 	private final static int WRAPPING_WIDTH = 500;
 	
