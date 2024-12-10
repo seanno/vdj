@@ -33,7 +33,7 @@ public class OverlapTest
 		store = new Helpers.TempRepertoireStore();
 		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, "A_BCell_ID.tsv"));
 		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, "A_BCell_MRD.tsv"));
-		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, "02583-02BH.tsv"));
+		store.addFromResource(new RepertoireSpec(TEST_USER, TEST_CONTEXT, "BH.tsv"));
 		crs = new ContextRepertoireStore(store.get(), TEST_USER, TEST_CONTEXT);
 	}
 	
@@ -90,7 +90,7 @@ public class OverlapTest
 
 		Overlap.Params params = new Overlap.Params();
 		params.CRS = crs;
-		params.RepertoireNames = new String[] { "A_BCell_ID.tsv", "A_BCell_MRD.tsv", "02583-02BH.tsv" };
+		params.RepertoireNames = new String[] { "A_BCell_ID.tsv", "A_BCell_MRD.tsv", "BH.tsv" };
 		params.Extractor = RearrangementKey.getExtractor(keyType);
 		
 		return(overlap.overlapAsync(params).get());

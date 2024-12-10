@@ -29,7 +29,7 @@ public class TopXTest
 
 	private static String REP_1 = "subject9-v2.tsv";
 	private static String REP_2 = "subject9-v3.tsv";
-	private static String REP_3 = "02583-02BH.tsv";
+	private static String REP_3 = "BH.tsv";
 	private static String REP_DX_1 = "A_BCell_ID.tsv";
 	private static String REP_DX_2 = "D_BCell_Cellfree_MRD.tsv";
 	

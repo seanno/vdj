@@ -26,7 +26,7 @@ public class ExportTest
 	private static String TEST_CONTEXT = "context";
 
 	private static String REP_1 = "subject9-v2.tsv";
-	private static String REP_2 = "02583-02BH.tsv";
+	private static String REP_2 = "BH.tsv";
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {

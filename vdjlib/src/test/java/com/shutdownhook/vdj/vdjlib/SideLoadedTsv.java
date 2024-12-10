@@ -101,7 +101,7 @@ public class SideLoadedTsv
 		tsvs = new SideLoadedTsv[TEST_TSV_COUNT];
 		tsvs[TEST_V2_TCRB] = new SideLoadedTsv("subject9-v2.tsv", V2);
 		tsvs[TEST_V3_TCRB] = new SideLoadedTsv("subject9-v3.tsv", V3);
-		tsvs[TEST_V2_IGH] = new SideLoadedTsv("02583-02BH.tsv", V2);
+		tsvs[TEST_V2_IGH] = new SideLoadedTsv("BH.tsv", V2);
 		tsvs[TEST_PIPELINE_TCRG] = new SideLoadedTsv("A_TCRG_ID.tsv", PIPELINE);
 		tsvs[TEST_CELLFREE_EOS] = new SideLoadedTsv("D_BCell_Cellfree_MRD.tsv", PIPELINE);
 		tsvs[TEST_AGATE_1] = new SideLoadedTsv("agate_1.tsv", AGATE, 61781L, 0.0, LocalDate.now());
