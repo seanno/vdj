@@ -57,7 +57,7 @@ export default memo(function OverlapChartPane({ context, repertoires, params, rk
 	const countStr = count.toLocaleString();
 	const val = getNormValue(rep, count);
 	if (rep.TotalMilliliters > 0.0) return(`${countStr} (${Math.round(val).toLocaleString()} per ML)`);
-	if (rep.TotalCells > 0) return(`${countStr} (${(val/10000).toFixed(4)}% of Cells)}`);
+	if (rep.TotalCells > 0) return(`${countStr} (${(val/10000).toFixed(4)}% of Cells)`);
 	return(countStr);
 	
   }
@@ -122,12 +122,13 @@ export default memo(function OverlapChartPane({ context, repertoires, params, rk
 	const rep0 = results.Repertoires[0];
 	const rep1 = results.Repertoires[1];
 	
-	const title0 = rep0.Name + ' (' + getNormLabel(rep0) + ')';
-	const title1 = rep1.Name + ' (' + getNormLabel(rep1) + ')';
+	const title0 = rep0.Name + ' (log10 ' + getNormLabel(rep0) + ')';
+	const title1 = rep1.Name + ' (log10 ' + getNormLabel(rep1) + ')';
 
 	const data = [[
 	  { type: 'number', title0 },
-	  { type: 'number', title1 }
+	  { type: 'number', title1 },
+	  { type: 'string', role: 'tooltip' }
 	]];
 
 	var maxVal = 0.0;
@@ -137,14 +138,21 @@ export default memo(function OverlapChartPane({ context, repertoires, params, rk
 	  const item = results.Items[i];
 
 	  const count0 = item.Counts[0];
-	  const val0 = (count0 === 0 ? -0.25 : Math.max(Math.log10(getNormValue(rep0, count0)), 0));
+	  const norm0 = getNormValue(rep0, count0);
+	  const val0 = (count0 === 0 ? -0.25 : Math.max(Math.log10(norm0), 0));
 	  if (val0 > maxVal) maxVal = val0;
 	  
 	  const count1 = item.Counts[1];
-	  const val1 = (count1 === 0 ? -0.25 : Math.max(Math.log10(getNormValue(rep1, count1)), 0));
+	  const norm1 = getNormValue(rep1, count1);
+	  const val1 = (count1 === 0 ? -0.25 : Math.max(Math.log10(norm1), 0));
 	  if (val1 > maxVal) maxVal = val1;
 
-	  data.push([ val0, val1 ]);
+	  const tt =
+			rep0.Name + ': ' + getNormString(rep0, count0) + '\n' +
+			rep1.Name + ': ' + getNormString(rep1, count1) + '\n' +
+			'click point for details';
+	  
+	  data.push([ val0, val1, tt ]);
 	}
 
 	maxVal = Math.floor(maxVal + 1);
