@@ -221,18 +221,18 @@ public class TsvReader implements Closeable
 				if (nv.length < 2 || Utility.nullOrEmpty(nv[1])) continue;
 
 				if (nv[0].equalsIgnoreCase("estTotalNucleatedCells")) {
-					
-					cellCount = (long) Math.round(Double.parseDouble(nv[1]));
+					Double dbl = safeParseDouble(nv[1]);
+					if (dbl != null) cellCount = (long) Math.round(dbl);
 				}
 				else if (nv[0].equalsIgnoreCase("sampleMilliliters")) {
 					
-					double millis = Double.parseDouble(nv[1]);
-					if (millis > 0.0) sampleMillis = millis;
+					Double millis = safeParseDouble(nv[1]);
+					if (millis != null && millis > 0.0) sampleMillis = millis;
 				}
 				else if (cellCount == null && nv[0].equalsIgnoreCase("productionPCRAmountofTemplate")) {
 
-					double amt = Double.parseDouble(nv[1]);
-					if (amt >= MIN_VALID_AMT_FOR_ESTIMATE) {
+					Double amt = safeParseDouble(nv[1]);
+					if (amt != null && amt >= MIN_VALID_AMT_FOR_ESTIMATE) {
 						// amt is in nanograms. Each cell has approximately
 						// 6.5 picograms of DNA ... so this calculation gets
 						// us to an estimate of cells based on input amount.
@@ -255,6 +255,11 @@ public class TsvReader implements Closeable
 
 			break;
 		}
+	}
+
+	private static Double safeParseDouble(String str) {
+		try { return(Double.parseDouble(str)); }
+		catch (NumberFormatException nfe) { return(null); }
 	}
 
 	private void setHeaderPosition(int i, String header) {
