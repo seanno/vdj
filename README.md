@@ -2,7 +2,7 @@
 
 An open source library and web application for working with T- and B-cell repertoires, for example those marketed by [Adaptive Biotechnologies](https://adaptivebiotech.com). Native Adaptive pipeline files and [immunoSEQ Analyzer](https://clients.adaptivebiotech.com) v2 and v3 export files can be used. 
 
-*NOTE: VDJ is not provided by or associated with Adaptive Biotechnologies. The code for VDJ is open-source, available under MIT license. If you would like to see support for files types from other pipelines, please create an issue in this repository and we'll do our best to help.*
+*NOTE: VDJ is not provided by or associated with Adaptive Biotechnologies. The code for VDJ is open-source, available under MIT license. If you would like to see support for data from other pipelines, please create an issue in this repository and we'll do our best to help.*
 
 * [vdjlib](vdjlib) contains code for working with repertoires. It depends on the gson library only.
 * [client](client) is a React application that provides a UX for working with repertoires. 
