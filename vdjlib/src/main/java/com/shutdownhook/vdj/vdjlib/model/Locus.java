@@ -24,11 +24,11 @@ public enum Locus
 	public static Locus fromGene(String v, String d, String j,
 								 String vTies, String dTies, String jTies) throws IllegalArgumentException {
 
-		String gene = (!j.isEmpty() ? j
-					   : (!d.isEmpty() ? d
-						  : (!v.isEmpty() ? v
-							 : (!jTies.isEmpty() ? jTies
-								: (!dTies.isEmpty() ? dTies
+		String gene = (hasLocus(j) ? j
+					   : (hasLocus(d) ? d
+						  : (hasLocus(v) ? v
+							 : (hasLocus(jTies) ? jTies
+								: (hasLocus(dTies) ? dTies
 								   : vTies)))));
 
 		if (gene.startsWith("TCR")) {
@@ -46,6 +46,12 @@ public enum Locus
 			}
 		}
 		throw new IllegalArgumentException("Bad Locus: " + gene);
+	}
+
+	private static boolean hasLocus(String str) {
+		return(str != null &&
+			   !str.isEmpty() &&
+			   (str.startsWith("TCR") || str.startsWith("IG")));
 	}
 }
 
