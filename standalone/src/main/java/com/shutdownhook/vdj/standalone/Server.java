@@ -799,7 +799,6 @@ public class Server implements Closeable
 			case "move": adminMoveRepertoire(info, body); break;
 			case "obo": adminVerifyBlobOBO(info, body); break;
 			case "deets": adminGetRequestDetails(info); break;
-			case "aquery": adminQueryAgate(info, body); break;
 			default: info.Response.Status = 500; break;
 		}
 	}
@@ -844,13 +843,6 @@ public class Server implements Closeable
 	private void adminVerifyBlobOBO(ApiInfo info, String body) throws Exception {
 		boolean ok = Admin.verifyBlobOBOAccess(body, info.Request, cfg.AgateClientSecretEnvVar);
 		info.Response.setJson(String.format("{ \"result\": \"%s\" }", ok ? "OK" : "Error; see logs"));
-	}
-
-	// adminQueryAgate
-	private void adminQueryAgate(ApiInfo info, String body) throws Exception {
-		AgateParams params = Utility.getGson().fromJson(body, AgateParams.class);
-		AgateImport agate = getAgate(params, info);
-		info.Response.setJson(Utility.getGson().toJson(agate.query(params.Query)));
 	}
 
 	// +---------+

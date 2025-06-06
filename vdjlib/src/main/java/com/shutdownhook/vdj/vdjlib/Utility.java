@@ -5,7 +5,11 @@
 package com.shutdownhook.vdj.vdjlib;
 
 import java.io.Closeable;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -21,6 +25,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.util.Base64;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import com.google.gson.Gson;
@@ -43,6 +48,39 @@ public class Utility
 		return(s == null || s.isEmpty());
 	}
 
+	// +---------+
+	// | Streams |
+	// +---------+
+	
+	public static String stringFromInputStream(InputStream stream) throws IOException {
+
+		if (stream == null)
+			return(null);
+
+		StringBuilder sb = new StringBuilder();
+		
+		InputStreamReader reader = null;
+		BufferedReader buffered = null;
+
+		try {
+			reader = new InputStreamReader(stream);
+			buffered = new BufferedReader(reader);
+
+			char[] rgch = new char[4096];
+			int cch = -1;
+
+			while ((cch = buffered.read(rgch, 0, rgch.length)) != -1) {
+				sb.append(rgch, 0, cch);
+			}
+		}
+		finally {
+			if (buffered != null) buffered.close();
+			if (reader != null) reader.close();
+		}
+
+		return(sb.toString());
+	}
+
 	// +--------------------+
 	// | Encodings / Hashes |
 	// +--------------------+
@@ -57,8 +95,17 @@ public class Utility
 		catch (UnsupportedEncodingException e) { return(null); } // won't happen
 	}
 
+	public static String odataEncode(String input) {
+		return(input.replace("'", "''"));
+	}
+
 	public static String base64urlDecode(String input) throws IllegalArgumentException {
 		try { return(new String(Base64.getUrlDecoder().decode(input), "UTF-8")); }
+		catch (UnsupportedEncodingException e) { return(null); } // won't happen
+	}
+
+	public static String base64Encode(String input) {
+		try { return(Base64.getEncoder().encodeToString(input.getBytes("UTF-8"))); }
 		catch (UnsupportedEncodingException e) { return(null); } // won't happen
 	}
 
@@ -92,6 +139,7 @@ public class Utility
 	// +-------+
 
 	public static void safeClose(Closeable c) {
+		if (c == null) return;
 		try { c.close(); }
 		catch (Exception e) { /* eat it */ }
 	}
