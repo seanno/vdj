@@ -9,6 +9,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 import { serverFetchAgateSamples, serverImportAgate } from './lib/server.js';
+import { cleanContextName } from './lib/utility.js';
 
 import styles from './Pane.module.css'
 
@@ -91,9 +92,9 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 		  setSelections([]);
 		  
 		  if (!contextName) {
-			setContextName(searchString.endsWith("-")
-						   ? searchString.substring(0, searchString.length - 1)
-						   : searchString);
+			setContextName(cleanContextName(searchString.endsWith("-")
+											? searchString.substring(0, searchString.length - 1)
+											: searchString));
 		  }
 		})
 		.catch(error => {
@@ -312,7 +313,7 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 			variant='outlined'
 			value={contextName}
 			sx={{ width: '100%' }}
-			onChange={(evt) => setContextName(evt.target.value)}
+			onChange={(evt) => setContextName(cleanContextName(evt.target.value))}
 		  />
 		</div>
 		
