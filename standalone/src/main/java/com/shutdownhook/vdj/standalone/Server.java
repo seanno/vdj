@@ -28,6 +28,7 @@ import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.OnBehalfOfParams;
 import com.shutdownhook.vdj.vdjlib.AgateImport;
 import com.shutdownhook.vdj.vdjlib.ContextRepertoireStore;
 import com.shutdownhook.vdj.vdjlib.Export;
+import com.shutdownhook.vdj.vdjlib.GeneUse;
 import com.shutdownhook.vdj.vdjlib.MrdEngine;
 import com.shutdownhook.vdj.vdjlib.RearrangementKey;
 import com.shutdownhook.vdj.vdjlib.RearrangementKey.KeyType;
@@ -114,6 +115,7 @@ public class Server implements Closeable
 		public String AdminScope = "admin";
 		public String DxScope = "dxopt";
 		public String TrackingScope = "track";
+		public String GeneUseScope = "genes";
 
 		public String ClientSiteZip = "@clientSite.zip";
 		public Boolean StaticPagesRouteHtmlWithoutExtension = false;
@@ -325,6 +327,13 @@ public class Server implements Closeable
 
 					if (request.Method.equals("POST")) {
 						handleTrackingRequest(info);
+						handled = true;
+					}
+				}
+				else if (info.Scope.equals(cfg.GeneUseScope)) {
+
+					if (request.Method.equals("POST")) {
+						handleGeneUseRequest(info);
 						handled = true;
 					}
 				}
@@ -783,6 +792,33 @@ public class Server implements Closeable
 		Tracking.Results results = track.trackAsync(params).get();
 
 		info.Response.setJson(Utility.getGson().toJson(results));
+	}
+
+	// +----------+
+	// | Gene Use |
+	// +----------+
+
+	public static class GeneUseParams
+	{
+		public Boolean IncludeUnknown = false;
+		public Boolean IncludeFamilyOnly = false;
+	}
+	
+	private void handleGeneUseRequest(ApiInfo info) throws Exception {
+
+		String body = new String(info.Request.BodyStream.readAllBytes(), StandardCharsets.UTF_8);
+		GeneUseParams gup = Utility.getGson().fromJson(body, GeneUseParams.class);
+
+		GeneUse.Params params = new GeneUse.Params();
+		params.CRS = new ContextRepertoireStore(store, info.UserId, info.ContextName);
+		params.Repertoire = info.RepertoireName;
+		params.IncludeUnknown = gup.IncludeUnknown;
+		params.IncludeFamilyOnly = gup.IncludeFamilyOnly;
+
+		GeneUse geneUse = new GeneUse();
+		GeneUse.Result result = geneUse.getAsync(params).get();
+
+		info.Response.setJson(Utility.getGson().toJson(result));
 	}
 
 	// +--------------------+

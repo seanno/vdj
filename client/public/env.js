@@ -63,3 +63,9 @@ window.agateMinSearchLength = 5;
 // EXPORT
 
 window.exportDefaultFormat = 'Original';
+
+// GENEUSE
+
+window.geneUseDefaultIncludeUnknown = false;
+window.geneUseDefaultIncludeFamilyOnly = false;
+window.geneUseDefaultLog10Counts = true;
