@@ -332,7 +332,7 @@ public class Server implements Closeable
 				}
 				else if (info.Scope.equals(cfg.GeneUseScope)) {
 
-					if (request.Method.equals("POST")) {
+					if (request.Method.equals("GET")) {
 						handleGeneUseRequest(info);
 						handled = true;
 					}
@@ -798,27 +798,21 @@ public class Server implements Closeable
 	// | Gene Use |
 	// +----------+
 
-	public static class GeneUseParams
-	{
-		public Boolean IncludeUnknown = false;
-		public Boolean IncludeFamilyOnly = false;
-	}
-	
 	private void handleGeneUseRequest(ApiInfo info) throws Exception {
-
-		String body = new String(info.Request.BodyStream.readAllBytes(), StandardCharsets.UTF_8);
-		GeneUseParams gup = Utility.getGson().fromJson(body, GeneUseParams.class);
 
 		GeneUse.Params params = new GeneUse.Params();
 		params.CRS = new ContextRepertoireStore(store, info.UserId, info.ContextName);
 		params.Repertoire = info.RepertoireName;
-		params.IncludeUnknown = gup.IncludeUnknown;
-		params.IncludeFamilyOnly = gup.IncludeFamilyOnly;
 
 		GeneUse geneUse = new GeneUse();
-		GeneUse.Result result = geneUse.getAsync(params).get();
+		GeneUse.VJPair[] result = geneUse.getAsync(params).get();
 
 		info.Response.setJson(Utility.getGson().toJson(result));
+	}
+
+	private Boolean queryBoolean(ApiInfo info, String param, Boolean defaultVal) {
+		String str = info.Request.QueryParams.get(param);
+		return(Easy.nullOrEmpty(str) ? defaultVal : Boolean.parseBoolean(str));
 	}
 
 	// +--------------------+
