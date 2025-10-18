@@ -16,6 +16,8 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
   const [includeFamilyOnly, setIncludeFamilyOnly] = useState(window.geneUseDefaultIncludeFamilyOnly);
   const [log10Counts, setLog10Counts] = useState(window.geneUseDefaultLog10Counts);
 
+  const [hoverTip, setHoverTip] = useState(null);
+  
   const [results, setResults] = useState(null);
   const [error,setError] = useState(undefined);
 
@@ -50,7 +52,7 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
   function toggleUnknownCheckbox() { setIncludeUnknown(!includeUnknown); }
   function toggleFamilyOnlyCheckbox() { setIncludeFamilyOnly(!includeFamilyOnly); }
   function toggleLog10CountsCheckbox() { setLog10Counts(!log10Counts); }
-
+  
   // +------------------+
   // | translateResults |
   // +------------------+
@@ -98,7 +100,7 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
   // +---------------+
   // | renderResults |
   // +---------------+
-
+  
   function renderChart() {
 
 	const [ vDim, jDim, counts, minCount, maxCount ] = translateResults();
@@ -118,15 +120,23 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 	  for (var vindex = 0; vindex < vDim.length; ++vindex) {
 		
 		const v = vDim[vindex];
-		var count = counts[v + '|' + j];
+		const key=[v + '|' + j];
+		var count = counts[key];
 		if (!count) count = 0;
 
-		const height = (count / maxCount) * barMax; if (height > 0) console.log(`BIG: ${height}`);
+		const height = (count / maxCount) * barMax;
 		const boxPosition = [ vindex * (barWidth + barGap), height / 2, jindex * (barWidth + barGap) ];
 		const boxGeometry = [ barWidth, height, barWidth ];
 
+		const tipText = `${v} , ${j}<br/>Count: ${count}`;
+		
 		bars.push(
-		  <mesh position={ boxPosition }>
+		  <mesh
+			key={ rkey + key }
+			onPointerOver={() => setHoverTip(tipText)}
+			onPointerOut={() => setHoverTip(null)}
+			position={ boxPosition } >
+
 			<boxGeometry args={ boxGeometry} />
 			<meshPhongMaterial color={color} shininess={20}/>
 		  </mesh>
@@ -155,7 +165,14 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 	// now the actual chart
 
 	return(
-	  <div style={{ height: window.geneUseHeight, width: window.geneUseWidth }}>
+	  <div style={{ position: 'relative', height: window.geneUseHeight, width: window.geneUseWidth }}>
+		
+		{ hoverTip &&
+		  <div
+			dangerouslySetInnerHTML={{__html: hoverTip}}
+			style={{ position: 'absolute', backgroundColor: 'white', padding: '2px', zIndex: 999 }}
+		  /> }
+		
 		<Canvas
 		  camera={{ position: cameraPosition, fov: fov }}
 		  onCreated={({camera}) => camera.lookAt(lookAtX, lookAtY, lookAtZ) } >
@@ -173,20 +190,6 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 	  <div>
 
 		{ renderChart() }
-		
-		{
-		  /*		
-		<table>
-		  <tbody>
-			<tr>
-			  <td><xmp>{JSON.stringify(v, null, 2)}</xmp></td>
-			  <td><xmp>{JSON.stringify(j, null, 2)}</xmp></td>
-			  <td><xmp>{JSON.stringify(c, null, 2)}</xmp></td>
-			</tr>
-		  </tbody>
-		</table>
-		  */
-		}
 		
         <div className={styles.dialogTxt}>
 
