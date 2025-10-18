@@ -4,6 +4,8 @@ import { memo, useEffect, useState } from 'react';
 import {  ListItem, ListItemButton, ListItemIcon,
 		 Checkbox, ListItemText, Snackbar } from '@mui/material';
 
+import { Canvas } from '@react-three/fiber';
+
 import { serverFetchGeneUse } from './lib/server.js';
 
 import styles from './Pane.module.css'
@@ -54,40 +56,138 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
   // +------------------+
 
   // we do this all client side because gene use result sets aren't ever
-  // very large and it allows us to be more responsible to parameter changes
+  // very large and it allows us to be more responsive to parameter changes
 
   function translateResults() {
 
-	var filtered = results;
-	if (!includeUnknown) filtered = filtered.filter(vj => (vj.V !== 'X' && vj.J !== 'X'));
-	if (!includeFamilyOnly) filtered = filtered.filter(vj => (!vj.V.endsWith('-X') && !vj.J.endsWith('-X')));
+	// first collect up / filter values
+	
+	const countsMap = {};
+	const vMap = {};
+	const jMap = {};
 
-	const v = filtered.map(vj => vj.V);
-	const j = filtered.map(vj => vj.J);
-	const c = filtered.map(vj => (log10Counts ? Math.log10(vj.Count) : vj.Count));
+	var minCount = Number.MAX_VALUE;
+	var maxCount = Number.MIN_VALUE;
+	
+	for (var i = 0; i < results.length; ++i) {
 
-	return([v,j,c]);
+	  const vj = results[i];
+	  
+	  if (!includeUnknown && (vj.V === 'X' || vj.J === 'X')) continue;
+	  if (!includeFamilyOnly && (vj.V.endsWith('-X') || vj.J.endsWith('-X'))) continue;
+
+	  const adjCount = (log10Counts ? Math.log10(vj.Count) : vj.Count);
+	  countsMap[vj.V + '|' + vj.J] = adjCount;
+	  vMap[vj.V] = true; jMap[vj.J] = true;
+	  if (adjCount > maxCount) maxCount = adjCount;
+	  if (adjCount < minCount) minCount = adjCount;
+	}
+
+	// now get unique V and Js
+
+	const uniqueVs = Object.keys(vMap).sort();
+	const uniqueJs = Object.keys(jMap).sort();
+
+	// and return it all. I feel a little badly about this because it's kind
+	// of a sloppy abstraction but I can only loop over arrays so many times
+	// before it's too much to take.
+
+	return([ uniqueVs, uniqueJs, countsMap, minCount, maxCount ]);
   }
 
   // +---------------+
   // | renderResults |
   // +---------------+
 
+  function renderChart() {
+
+	const [ vDim, jDim, counts, minCount, maxCount ] = translateResults();
+
+	const barWidth = window.geneUseBarWidth;
+	const barGap = window.geneUseBarGap;
+	const barMax = window.geneUseBarMax;
+	
+	// render the bars where there is a value 
+	
+	const bars = [];
+	for (var jindex = 0; jindex < jDim.length; ++jindex) {
+	  
+	  const j = jDim[jindex];
+	  const color = window.geneUseColors[jindex % window.geneUseColors.length];
+	  
+	  for (var vindex = 0; vindex < vDim.length; ++vindex) {
+		
+		const v = vDim[vindex];
+		var count = counts[v + '|' + j];
+		if (!count) count = 0;
+
+		const height = (count / maxCount) * barMax; if (height > 0) console.log(`BIG: ${height}`);
+		const boxPosition = [ vindex * (barWidth + barGap), height / 2, jindex * (barWidth + barGap) ];
+		const boxGeometry = [ barWidth, height, barWidth ];
+
+		bars.push(
+		  <mesh position={ boxPosition }>
+			<boxGeometry args={ boxGeometry} />
+			<meshPhongMaterial color={color} shininess={20}/>
+		  </mesh>
+		);
+	  }
+	}
+
+	const cameraPosition = [
+	  (vDim.length * (barWidth + barGap)) * .8,
+	  barMax * 1.5,
+	  (jDim.length * (barWidth + barGap)) * 5
+	];
+
+	const lightPosition = [
+	  (vDim.length * (barWidth + barGap)),
+	  barMax * 1.5,
+	  (jDim.length * (barWidth + barGap))
+	];
+
+	const lookAtX = ((vDim.length * (barWidth + barGap)) / 2) * 1.2;
+	const lookAtY = barMax / 2.5;
+	const lookAtZ = (jDim.length * (barWidth + barGap)) / 2;
+
+	const fov = 40;
+
+	// now the actual chart
+
+	return(
+	  <div style={{ height: window.geneUseHeight, width: window.geneUseWidth }}>
+		<Canvas
+		  camera={{ position: cameraPosition, fov: fov }}
+		  onCreated={({camera}) => camera.lookAt(lookAtX, lookAtY, lookAtZ) } >
+		  <ambientLight intensity={1} />
+		  <directionalLight position={lightPosition} intensity={1.1} />
+		  { bars }
+		</Canvas>
+	  </div>
+	);
+  }
+  
   function renderResults() {
 
-	const [v,j,c] = translateResults();
-	
 	return(
 	  <div>
 
+		{ renderChart() }
+		
+		{
+		  /*		
 		<table>
-		  <tr>
-			<td><xmp>{JSON.stringify(v, null, 2)}</xmp></td>
-			<td><xmp>{JSON.stringify(j, null, 2)}</xmp></td>
-			<td><xmp>{JSON.stringify(c, null, 2)}</xmp></td>
-		  </tr>
+		  <tbody>
+			<tr>
+			  <td><xmp>{JSON.stringify(v, null, 2)}</xmp></td>
+			  <td><xmp>{JSON.stringify(j, null, 2)}</xmp></td>
+			  <td><xmp>{JSON.stringify(c, null, 2)}</xmp></td>
+			</tr>
+		  </tbody>
 		</table>
-
+		  */
+		}
+		
         <div className={styles.dialogTxt}>
 
 		  <ListItem disablePadding>
