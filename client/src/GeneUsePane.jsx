@@ -52,6 +52,22 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
   function toggleUnknownCheckbox() { setIncludeUnknown(!includeUnknown); }
   function toggleFamilyOnlyCheckbox() { setIncludeFamilyOnly(!includeFamilyOnly); }
   function toggleLog10CountsCheckbox() { setLog10Counts(!log10Counts); }
+
+  async function tipToClip() {
+
+	if (!hoverTip) return;
+	
+	const queryOpts = { name: "clipboard-write", allowWithoutGesture: "false" };
+	const perms = await navigator.permissions.query(queryOpts);
+
+	if (perms.state === "denied") {
+	  alert("Access to the clipboard was denied");
+	  return;
+	}
+
+	navigator.clipboard.writeText(hoverTip.replace("<br/>", "\n"))
+	  .catch((err) => alert(err));
+  }
   
   // +------------------+
   // | translateResults |
@@ -101,9 +117,7 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
   // | renderResults |
   // +---------------+
   
-  function renderChart() {
-
-	const [ vDim, jDim, counts, minCount, maxCount ] = translateResults();
+  function renderChart(vDim, jDim, counts, minCount, maxCount) {
 
 	const barWidth = window.geneUseBarWidth;
 	const barGap = window.geneUseBarGap;
@@ -128,13 +142,14 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 		const boxPosition = [ vindex * (barWidth + barGap), height / 2, jindex * (barWidth + barGap) ];
 		const boxGeometry = [ barWidth, height, barWidth ];
 
-		const tipText = `${v} , ${j}<br/>Count: ${count}`;
+		const tipText = `${v}<br/>${j}<br/>${count}`;
 		
 		bars.push(
 		  <mesh
 			key={ rkey + key }
 			onPointerOver={() => setHoverTip(tipText)}
 			onPointerOut={() => setHoverTip(null)}
+			onClick={tipToClip}
 			position={ boxPosition } >
 
 			<boxGeometry args={ boxGeometry} />
@@ -160,7 +175,7 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 	const lookAtY = barMax / 2.5;
 	const lookAtZ = (jDim.length * (barWidth + barGap)) / 2;
 
-	const fov = 40;
+	const fov = vDim.length > 100 ? 45 : 30;
 
 	// now the actual chart
 
@@ -186,50 +201,68 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
   
   function renderResults() {
 
+	const [ vDim, jDim, counts, minCount, maxCount ] = translateResults();
+
 	return(
 	  <div>
 
-		{ renderChart() }
+		{ renderChart(vDim, jDim, counts, minCount, maxCount) }
+
+		<div style={{ display: 'grid', gridTemplateColumns: '300px 1fr' }}>
+		  
+          <div style={{ gridRow: 1, gridColumn: 1 }} className={styles.dialogTxt}>
+
+			<ListItem disablePadding>
+              <ListItemButton rule={undefined} onClick={() => toggleUnknownCheckbox()}>
+				<ListItemIcon sx={{ minWidth: '20px' }}>
+                  <Checkbox edge='start' checked={includeUnknown} tabIndex={-1} disableRipple
+							inputProps={{ 'aria-labelledby': `${rkey}-full` }}
+							sx={{ padding: '0px' }} />
+				</ListItemIcon>
+				<ListItemText sx={{ margin: '0px' }} id={`${rkey}-full`}
+                              primary='Include unknown family' />
+              </ListItemButton>
+			</ListItem>
+
+			<ListItem disablePadding>
+              <ListItemButton rule={undefined} onClick={() => toggleFamilyOnlyCheckbox()}>
+				<ListItemIcon sx={{ minWidth: '20px' }}>
+                  <Checkbox edge='start' checked={includeFamilyOnly} tabIndex={-1} disableRipple
+							inputProps={{ 'aria-labelledby': `${rkey}-full` }}
+							sx={{ padding: '0px' }} />
+				</ListItemIcon>
+				<ListItemText sx={{ margin: '0px' }} id={`${rkey}-full`}
+                              primary='Include unknown gene' />
+              </ListItemButton>
+			</ListItem>
+
+			<ListItem disablePadding>
+              <ListItemButton rule={undefined} onClick={() => toggleLog10CountsCheckbox()}>
+				<ListItemIcon sx={{ minWidth: '20px' }}>
+                  <Checkbox edge='start' checked={log10Counts} tabIndex={-1} disableRipple
+							inputProps={{ 'aria-labelledby': `${rkey}-full` }}
+							sx={{ padding: '0px' }} />
+				</ListItemIcon>
+				<ListItemText sx={{ margin: '0px' }} id={`${rkey}-full`}
+                              primary='Use Log10 Counts' />
+              </ListItemButton>
+			</ListItem>
+
+          </div>
+
+		  <div style={{ gridRow: 1, gridColumn: 2 }}>
+
+			<ul>
+			  <li>{vDim.length} unique V Genes</li>
+			  <li>{jDim.length} unique J Genes</li>
+			  <li>{Object.keys(counts).length} unique combinations</li>
+			</ul>
+			
+		  </div>
+		  
+		</div>
+
 		
-        <div className={styles.dialogTxt}>
-
-		  <ListItem disablePadding>
-            <ListItemButton rule={undefined} onClick={() => toggleUnknownCheckbox()}>
-			  <ListItemIcon sx={{ minWidth: '20px' }}>
-                <Checkbox edge='start' checked={includeUnknown} tabIndex={-1} disableRipple
-						  inputProps={{ 'aria-labelledby': `${rkey}-full` }}
-						  sx={{ padding: '0px' }} />
-			  </ListItemIcon>
-			  <ListItemText sx={{ margin: '0px' }} id={`${rkey}-full`}
-                            primary='Include unknown family' />
-            </ListItemButton>
-		  </ListItem>
-
-		  <ListItem disablePadding>
-            <ListItemButton rule={undefined} onClick={() => toggleFamilyOnlyCheckbox()}>
-			  <ListItemIcon sx={{ minWidth: '20px' }}>
-                <Checkbox edge='start' checked={includeFamilyOnly} tabIndex={-1} disableRipple
-						  inputProps={{ 'aria-labelledby': `${rkey}-full` }}
-						  sx={{ padding: '0px' }} />
-			  </ListItemIcon>
-			  <ListItemText sx={{ margin: '0px' }} id={`${rkey}-full`}
-                            primary='Include unknown gene' />
-            </ListItemButton>
-		  </ListItem>
-
-		  <ListItem disablePadding>
-            <ListItemButton rule={undefined} onClick={() => toggleLog10CountsCheckbox()}>
-			  <ListItemIcon sx={{ minWidth: '20px' }}>
-                <Checkbox edge='start' checked={log10Counts} tabIndex={-1} disableRipple
-						  inputProps={{ 'aria-labelledby': `${rkey}-full` }}
-						  sx={{ padding: '0px' }} />
-			  </ListItemIcon>
-			  <ListItemText sx={{ margin: '0px' }} id={`${rkey}-full`}
-                            primary='Use Log10 Counts' />
-            </ListItemButton>
-		  </ListItem>
-
-        </div>
 	  </div>
 	);
   }
