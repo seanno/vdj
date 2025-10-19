@@ -76,7 +76,7 @@ window.geneUseHeight = '250px';
 window.geneUseColors = [ '#4E79A7','#F28E2B','#E15759','#76B7B2','#59A14E',
 						 '#EDC949','#B07AA2','#FF9DA7','#9C755F','#BAB0AC' ];
 
-window.geneUseDx = 300;
+window.geneUseDx = 375;
 window.geneUseDy = 100;
 window.geneUseGap = .5;
 

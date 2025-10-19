@@ -174,7 +174,7 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 	];
 
 	const lookAtX = window.geneUseDx / 2;
-	const lookAtY = barMax * 3 / 8;
+	const lookAtY = barMax / 4;
 	const lookAtZ = (jDim.length * (barWidth + barGap)) / 2 * -1;
 
 	const fov = 22;
