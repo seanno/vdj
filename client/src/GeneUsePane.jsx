@@ -103,7 +103,7 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 
 	// now get unique V and Js
 
-	const uniqueVs = Object.keys(vMap).sort();
+	const uniqueVs = Object.keys(vMap).sort(); 
 	const uniqueJs = Object.keys(jMap).sort();
 
 	// and return it all. I feel a little badly about this because it's kind
@@ -119,10 +119,12 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
   
   function renderChart(vDim, jDim, counts, minCount, maxCount) {
 
-	const barWidth = window.geneUseBarWidth;
-	const barGap = window.geneUseBarGap;
-	const barMax = window.geneUseBarMax;
-	
+	const barWidth = (window.geneUseDx / vDim.length) - window.geneUseGap;
+	const barGap = window.geneUseGap;
+	const barMax = window.geneUseDy;
+
+	console.log(`barWidth=${barWidth} barGap=${barGap} barMax=${barMax}`);
+
 	// render the bars where there is a value 
 	
 	const bars = [];
@@ -139,7 +141,7 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 		if (!count) count = 0;
 
 		const height = (count / maxCount) * barMax;
-		const boxPosition = [ vindex * (barWidth + barGap), height / 2, jindex * (barWidth + barGap) ];
+		const boxPosition = [ vindex * (barWidth + barGap), height / 2, jindex * (barWidth + barGap) * -1];
 		const boxGeometry = [ barWidth, height, barWidth ];
 
 		const tipText = `${v}<br/>${j}<br/>${count}`;
@@ -153,34 +155,34 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 			position={ boxPosition } >
 
 			<boxGeometry args={ boxGeometry} />
-			<meshPhongMaterial color={color} shininess={20}/>
+			<meshPhongMaterial color={color} shininess={40}/>
 		  </mesh>
 		);
 	  }
 	}
 
 	const cameraPosition = [
-	  (vDim.length * (barWidth + barGap)) * .8,
-	  barMax * 1.5,
-	  (jDim.length * (barWidth + barGap)) * 5
+	  window.geneUseDx * 3 / 4,
+	  barMax * 3,
+	  350
 	];
 
 	const lightPosition = [
-	  (vDim.length * (barWidth + barGap)),
+	  window.geneUseDx,
 	  barMax * 1.5,
 	  (jDim.length * (barWidth + barGap))
 	];
 
-	const lookAtX = ((vDim.length * (barWidth + barGap)) / 2) * 1.2;
-	const lookAtY = barMax / 2.5;
-	const lookAtZ = (jDim.length * (barWidth + barGap)) / 2;
+	const lookAtX = window.geneUseDx / 2;
+	const lookAtY = barMax * 3 / 8;
+	const lookAtZ = (jDim.length * (barWidth + barGap)) / 2 * -1;
 
-	const fov = vDim.length > 100 ? 45 : 30;
+	const fov = 22;
 
 	// now the actual chart
 
 	return(
-	  <div style={{ position: 'relative', height: window.geneUseHeight, width: window.geneUseWidth }}>
+	  <div style={{ border: '1px solid #a0a0a0', position: 'relative', height: window.geneUseHeight, width: window.geneUseWidth }}>
 		
 		{ hoverTip &&
 		  <div
@@ -191,8 +193,8 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 		<Canvas
 		  camera={{ position: cameraPosition, fov: fov }}
 		  onCreated={({camera}) => camera.lookAt(lookAtX, lookAtY, lookAtZ) } >
-		  <ambientLight intensity={1} />
-		  <directionalLight position={lightPosition} intensity={1.1} />
+		  <ambientLight intensity={1.8} />
+		  <directionalLight position={lightPosition} intensity={1.2} />
 		  { bars }
 		</Canvas>
 	  </div>
