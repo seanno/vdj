@@ -5,6 +5,7 @@ import {  ListItem, ListItemButton, ListItemIcon,
 		 Checkbox, ListItemText, Snackbar } from '@mui/material';
 
 import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 
 import { serverFetchGeneUse } from './lib/server.js';
 
@@ -65,7 +66,7 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 	  return;
 	}
 
-	navigator.clipboard.writeText(hoverTip.replace("<br/>", "\n"))
+	navigator.clipboard.writeText(hoverTip.replaceAll("<br/>", "\n"))
 	  .catch((err) => alert(err));
   }
   
@@ -173,9 +174,11 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 	  (jDim.length * (barWidth + barGap))
 	];
 
-	const lookAtX = window.geneUseDx / 2;
-	const lookAtY = barMax / 4;
-	const lookAtZ = (jDim.length * (barWidth + barGap)) / 2 * -1;
+	const targetPosition = [
+	  window.geneUseDx / 2,
+	  barMax / 4,
+	  (jDim.length * (barWidth + barGap)) / 2 * -1
+	];
 
 	const fov = 22;
 
@@ -191,11 +194,12 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 		  /> }
 		
 		<Canvas
-		  camera={{ position: cameraPosition, fov: fov }}
-		  onCreated={({camera}) => camera.lookAt(lookAtX, lookAtY, lookAtZ) } >
+		  camera={{ position: cameraPosition, fov: fov }} >
+
 		  <ambientLight intensity={1.8} />
 		  <directionalLight position={lightPosition} intensity={1.2} />
 		  { bars }
+		  <OrbitControls target={targetPosition}/>
 		</Canvas>
 	  </div>
 	);
