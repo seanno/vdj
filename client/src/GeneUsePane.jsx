@@ -1,7 +1,7 @@
 
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useState, useRef } from 'react';
 
-import {  ListItem, ListItemButton, ListItemIcon,
+import {  Button, ListItem, ListItemButton, ListItemIcon,
 		 Checkbox, ListItemText, Snackbar } from '@mui/material';
 
 import { Canvas } from '@react-three/fiber';
@@ -18,9 +18,17 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
   const [log10Counts, setLog10Counts] = useState(window.geneUseDefaultLog10Counts);
 
   const [hoverTip, setHoverTip] = useState(null);
+
+  // these two are in the same order! also note we keep state for all
+  // possible loci --- but we'll only show the ones that are actually
+  // in the data set. A bit confusing but easier for state management
+  const loci = [ "IGH", "IGK", "IGL", "TCRB", "TCRG", "TCRAD" ];
+  const [lociEnabled, setLociEnabled] = useState([ true, true, true, true, true, true]);
   
   const [results, setResults] = useState(null);
   const [error,setError] = useState(undefined);
+
+  const canvasRef = useRef();
 
   // +-----------+
   // | useEffect |
@@ -69,6 +77,51 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 	navigator.clipboard.writeText(hoverTip.replaceAll("<br/>", "\n"))
 	  .catch((err) => alert(err));
   }
+
+  function exportImage() {
+
+	const canvas = canvasRef.current;
+	if (!canvas) return;
+
+	const link = document.createElement("a");
+	link.download = repertoire.Name.replace(/[^a-z0-9-.]/gi, '_') + " - Gene Use.png";
+	link.href = canvas.toDataURL("image/png");
+	link.click();
+  }
+  
+  // +---------------+
+  // | locus helpers |
+  // +---------------+
+
+  function findLocus(input) {
+	if (input == null) return(-1);
+	for (var i = 0; i < loci.length; ++i) {
+	  if (input.startsWith(loci[i])) return(i);
+	}
+	
+	return(-1);
+  }
+  
+  function getLocus(input) {
+	const i = findLocus(input);
+	return(i === -1 ? null : loci[i]);
+  }
+
+  function locusMismatch(v, j) {
+	return(findLocus(v) != findLocus(j));
+  }
+
+  function locusEnabled(locus) {
+	const i = findLocus(locus);
+	return(i === -1 ? true : lociEnabled[i]);
+  }
+
+  function toggleLocusEnabled(ilocus) {
+	// clone to trigger state updates
+	const newLociEnabled = [...lociEnabled];
+	newLociEnabled[ilocus] = !newLociEnabled[ilocus];
+	setLociEnabled(newLociEnabled);
+  }
   
   // +------------------+
   // | translateResults |
@@ -84,22 +137,37 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 	const countsMap = {};
 	const vMap = {};
 	const jMap = {};
+	const locusMap = {};
 
 	var minCount = Number.MAX_VALUE;
 	var maxCount = Number.MIN_VALUE;
-	
+
 	for (var i = 0; i < results.length; ++i) {
 
 	  const vj = results[i];
-	  
+
+	  // respect unknown checkboxes
 	  if (!includeUnknown && (vj.V === 'X' || vj.J === 'X')) continue;
 	  if (!includeFamilyOnly && (vj.V.endsWith('-X') || vj.J.endsWith('-X'))) continue;
 
+	  // now respect locus checkboxes. Note that we still add to the map even
+	  // if they are unselected, because we want the checkboxes to display
+	  const vLocus = getLocus(vj.V); if (vLocus) locusMap[vLocus] = true;
+	  const jLocus = getLocus(vj.J); if (jLocus) locusMap[jLocus] = true;
+	  if (!locusEnabled(vLocus) || !locusEnabled(jLocus)) continue;
+
+	  // OK, add it!
 	  const adjCount = (log10Counts ? Math.log10(vj.Count) : vj.Count);
-	  countsMap[vj.V + '|' + vj.J] = adjCount;
-	  vMap[vj.V] = true; jMap[vj.J] = true;
 	  if (adjCount > maxCount) maxCount = adjCount;
 	  if (adjCount < minCount) minCount = adjCount;
+	  
+	  vMap[vj.V] = true;
+	  jMap[vj.J] = true;
+	  
+	  countsMap[vj.V + '|' + vj.J] = {
+		count: adjCount,
+		uniques: vj.Uniques,
+	  };
 	}
 
 	// now get unique V and Js
@@ -111,20 +179,20 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 	// of a sloppy abstraction but I can only loop over arrays so many times
 	// before it's too much to take.
 
-	return([ uniqueVs, uniqueJs, countsMap, minCount, maxCount ]);
+	return([ uniqueVs, uniqueJs, countsMap, locusMap, minCount, maxCount ]);
   }
 
   // +---------------+
   // | renderResults |
   // +---------------+
-  
+
   function renderChart(vDim, jDim, counts, minCount, maxCount) {
 
+	if (vDim.length === 0 && jDim.length === 0) return;
+	
 	const barWidth = (window.geneUseDx / vDim.length) - window.geneUseGap;
 	const barGap = window.geneUseGap;
 	const barMax = window.geneUseDy;
-
-	console.log(`barWidth=${barWidth} barGap=${barGap} barMax=${barMax}`);
 
 	// render the bars where there is a value 
 	
@@ -138,14 +206,18 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 		
 		const v = vDim[vindex];
 		const key=[v + '|' + j];
-		var count = counts[key];
-		if (!count) count = 0;
+
+		const countInfo = counts[key];
+		if (!countInfo && locusMismatch(v,j)) continue;
+
+		const count = countInfo ? countInfo.count : 0;
+		const uniques = countInfo ? countInfo.uniques : 0;
 
 		const height = (count / maxCount) * barMax;
 		const boxPosition = [ vindex * (barWidth + barGap), height / 2, jindex * (barWidth + barGap) * -1];
 		const boxGeometry = [ barWidth, height, barWidth ];
 
-		const tipText = `${v}<br/>${j}<br/>${count}`;
+		const tipText = `${v} / ${j}<br/>Count: ${count}<br/>Unique: ${uniques}`;
 		
 		bars.push(
 		  <mesh
@@ -194,6 +266,8 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 		  /> }
 		
 		<Canvas
+		  ref={ canvasRef }
+		  gl={{ preserveDrawingBuffer: true }}
 		  camera={{ position: cameraPosition, fov: fov }} >
 
 		  <ambientLight intensity={1.8} />
@@ -204,10 +278,37 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 	  </div>
 	);
   }
+
+  function renderLociCheckboxes(locusMap) {
+
+	const lociCheckboxes = [];
+	
+	for (let i = 0; i < loci.length; ++i) {
+
+	  const locus = loci[i];
+	  if (!locusMap[locus]) continue;
+
+	  lociCheckboxes.push(
+		<ListItem disablePadding key={`${rkey}-${locus}`}>
+          <ListItemButton rule={undefined} onClick={() => toggleLocusEnabled(i)}>
+			<ListItemIcon sx={{ minWidth: '20px' }}>
+              <Checkbox edge='start' checked={lociEnabled[i]} tabIndex={-1} disableRipple
+						inputProps={{ 'aria-labelledby': `${rkey}-chk-${locus}` }}
+						sx={{ padding: '0px' }} />
+			</ListItemIcon>
+			<ListItemText sx={{ margin: '0px' }} id={`${rkey}-chk-${locus}`}
+                          primary={locus} />
+          </ListItemButton>
+		</ListItem>
+	  );
+	}
+
+	return(lociCheckboxes);
+  }
   
   function renderResults() {
 
-	const [ vDim, jDim, counts, minCount, maxCount ] = translateResults();
+	const [ vDim, jDim, counts, locusMap, minCount, maxCount ] = translateResults();
 
 	return(
 	  <div>
@@ -254,15 +355,18 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
               </ListItemButton>
 			</ListItem>
 
+			<Button
+			  variant='outlined'
+			  sx={{ mt: 1 }}
+			  onClick={ exportImage } >
+			  Export
+			</Button>
+
           </div>
 
 		  <div style={{ gridRow: 1, gridColumn: 2 }}>
 
-			<ul>
-			  <li>{vDim.length} unique V Genes</li>
-			  <li>{jDim.length} unique J Genes</li>
-			  <li>{Object.keys(counts).length} unique combinations</li>
-			</ul>
+			{ renderLociCheckboxes(locusMap) }
 			
 		  </div>
 		  

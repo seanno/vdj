@@ -94,7 +94,7 @@ public class GeneUseTest
 				countMap.put(key, pair);
 			}
 			else {
-				pair.Count += count;
+				pair.accumulate(count);
 			}
 		}
 		
@@ -122,6 +122,7 @@ public class GeneUseTest
 			Assert.assertEquals(expected[i].V, actual[i].V);
 			Assert.assertEquals(expected[i].J, actual[i].J);
 			Assert.assertEquals(expected[i].Count, actual[i].Count);
+			Assert.assertEquals(expected[i].Uniques, actual[i].Uniques);
 		}
 	}
 	

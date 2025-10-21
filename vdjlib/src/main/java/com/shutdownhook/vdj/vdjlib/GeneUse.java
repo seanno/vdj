@@ -37,8 +37,14 @@ public class GeneUse
 			this.V = v;
 			this.J = j;
 			this.Count = count;
+			this.Uniques = 1;
 		}
 
+		public void accumulate(long count) {
+			this.Count += count;
+			this.Uniques++;
+		}
+		
 		public int compareTo(VJPair other) {
 			int cmp = V.compareTo(other.V);
 			if (cmp == 0) cmp = J.compareTo(other.J);
@@ -56,6 +62,7 @@ public class GeneUse
 		public String V;
 		public String J;
 		public long Count;
+		public long Uniques;
 	}
 	
 	// +------------+
@@ -103,7 +110,7 @@ public class GeneUse
 					counts.put(key, pair);
 				}
 				else {
-					pair.Count += r.Count;
+					pair.accumulate(r.Count);
 				}
 			}
 
