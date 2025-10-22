@@ -26,7 +26,7 @@ cd vdj/standalone
 # running (standalone)
 
 The fullbuild.sh script embeds the webpacked client into the standalone uber JAR, which serves those static files together with the necessary server methods for a complete web application. From within the [standalone](standalone) directory, run the following command:
-`java -cp target/vdj-standalone-1.0-SNAPSHOT.jar com.shutdownhook.vdj.standalone.app config-dev.json`
+`java -cp target/vdj-standalone-1.0-SNAPSHOT.jar com.shutdownhook.vdj.standalone.App config-dev.json`
 Point your browser at https://localhost:3001 to get started (note you'll have to accept the self-signed certificate).
 
 # running (client development)

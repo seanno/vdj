@@ -139,6 +139,15 @@ export default function NavigationBar({ user, addTab, clearTabs, refreshCounter 
 	addTab(newTab);
   }
 
+  function openGeneUse() {
+
+	const newTab = { view: 'genes', 
+					 name: `Gene Use - ${selectedRepertoires[0].Name}`,
+					 context: selectedContext,
+					 repertoire: selectedRepertoires[0] };
+	addTab(newTab);
+  }
+
   function openUpload() {
 
 	const newTab = { view: 'upload', name: 'Upload',
@@ -273,6 +282,16 @@ export default function NavigationBar({ user, addTab, clearTabs, refreshCounter 
 			  Track
 			</Button>
 			
+			<Button
+			  variant='contained'
+			  sx={{ mr: 1, mb: 1 }}
+			  disabled={selectionCount() !== 1}
+			  onClick={openGeneUse}>
+			  Genes
+			</Button>
+		  </div>
+		  
+		  <div>
 			<Button
 			  variant='contained'
 			  sx={{ mr: 1, mb: 1 }}

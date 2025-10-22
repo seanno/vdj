@@ -16,6 +16,7 @@ import DeletePane from "./DeletePane.jsx";
 import AdminPane from "./AdminPane.jsx";
 import ExportPane from "./ExportPane.jsx";
 import TrackingPane from "./TrackingPane.jsx";
+import GeneUsePane from "./GeneUsePane.jsx";
 
 import { serverFetchUser } from './lib/server.js';
 
@@ -208,6 +209,12 @@ export default function App() {
 				{ t.view === 'track' && <TrackingPane
 										  context={t.context}
 										  repertoires={t.repertoires} 
+										  addTab={addTab}
+										  rkey={`p-${t.name}`} /> }
+
+				{ t.view === 'genes' && <GeneUsePane
+										  context={t.context}
+										  repertoire={t.repertoire} 
 										  addTab={addTab}
 										  rkey={`p-${t.name}`} /> }
 			  </div>

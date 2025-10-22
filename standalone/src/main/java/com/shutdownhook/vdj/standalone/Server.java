@@ -28,6 +28,7 @@ import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.OnBehalfOfParams;
 import com.shutdownhook.vdj.vdjlib.AgateImport;
 import com.shutdownhook.vdj.vdjlib.ContextRepertoireStore;
 import com.shutdownhook.vdj.vdjlib.Export;
+import com.shutdownhook.vdj.vdjlib.GeneUse;
 import com.shutdownhook.vdj.vdjlib.MrdEngine;
 import com.shutdownhook.vdj.vdjlib.RearrangementKey;
 import com.shutdownhook.vdj.vdjlib.RearrangementKey.KeyType;
@@ -114,6 +115,7 @@ public class Server implements Closeable
 		public String AdminScope = "admin";
 		public String DxScope = "dxopt";
 		public String TrackingScope = "track";
+		public String GeneUseScope = "genes";
 
 		public String ClientSiteZip = "@clientSite.zip";
 		public Boolean StaticPagesRouteHtmlWithoutExtension = false;
@@ -328,6 +330,13 @@ public class Server implements Closeable
 						handled = true;
 					}
 				}
+				else if (info.Scope.equals(cfg.GeneUseScope)) {
+
+					if (request.Method.equals("GET")) {
+						handleGeneUseRequest(info);
+						handled = true;
+					}
+				}
 
 				if (!handled) {
 					response.Status = 500;
@@ -536,6 +545,10 @@ public class Server implements Closeable
 		if (typeStr.equalsIgnoreCase("mrd")) {
 			params.Extractor = mrd.getExtractor();
 			params.Matcher = mrd.getMatcher();
+		}
+		else if (typeStr.equalsIgnoreCase("genes")) {
+			params.Extractor = GeneUse.getExtractor();
+			params.Matcher = GeneUse.getMatcher();
 		}
 		else {
 			KeyType keyType = (Easy.nullOrEmpty(typeStr) ? cfg.DefaultSearchType : KeyType.valueOf(typeStr));
@@ -783,6 +796,27 @@ public class Server implements Closeable
 		Tracking.Results results = track.trackAsync(params).get();
 
 		info.Response.setJson(Utility.getGson().toJson(results));
+	}
+
+	// +----------+
+	// | Gene Use |
+	// +----------+
+
+	private void handleGeneUseRequest(ApiInfo info) throws Exception {
+
+		GeneUse.Params params = new GeneUse.Params();
+		params.CRS = new ContextRepertoireStore(store, info.UserId, info.ContextName);
+		params.Repertoire = info.RepertoireName;
+
+		GeneUse geneUse = new GeneUse();
+		GeneUse.VJPair[] result = geneUse.getAsync(params).get();
+
+		info.Response.setJson(Utility.getGson().toJson(result));
+	}
+
+	private Boolean queryBoolean(ApiInfo info, String param, Boolean defaultVal) {
+		String str = info.Request.QueryParams.get(param);
+		return(Easy.nullOrEmpty(str) ? defaultVal : Boolean.parseBoolean(str));
 	}
 
 	// +--------------------+

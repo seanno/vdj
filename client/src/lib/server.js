@@ -83,6 +83,16 @@ export async function serverFetchTopX(ctx, rep, sort) {
   return(await serverFetch(url));
 }
 
+// gene use
+export async function serverFetchGeneUse(ctx, rep) {
+
+  const url =
+		'/genes/' + encodeURIComponent(ctx) +
+		'/' + encodeURIComponent(rep);
+
+  return(await serverFetch(url));
+}
+
 // upload
 export async function serverFetchUpload(userId, context, repertoire, file, dateStr) {
 

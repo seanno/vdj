@@ -248,7 +248,7 @@ public class RepertoireStore_Files implements RepertoireStore
 	}
 
 	private File getContextDir(String userId, String ctx) {
-		return(new File(getUserDir(userId), ctx));
+		return(new File(getUserDir(userId), clean(ctx)));
 	}
 
 	private File getContextFile(String userId, String ctx) {

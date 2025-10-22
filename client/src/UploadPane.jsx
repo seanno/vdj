@@ -5,6 +5,7 @@ import { Button, FormControl, FormLabel, FormControlLabel,
 		 Radio, RadioGroup, TextField } from '@mui/material';
 
 import { serverFetchUpload } from './lib/server.js';
+import { cleanContextName } from './lib/utility.js';
 
 import styles from './Pane.module.css'
 
@@ -93,7 +94,7 @@ export default memo(function UploadPane({ user, context, refresh, rkey }) {
 			variant='outlined'
 			value={contextName}
 			sx={{ width: '100%' }}
-			onChange={(evt) => setContextName(evt.target.value)}
+			onChange={(evt) => setContextName(cleanContextName(evt.target.value))}
 		  />
 		</div>
 		
