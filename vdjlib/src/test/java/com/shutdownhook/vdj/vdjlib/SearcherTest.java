@@ -108,6 +108,32 @@ public class SearcherTest
 		Assert.assertEquals(860, results[1].Rearrangements.size());
 	}
 
+	// +-------+
+	// | Genes |
+	// +-------+
+	
+	@Test
+	public void testGenes() throws Exception {
+		testGenesHelper("TCRBV04", 299);
+		testGenesHelper(",,TCRBV04,", 299);
+		testGenesHelper("TCRBV04,TCRBJ01-05", 10);
+	}
+
+	private void testGenesHelper(String search, int expected) throws Exception {
+		
+		Searcher.Params params = new Searcher.Params();
+		params.CRS = crs;
+		params.Repertoires = new String[] { REP_1 };
+		params.Motif = search;
+		params.Extractor = GeneUse.getExtractor();
+		params.Matcher = GeneUse.getMatcher();
+
+		RepertoireResult[] results = searcher.searchAsync(params).get();
+
+		Assert.assertEquals(expected, results[0].Rearrangements.size());
+	}
+	
+
 	private static Helpers.TempRepertoireStore store;
 	private static ContextRepertoireStore crs;
 	private static Searcher searcher;

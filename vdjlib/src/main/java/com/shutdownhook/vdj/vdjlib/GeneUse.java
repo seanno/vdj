@@ -14,6 +14,8 @@ import java.util.logging.Logger;
 
 import com.shutdownhook.vdj.vdjlib.model.Repertoire;
 import com.shutdownhook.vdj.vdjlib.model.Rearrangement;
+import com.shutdownhook.vdj.vdjlib.RearrangementKey.Extractor;
+import com.shutdownhook.vdj.vdjlib.RearrangementKey.Matcher;
 
 public class GeneUse
 {
@@ -124,6 +126,43 @@ public class GeneUse
 			if (rdr != null) Utility.safeClose(rdr);
 			if (stm != null) Utility.safeClose(stm);
 		}
+	}
+
+	// +---------------------+
+	// | Extractor / Matcher |
+	// +---------------------+
+
+	public static Extractor getExtractor() {
+		
+		return(new Extractor() {
+			public String extract(Rearrangement r) {
+				return((r.VResolved == null ? "" : r.VResolved) + "," +
+					   (r.DResolved == null ? "" : r.DResolved) + "," +
+					   (r.JResolved == null ? "" : r.JResolved));
+			}
+		});
+	}
+
+	public static Matcher getMatcher() {
+		
+		return(new Matcher() {
+			public boolean matches(String search, String key) {
+
+				if (search == null || search.isEmpty()) return(false);
+				if (key == null || key.isEmpty()) return(false);
+
+				int ichWalk = 0;
+				while (ichWalk < search.length()) {
+					int ichNextComma = search.indexOf(',', ichWalk);
+					if (ichNextComma == -1) ichNextComma = search.length();
+					String sub = search.substring(ichWalk, ichNextComma).trim();
+					if (!sub.isEmpty() && key.indexOf(sub) == -1) return(false);
+					ichWalk = ichNextComma + 1; 
+				}
+
+				return(true);
+			}
+		});
 	}
 
 	// +---------+

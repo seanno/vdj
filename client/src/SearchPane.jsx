@@ -12,6 +12,7 @@ import styles from './Pane.module.css'
 export default memo(function SearchPane({ context, repertoires, params, rkey }) {
 
   const MRD_TYPE = 'MRD';
+  const GENE_TYPE = 'Genes';
 
   const textDefault = (params && params.motif !== undefined  ? params.motif : '');
   const mutsDefault = (params && params.muts !== undefined ? params.muts : window.searchMutsDefault);
@@ -37,6 +38,10 @@ export default memo(function SearchPane({ context, repertoires, params, rkey }) 
   
   function toggleFullCheckbox() {
 	setSearchFull(!searchFull);
+  }
+
+  function specialType(input) {
+	return(input === MRD_TYPE || input === GENE_TYPE);
   }
 
   // +-----------+
@@ -70,13 +75,17 @@ export default memo(function SearchPane({ context, repertoires, params, rkey }) 
   function renderSearch() {
 
 	const lengthOK = ((searchText.length >= searchConfig.minLength) ||
-					  (searchType !== MRD_TYPE && searchText.length > 0 && searchFull));
+					  (!specialType(searchType) && searchText.length > 0 && searchFull));
 	
-	const mutsOK = (searchType === MRD_TYPE || (searchMuts >= 0 && searchMuts <= searchConfig.maxMuts));
+	const mutsOK = (specialType(searchType) || (searchMuts >= 0 && searchMuts <= searchConfig.maxMuts));
 
-	const lengthHelper = ((searchType !== MRD_TYPE && searchFull)
+	const lengthHelper = ((!specialType(searchType) && searchFull)
 						  ? 'sequence required'
 						  : `at least ${searchConfig.minLength} ${searchConfig.unit} required`);
+
+	const textLabel = ((searchType === GENE_TYPE)
+					   ? 'Genes (CSV)'
+					   :`${searchConfig.label} Sequence`);
 
 	return(
 	  <>
@@ -94,6 +103,7 @@ export default memo(function SearchPane({ context, repertoires, params, rkey }) 
 			  <FormControlLabel value='CDR3' control={<Radio/>} label='CDR3' />
 			  <FormControlLabel value='AminoAcid' control={<Radio/>} label ='Amino Acid' />
 			  <FormControlLabel value='MRD' control={<Radio/>} label ='MRD' />
+			  <FormControlLabel value='Genes' control={<Radio/>} label ='Genes' />
 			</RadioGroup>
 		  </FormControl>
 		</div>
@@ -102,7 +112,7 @@ export default memo(function SearchPane({ context, repertoires, params, rkey }) 
 		  <TextField
 			autoFocus
 			error={!lengthOK}
-			label={`${searchConfig.label} Sequence`}
+			label={textLabel}
 			variant='outlined'
 			value={searchText}
 			sx={{ width: '100%' }}
@@ -124,7 +134,7 @@ export default memo(function SearchPane({ context, repertoires, params, rkey }) 
 			</div>
 		}
 
-		{ searchType !== MRD_TYPE &&
+		{ !specialType(searchType) &&
 		  <>
 			<div className={styles.dialogTxt}>
 			  <ListItem disablePadding>
@@ -213,7 +223,7 @@ export default memo(function SearchPane({ context, repertoires, params, rkey }) 
 			
 		  }
 
-		  { searchType !== 'MRD' &&
+		  { !specialType(searchType) && 
 			<>
 			  { searchMuts } mutation{ searchMuts == 1 ? '' : 's'} allowed;
 			  { searchFull ? ' full sequence match' : ' substring match' }

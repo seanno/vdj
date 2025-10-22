@@ -546,6 +546,10 @@ public class Server implements Closeable
 			params.Extractor = mrd.getExtractor();
 			params.Matcher = mrd.getMatcher();
 		}
+		else if (typeStr.equalsIgnoreCase("genes")) {
+			params.Extractor = GeneUse.getExtractor();
+			params.Matcher = GeneUse.getMatcher();
+		}
 		else {
 			KeyType keyType = (Easy.nullOrEmpty(typeStr) ? cfg.DefaultSearchType : KeyType.valueOf(typeStr));
 			params.Extractor = RearrangementKey.getExtractor(keyType);

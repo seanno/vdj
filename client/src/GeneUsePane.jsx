@@ -11,7 +11,7 @@ import { serverFetchGeneUse } from './lib/server.js';
 
 import styles from './Pane.module.css'
 
-export default memo(function GeneUsePane({ context, repertoire, rkey }) {
+export default memo(function GeneUsePane({ context, repertoire, addTab, rkey }) {
 
   const [includeUnknown, setIncludeUnknown] = useState(window.geneUseDefaultIncludeUnknown);
   const [includeFamilyOnly, setIncludeFamilyOnly] = useState(window.geneUseDefaultIncludeFamilyOnly);
@@ -62,20 +62,22 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
   function toggleFamilyOnlyCheckbox() { setIncludeFamilyOnly(!includeFamilyOnly); }
   function toggleLog10CountsCheckbox() { setLog10Counts(!log10Counts); }
 
-  async function tipToClip() {
+  function openSearch(v,j) {
 
-	if (!hoverTip) return;
-	
-	const queryOpts = { name: "clipboard-write", allowWithoutGesture: "false" };
-	const perms = await navigator.permissions.query(queryOpts);
+	const newTab = {
+	  view: 'search',
+	  name: 'Search',
+	  context: context,
+	  repertoires: [repertoire],
 
-	if (perms.state === "denied") {
-	  alert("Access to the clipboard was denied");
-	  return;
-	}
+	  params: {
+		type: 'Genes',
+		motif: v + "," + j,
+		start: true
+	  }
+	};
 
-	navigator.clipboard.writeText(hoverTip.replaceAll("<br/>", "\n"))
-	  .catch((err) => alert(err));
+	addTab(newTab);
   }
 
   function exportImage() {
@@ -224,7 +226,7 @@ export default memo(function GeneUsePane({ context, repertoire, rkey }) {
 			key={ rkey + key }
 			onPointerOver={() => setHoverTip(tipText)}
 			onPointerOut={() => setHoverTip(null)}
-			onClick={tipToClip}
+			onClick={() => openSearch(v,j)}
 			position={ boxPosition } >
 
 			<boxGeometry args={ boxGeometry} />

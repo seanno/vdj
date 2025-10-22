@@ -45,7 +45,7 @@ public class RearrangementKey
 			case Rearrangement:
 				return(new Extractor() {
 					public String extract(Rearrangement r) { return(r.Rearrangement); } });
-				
+
 			default:
 				return(null);
 		}

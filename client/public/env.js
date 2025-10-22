@@ -47,6 +47,13 @@ window.searchTypeConfig = {
 	'maxMuts': 0,
 	'unit': 'bases',
 	'label': 'MRD'
+  },
+
+  'Genes': {
+	'minLength': 1,
+	'maxMuts': 0,
+	'unit': 'gene',
+	'label': 'Genes'
   }
   
 };
