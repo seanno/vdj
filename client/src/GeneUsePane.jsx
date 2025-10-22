@@ -4,7 +4,7 @@ import { memo, useEffect, useState, useRef } from 'react';
 import {  Button, ListItem, ListItemButton, ListItemIcon,
 		 Checkbox, ListItemText, Snackbar } from '@mui/material';
 
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 
 import { serverFetchGeneUse } from './lib/server.js';
@@ -62,8 +62,25 @@ export default memo(function GeneUsePane({ context, repertoire, addTab, rkey }) 
   function toggleFamilyOnlyCheckbox() { setIncludeFamilyOnly(!includeFamilyOnly); }
   function toggleLog10CountsCheckbox() { setLog10Counts(!log10Counts); }
 
+  function exportImage() {
+
+	const canvas = canvasRef.current;
+	if (!canvas) return;
+
+	const link = document.createElement("a");
+	link.download = repertoire.Name.replace(/[^a-z0-9-.]/gi, '_') + " - Gene Use.png";
+	link.href = canvas.toDataURL("image/png");
+	link.click();
+  }
+  
+  // +-----------------------+
+  // | orbit click/drag mgmt |
+  // +-----------------------+
+
   function openSearch(v,j) {
 
+	if (window.orbitDragged) return;
+	
 	const newTab = {
 	  view: 'search',
 	  name: 'Search',
@@ -80,17 +97,23 @@ export default memo(function GeneUsePane({ context, repertoire, addTab, rkey }) 
 	addTab(newTab);
   }
 
-  function exportImage() {
-
-	const canvas = canvasRef.current;
-	if (!canvas) return;
-
-	const link = document.createElement("a");
-	link.download = repertoire.Name.replace(/[^a-z0-9-.]/gi, '_') + " - Gene Use.png";
-	link.href = canvas.toDataURL("image/png");
-	link.click();
+  function orbitClickStart() {
+	window.orbitClickX = window.canvasPointerX;
+	window.orbitClickY = window.canvasPointerY;
+	window.orbitDragged = false;
   }
-  
+
+  function orbitClickEnd() {
+	window.orbitDragged =
+	  ((window.orbitClickX != window.canvasPointerX) ||
+	   (window.orbitClickY != window.canvasPointerY));
+  }
+
+  function mouseMoveInCanvas(evt) {
+	window.canvasPointerX = evt.clientX;
+	window.canvasPointerY = evt.clientY;
+  }
+
   // +---------------+
   // | locus helpers |
   // +---------------+
@@ -259,7 +282,12 @@ export default memo(function GeneUsePane({ context, repertoire, addTab, rkey }) 
 	// now the actual chart
 
 	return(
-	  <div style={{ border: '1px solid #a0a0a0', position: 'relative', height: window.geneUseHeight, width: window.geneUseWidth }}>
+	  <div
+		onMouseMove={mouseMoveInCanvas}
+		style={{ border: '1px solid #a0a0a0',
+				 position: 'relative',
+				 height: window.geneUseHeight,
+				 width: window.geneUseWidth }}>
 		
 		{ hoverTip &&
 		  <div
@@ -275,7 +303,11 @@ export default memo(function GeneUsePane({ context, repertoire, addTab, rkey }) 
 		  <ambientLight intensity={1.8} />
 		  <directionalLight position={lightPosition} intensity={1.2} />
 		  { bars }
-		  <OrbitControls target={targetPosition}/>
+		  <OrbitControls
+			target={targetPosition}
+			onStart={orbitClickStart}
+			onEnd={orbitClickEnd}
+		  />
 		</Canvas>
 	  </div>
 	);
