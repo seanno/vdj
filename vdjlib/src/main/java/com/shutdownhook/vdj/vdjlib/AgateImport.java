@@ -93,7 +93,8 @@ public class AgateImport implements Closeable
 	// +-------------------+
 
 	private static String DOWNLOAD_URL_FMT =
-		"%s/clearinghouse/sequencing_run/%s/files/download";
+		"%s/clearinghouse/sequencing_run/%s/files/download" +
+		"?Key%%20eq%%20%%27PIPELINE_TSV%%27";
 
 
 	public CompletableFuture<InputStream> getTsvStreamAsync(String itemId) {
