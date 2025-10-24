@@ -56,8 +56,7 @@ If you would like to enable sample import from Adaptive's Agate system (Agate is
 
 1. Add an environment variable "AgateAuthType" with the value "UserPass"
 2. Under the client app API Permissions, add:
-   * https://storage.azure.com/ user_impersonation
-   * https://database.windows.net/ user_impersonation
+   * https://adaptiveagateuserfunctions.azurewebsites.net/user_impersonation
    * Your client app user_impersonation
 3. Using Azure resource explorer, navigate to subscriptions/SUB/resourceGroups/GROUP/providers/Microsoft.Web/sites/SITE/config/authSettingsV2 and under identityProviders/azureActiveDirectory/login add a field "loginParameters" with the value ["scope=openid profile email CLIENTID/user_impersonation"]
 4. Troubleshooting:
