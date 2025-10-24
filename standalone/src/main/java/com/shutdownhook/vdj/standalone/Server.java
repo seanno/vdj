@@ -719,9 +719,9 @@ public class Server implements Closeable
 		InputStream stm = null;
 
 		try {
-			stm = agate.getTsvStreamAsync(params.Sample.TsvPath).get();
+			stm = agate.getTsvStreamAsync(params.Sample.ItemId).get();
 			if (stm == null) throw new Exception("failed getting agate tsv stream");
-			saveRepertoireInternal(info, params.SaveUser, stm, null, null, params.Sample.Date);
+			saveRepertoireInternal(info, params.SaveUser, stm, null, null, params.Sample.EffectiveDate);
 		}
 		finally {
 			if (stm != null) stm.close();

@@ -239,8 +239,8 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 			const labelId = `cl-label-${rkey}-${s.Name}`;
 
 			var label = s.Name;
-			if (s.Date) {
-			  const d = new Date(s.Date.year, s.Date.month - 1, s.Date.day);
+			if (s.EffectiveDate) {
+			  const d = new Date(s.EffectiveDate.year, s.EffectiveDate.month - 1, s.EffectiveDate.day);
 			  label += ' (' + d.toLocaleDateString() + ')';
 			}
 			

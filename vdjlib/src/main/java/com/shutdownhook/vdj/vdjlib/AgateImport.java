@@ -1,6 +1,6 @@
 //
 // AGATEIMPORT.JAVA
-// 
+//
 
 package com.shutdownhook.vdj.vdjlib;
 
@@ -14,7 +14,9 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -25,6 +27,11 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipException;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.DefaultParams;
 import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.FactoryType;
@@ -85,16 +92,36 @@ public class AgateImport implements Closeable
 	// | getTsvStream      |
 	// +-------------------+
 
-	public CompletableFuture<InputStream> getTsvStreamAsync(String tsvPath) {
+	private static String DOWNLOAD_URL_FMT =
+		"%s/clearinghouse/sequencing_run/%s/files/download";
+
+
+	public CompletableFuture<InputStream> getTsvStreamAsync(String itemId) {
 		return(Exec.runAsync("getTsvStream", new Exec.AsyncOperation() {
 			public InputStream execute() throws Exception {
-				return(getTsvStream(tsvPath));
+				return(getTsvStream(itemId));
 			}
 		}));
 	}
 	
-	public InputStream getTsvStream(String tsvPath) throws IOException {
-		return(getInputStream(tsvPath, cfg.StorageVersion));
+	public InputStream getTsvStream(String itemId) throws IOException {
+		String url = getDownloadUrl(itemId);
+		return(getInputStream(url, null));
+	}
+
+	private String getDownloadUrl(String itemId) throws IOException {
+		
+		InputStream stm = null;
+
+		try {
+			String url = String.format(DOWNLOAD_URL_FMT, cfg.ApiBaseUrl, itemId);
+
+			stm = getInputStream(url, cfg.ApiResource);
+			return(Utility.stringFromInputStream(stm));
+		}
+		finally {
+			Utility.safeClose(stm);
+		}
 	}
 
 	// +--------------------------+
@@ -110,14 +137,35 @@ public class AgateImport implements Closeable
 	private static String SAMPLES_URL_FMT =
 		"%s/clearinghouse/sequencing_run?$filter=%s";
 
-	public static class PipelineSample
+	public static class PipelineSample implements Comparable<PipelineSample>
 	{
 		public String Name;
 		public String Project;
-		public LocalDate Date;
-		public String TsvPath;
+		public LocalDate EffectiveDate;
+		public LocalDate UploadDate;
+		public String ItemId;
+		
+		public int compareTo(PipelineSample other) {
+			int cmp = nullSafeCompare(EffectiveDate, other.EffectiveDate) * -1;
+			if (cmp == 0) cmp = nullSafeCompare(Name, other.Name) * -1;
+			if (cmp == 0) cmp = nullSafeCompare(UploadDate, other.UploadDate) * -1; // take newest
+			return(cmp);
+		}
+
+		public boolean equals(Object other) {
+			if (other == null) return(false);
+			if (!(other instanceof PipelineSample)) return(false);
+			return(compareTo((PipelineSample)other) == 0);
+		}
+		
+		private static <T extends Comparable> int nullSafeCompare(T t1, T t2) {
+			if (t1 == null && t2 == null) return(0);
+			if (t1 == null && t2 != null) return(-1);
+			if (t1 != null && t2 == null) return(1);
+			return(t1.compareTo(t2));
+		}
 	}
-	
+
 	public CompletableFuture<List<PipelineSample>> listSamplesPipelineAsync(String search) {
 		return(Exec.runAsync("listSamplesPipeline", new Exec.AsyncOperation() {
 			public List<PipelineSample> execute() throws Exception {
@@ -144,38 +192,39 @@ public class AgateImport implements Closeable
 
 			stm = getInputStream(url, cfg.ApiResource);
 			String json = Utility.stringFromInputStream(stm);
+			JsonArray jsonSamples = new Gson().fromJson(json, JsonArray.class);
 
             List<PipelineSample> samples = new ArrayList<PipelineSample>();
 
-			// TODO 2025-06-06
-			//
-			// Currently blocked on this work because Agate can't respond to these odata queries
-			// without OOM/perf issues. Jeff will work on this in a couple of months when back from
-			// vacation.
-			//
-			// Work is to get this json back and parse it out in to a list of pipeline samples.
-			// The front end will also need to be updated to remove the "aquery" admin functionality
-			// since we are removing direct sql access (backend of this already done).
-			//
-			// verify that the combined getInputStream call still works for TSV access as well! And
-			// then will need to make sure that the OBO flow works correctly when installed in the
-			// Agate tenant; that will have to be coordinated with Jeff but should require no code work?
-			//
-			// Talked about maybe adding a device auth version so that MFA accounts could work in
-			// standalone deployments? (remember to update desktop!) The challege here is that
-			// currently there is no async break between asking for a token and making the request
-			// ... probably need a new flow where the front end requests device auth and starts the
-			// flow and then pushes the token up. will this even work with the app as we have it?
-			// (i.e., are we considered a public client?) will have to page all this back into
-			// memory before giving it a try.
-			
-			log.info(json);
+			for (int i = 0; i < jsonSamples.size(); ++i) {
+				
+				JsonObject jsonSample = jsonSamples.get(i).getAsJsonObject();
+					
+				PipelineSample sample = new PipelineSample();
+				samples.add(sample);
+				
+				sample.Name = traverseToString(jsonSample, "Identity", "Name");
+				sample.ItemId = traverseToString(jsonSample, "ItemId");
+
+				sample.Project = traverseToString(jsonSample, "Project", "Name");
+				if (sample.Project == null) sample.Project = traverseToString(jsonSample, "RawMetadata", "OrderName");
+
+				String dateStr = traverseToString(jsonSample, "UploadDate");
+				sample.UploadDate = safeParseLocalDate(dateStr);
+
+				dateStr = traverseToString(jsonSample, "RawMetadata", "CollectionDate");
+				sample.EffectiveDate = safeParseLocalDate(dateStr);
+				if (sample.EffectiveDate == null) sample.EffectiveDate = sample.UploadDate;
+			}
 
 			List<PipelineSample> expandedSamples = maybeExpandPatientSearch(search, samples);
 			if (expandedSamples != null) {
 				log.info("Expanded patient search for " + search);
 				return(expandedSamples);
 			}
+
+			Collections.sort(samples);
+			samples = filterMultipleUploads(samples);
 
 			log.info(String.format("Fetched %d (pipeline) samples matching %s", samples.size(), search));
 			return(samples);
@@ -220,6 +269,21 @@ public class AgateImport implements Closeable
 		// ok I believe you
 		return(listSamplesPipeline(patientId + "-"));
 	}
+
+	private List<PipelineSample> filterMultipleUploads(List<PipelineSample> inputSamples) {
+
+		HashSet<String> seen = new HashSet<String>();
+		
+		List<PipelineSample> filteredSamples = new ArrayList<PipelineSample>();
+		for (int i = 0; i < inputSamples.size(); ++i) {
+			PipelineSample thisSample = inputSamples.get(i);
+			if (seen.contains(thisSample.Name)) continue;
+			filteredSamples.add(thisSample);
+			seen.add(thisSample.Name);
+		}
+
+		return(filteredSamples);
+	}
 	
 	// +---------+
 	// | Helpers |
@@ -245,10 +309,12 @@ public class AgateImport implements Closeable
 		conn.setConnectTimeout(cfg.TimeoutMillis);
 		conn.setReadTimeout(cfg.TimeoutMillis);
 
-		String token = tokenFactory.getToken(resource); 
-		conn.setRequestProperty("Authorization", "Bearer " + token);
-		conn.setRequestProperty("x-ms-date", msDateString());
-		conn.setRequestProperty("x-ms-version", cfg.StorageVersion);
+		if (resource != null) {
+			String token = tokenFactory.getToken(resource); 
+			conn.setRequestProperty("Authorization", "Bearer " + token);
+			conn.setRequestProperty("x-ms-date", msDateString());
+			conn.setRequestProperty("x-ms-version", cfg.StorageVersion);
+		}
 				
 		int status = conn.getResponseCode();
 		if (status < 200 || status >= 300) {
@@ -272,9 +338,12 @@ public class AgateImport implements Closeable
 		}
 
 		if (tryZips) {
-			
-			int ichLastDot = path.lastIndexOf(".");
-			String ext = (ichLastDot == -1 ? "" : path.substring(ichLastDot + 1));
+
+			int ichQuestion = path.indexOf("?");
+			String justPath = (ichQuestion == -1 ? path : path.substring(0, ichQuestion));
+				
+			int ichLastDot = justPath.lastIndexOf(".");
+			String ext = (ichLastDot == -1 ? "" : justPath.substring(ichLastDot + 1));
 
 			if (ext.equalsIgnoreCase("gz")) return(new GZIPInputStream(conn.getInputStream()));
 			if (ext.equalsIgnoreCase("zip")) return(new ZipInputStream(conn.getInputStream()));
@@ -289,6 +358,29 @@ public class AgateImport implements Closeable
 		return(fmt.format(new Date()));
 	}
 
+	private static String traverseToString(JsonElement elt, String... children) {
+
+		// super-duper-defensive
+		
+		JsonElement walk = elt;
+		for (int i = 0; i < children.length - 1; ++i) {
+			walk  = walk.getAsJsonObject().get(children[i]);
+			if (walk == null) return(null);
+		}
+
+		walk = walk.getAsJsonObject().get(children[children.length-1]);
+		if (walk == null) return(null);
+
+		String ret = walk.getAsString();
+		return(Utility.nullOrEmpty(ret) ? null : ret);
+	}
+
+	private LocalDate safeParseLocalDate(String input) {
+		if (input == null) return(null);
+		int ich = input.indexOf("T");
+		return(LocalDate.parse(ich == -1 ? input : input.substring(0, ich)));
+	}
+	
 	// +------------+
 	// | Entrypoint |
 	// +------------+
@@ -310,7 +402,8 @@ public class AgateImport implements Closeable
 			case "pipeline":
 				List<PipelineSample> psamples = agate.listSamplesPipelineAsync(args[1]).get();
 				for (PipelineSample s : psamples) {
-					System.out.println(String.format("%s\t%s\t%s\n%s\n", s.Name, s.Project, s.Date, s.TsvPath));
+					System.out.println(String.format("%s\t%s\t%s\t%s\t%s", s.Name, s.Project,
+													 s.EffectiveDate, s.UploadDate, s.ItemId));
 				}
 				break;
 
