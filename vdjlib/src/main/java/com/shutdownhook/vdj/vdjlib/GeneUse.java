@@ -136,9 +136,10 @@ public class GeneUse
 		
 		return(new Extractor() {
 			public String extract(Rearrangement r) {
-				return((r.VResolved == null ? "" : r.VResolved) + "," +
-					   (r.DResolved == null ? "" : r.DResolved) + "," +
-					   (r.JResolved == null ? "" : r.JResolved));
+				String key = ((r.VResolved == null ? "" : r.VResolved) + "," +
+							  (r.DResolved == null ? "" : r.DResolved) + "," +
+							  (r.JResolved == null ? "" : r.JResolved));
+				return(key.toUpperCase());
 			}
 		});
 	}
@@ -148,6 +149,8 @@ public class GeneUse
 		return(new Matcher() {
 			public boolean matches(String search, String key) {
 
+				// search is input search text; key is text to search
+				
 				if (search == null || search.isEmpty()) return(false);
 				if (key == null || key.isEmpty()) return(false);
 
