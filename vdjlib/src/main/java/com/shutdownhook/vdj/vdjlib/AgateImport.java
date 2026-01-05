@@ -361,7 +361,7 @@ public class AgateImport implements Closeable
 
 	private static String traverseToString(JsonElement elt, String... children) {
 
-		// super-duper-defensive
+		// super-duper-plusone-defensive
 		
 		JsonElement walk = elt;
 		for (int i = 0; i < children.length - 1; ++i) {
@@ -372,7 +372,7 @@ public class AgateImport implements Closeable
 		walk = walk.getAsJsonObject().get(children[children.length-1]);
 		if (walk == null) return(null);
 
-		String ret = walk.getAsString();
+		String ret = (walk.isJsonNull() ? null : walk.getAsString());
 		return(Utility.nullOrEmpty(ret) ? null : ret);
 	}
 
