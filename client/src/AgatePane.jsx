@@ -8,7 +8,9 @@ import { Button, IconButton, InputAdornment,
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
-import { serverFetchAgateSamples, serverImportAgate } from './lib/server.js';
+import { serverAcquireDeviceCode, serverCheckDeviceCode,
+		 serverFetchAgateSamples, serverImportAgate } from './lib/server.js';
+
 import { cleanContextName } from './lib/utility.js';
 
 import styles from './Pane.module.css'
@@ -17,7 +19,13 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 
   const [error, setError] = useState(undefined);
 
-  // sample search state
+  // device auth state
+  const [deviceChallenge, setDeviceChallenge] = useState(undefined);
+  const [deviceChallengeCreated, setDeviceChallengeCreated] = useState(undefined);
+  const [deviceCheckCount, setDeviceCheckCount] = useState(0);
+  const [deviceToken, setDeviceToken] = useState(undefined);
+  
+  // sample search state (including user/pass fields if appropriate)
   const [agateUser, setAgateUser] = useState('');
   const [agatePass, setAgatePass] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -36,6 +44,13 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
   const [currentImportIdx, setCurrentImportIdx] = useState(0);
   const [results, setResults] = useState([]);
 
+  // +---------+
+  // | helpers |
+  // +---------+
+
+  function isUserPassAuth(user) { return(user.AgateAuthType === 'UserPass'); }
+  function isDeviceAuth(user) { return(user.AgateAuthType === 'DeviceCode'); }
+  
   // +---------+
   // | actions |
   // +---------+
@@ -78,6 +93,77 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
   // | useEffect |
   // +-----------+
 
+  // device auth
+
+  useEffect(() => {
+
+	if (!isDeviceAuth(user) || deviceToken) return;
+
+	// first, fetch a device challenge to start the process
+	
+	if (!deviceChallenge) {
+	  
+	  const acquireCode = async() => {
+
+		serverAcquireDeviceCode()
+		  .then(result => {
+			setDeviceChallenge(result);
+			setDeviceChallengeCreated(new Date());
+		  })
+		  .catch(error => {
+		  // oops
+			console.error(error);
+			setError('Error creating device code');
+		  });
+	  };
+
+	  acquireCode();
+	  return;
+	}
+
+	
+	// make sure it isn't expired
+
+	const expires = new Date(deviceChallengeCreated.getTime() +
+							 (deviceChallenge.ExpiresIn * 1000));
+
+	if (new Date() > expires) {
+	  setDeviceChallenge(undefined);
+	  return;
+	}
+
+	// and then check if its been fulfilled
+		
+	const checkCode = async() => {
+	  
+	  serverCheckDeviceCode(deviceChallenge.DeviceCode)
+		.then(result => {
+
+		  if (result.Status === 'Ready') {
+			// yay
+			setDeviceToken(result.AccessToken);
+		  }
+		  else if (result.Status === 'Pending') {
+			// set timer to try again
+			setTimeout(() => setDeviceCheckCount(deviceCheckCount + 1),
+					   deviceChallenge.Interval * 1000);
+		  }
+		  else if (result.Status === 'Failed') {
+			// bummah
+			throw new Error('Device code failed: ' + result.Error);
+		  }
+		})
+		.catch(error => {
+		  // oops
+		  console.error(error);
+		  setError('Error checking device code');
+		});
+	}
+
+	checkCode();
+
+  }, [deviceChallenge, deviceChallengeCreated, deviceCheckCount, deviceToken]);
+
   // search
 
   useEffect(() => {
@@ -86,7 +172,7 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 	
 	const searchAgate = async () => {
 
-	  serverFetchAgateSamples(agateUser, agatePass, searchString)
+	  serverFetchAgateSamples(agateUser, agatePass, deviceToken, searchString)
 		.then(result => {
 		  setSamples(result);
 		  setSelections([]);
@@ -105,7 +191,7 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 
 	searchAgate();
 	
-  }, [startSearch, agateUser, agatePass, searchString]);
+  }, [startSearch, agateUser, agatePass, deviceToken, searchString]);
 
   // imports
 
@@ -129,7 +215,7 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 	  
 	  console.log(`Starting import of index ${currentImportIdx}`);
 	  
-	  serverImportAgate(agateUser, agatePass, contextName, userId, sample)
+	  serverImportAgate(agateUser, agatePass, deviceToken, contextName, userId, sample)
 		.then(result => {
 		  const msg = ((result.httpStatus && result.httpStatus === 409)
 					   ? 'repertoire already exists'
@@ -145,8 +231,35 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 
 	importOneTsv();
 	
-  }, [startImport, agateUser, agatePass, userId, contextName, currentImportIdx]);
-  
+  }, [startImport, agateUser, agatePass, deviceToken, userId, contextName, currentImportIdx]);
+
+  // +------------------+
+  // | renderDeviceAuth |
+  // +------------------+
+
+  function renderDeviceAuth() {
+
+	if (!deviceChallenge) {
+	  return(renderMsg('Authorization required; one moment...', false));
+	}
+
+	return(
+	  <div>
+		Before importing samples you need to log in with your Agate credentials:
+		<ol>
+		  <li>
+			Click this link (it will open in a new tab):
+			<a target="_blank" href={deviceChallenge.VerificationUri}>{deviceChallenge.VerificationUri}</a>
+		  </li>
+		  <li>
+			When prompted; enter this code: <b>{deviceChallenge.UserCode}</b>
+		  </li>
+		  <li>
+			After you've logged in, return to this tab; it will refresh automatically.
+		  </li>
+		</ol>
+	  </div>);
+  }
 
   // +------------------+
   // | renderSearchForm |
@@ -157,12 +270,12 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 	const searchOK = (searchString && searchString.length >= window.agateMinSearchLength);
 	
 	const readyToSearch = (searchOK &&
-						   (!user.AgateUserPassAuth ||
+						   (!isUserPassAuth(user) ||
 							(agateUser && agateUser.length > 0 && agatePass && agatePass.length > 0)));
 
 	return(
 	  <>
-		{ user.AgateUserPassAuth &&
+		{ isUserPassAuth(user) &&
 
 		  <>
 			<div className={styles.dialogTxt}>
@@ -413,6 +526,9 @@ export default memo(function AgatePane({ user, context, refresh, rkey }) {
 	  // searching
 	  elts = renderMsg('Searching for samples (this can take awhile) ...', false);
 	}
+  }
+  else if (isDeviceAuth(user) && !deviceToken) {
+	elts = renderDeviceAuth();
   }
   else {
 	// search form

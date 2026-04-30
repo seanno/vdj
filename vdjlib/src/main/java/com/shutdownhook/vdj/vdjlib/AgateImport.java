@@ -50,7 +50,8 @@ public class AgateImport implements Closeable
 		public Boolean EnablePatientSearchExpansion = true;
 
 		public String ApiResource = "https://adaptiveagateuserfunctions.azurewebsites.net/user_impersonation";
-		public String ApiBaseUrl = "https://adaptiveagateapifunctions.azurewebsites.net/api";
+		public String ApiBaseUrl = "https://agate-api.adaptivebiotech.com/api";
+		//public String ApiBaseUrl = "https://adaptiveagateapifunctions.azurewebsites.net/api";
 		public String StorageResource = "https://storage.azure.com/.default";
 		public String StorageVersion = "2017-11-09";
 		public Integer TimeoutMillis = (5 * 60 * 1000);
@@ -77,6 +78,11 @@ public class AgateImport implements Closeable
 		return(new AgateImport(cfg, AzureTokenFactory.create(FactoryType.Default, params)));
 	}
 
+	public static AgateImport createCLI(Config cfg) {
+		DefaultParams params = new DefaultParams(cfg.AgateTenantId);
+		return(new AgateImport(cfg, AzureTokenFactory.create(FactoryType.CLI, params)));
+	}
+
 	public static AgateImport createUserPass(Config cfg, String user, String pass) {
 		UserPassParams params = new UserPassParams(user, pass, cfg.AgateTenantId, cfg.AgateClientId);
 		return(new AgateImport(cfg, AzureTokenFactory.create(FactoryType.UserPass, params)));
@@ -85,6 +91,10 @@ public class AgateImport implements Closeable
 	public static AgateImport createOnBehalfOf(Config cfg, String secret, String token) {
 		OnBehalfOfParams params = new OnBehalfOfParams(secret, token);
 		return(new AgateImport(cfg, AzureTokenFactory.create(FactoryType.OnBehalfOf, params)));
+	}
+
+	public static AgateImport createDeviceCode(Config cfg, String token) {
+		return(new AgateImport(cfg, AzureTokenFactory.createFromToken(token)));
 	}
 
 	// +-------------------+
@@ -311,7 +321,8 @@ public class AgateImport implements Closeable
 		conn.setReadTimeout(cfg.TimeoutMillis);
 
 		if (resource != null) {
-			String token = tokenFactory.getToken(resource); 
+			String token = tokenFactory.getToken(resource);
+			//log.info("INAGATEIMPORT sending token: " + token);
 			conn.setRequestProperty("Authorization", "Bearer " + token);
 			conn.setRequestProperty("x-ms-date", msDateString());
 			conn.setRequestProperty("x-ms-version", cfg.StorageVersion);
@@ -444,7 +455,7 @@ public class AgateImport implements Closeable
 
 	private static void usage() {
 		System.out.println("Arguments: ");
-		System.out.println("\tsamples SUBSTRING");
+		System.out.println("\tpipeline SUBSTRING");
 		System.out.println("\ttsv PATH");
 	}
 

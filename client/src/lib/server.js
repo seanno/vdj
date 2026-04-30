@@ -124,22 +124,34 @@ export async function serverFetchDelete(ctx, reps) {
 						   'application/json', 'DELETE'));
 }
 
+// agate - device code
+export async function serverAcquireDeviceCode() {
+  return(await serverFetch('/agateauth', '{}', 'application/json'));
+}
+
+export async function serverCheckDeviceCode(deviceCode) {
+  const url = '/agateauth?dc=' + deviceCode;
+  return(await serverFetch(url));
+}
+
 // agate - samples
-export async function serverFetchAgateSamples(user, pass, search) {
+export async function serverFetchAgateSamples(user, pass, token, search) {
 
   const params = { "SearchString": search };
   if (user) params.User = user;
   if (pass) params.Password = pass;
+  if (token) params.SessionToken = token;
 
   return(await serverFetch('/agate', JSON.stringify(params)));
 }
 
 // agate - import
-export async function serverImportAgate(user, pass, ctx, saveUserId, sample) {
+export async function serverImportAgate(user, pass, token, ctx, saveUserId, sample) {
 
   const params = { "Sample": sample };
   if (user) params.User = user;
   if (pass) params.Password = pass;
+  if (token) params.SessionToken = token;
   if (saveUserId) params.SaveUser = saveUserId;
 
   const url =

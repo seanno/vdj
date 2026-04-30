@@ -22,6 +22,7 @@ import com.shutdownhook.toolbox.WebServer.Request;
 import com.shutdownhook.toolbox.WebServer.Response;
 
 import com.shutdownhook.vdj.vdjlib.AdminOps;
+import com.shutdownhook.vdj.vdjlib.AzureDeviceAuth;
 import com.shutdownhook.vdj.vdjlib.AzureTokenFactory;
 import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.FactoryType;
 import com.shutdownhook.vdj.vdjlib.AzureTokenFactory.OnBehalfOfParams;
@@ -111,6 +112,7 @@ public class Server implements Closeable
 		public String UserScope = "user";
 		public String TopXScope = "topx";
 		public String AgateScope = "agate";
+		public String AgateAuthScope = "agateauth";
 		public String ExportScope = "export";
 		public String AdminScope = "admin";
 		public String DxScope = "dxopt";
@@ -196,6 +198,9 @@ public class Server implements Closeable
 
 	// POST   /api/agate                => return list of matching samples (JSON post body; see method)
 	// POST   /api/agate/CTX/REP/import => import agate sample into REP context CTX (JSON post body; see method)
+
+	// POST   /api/agateauth            => start device code flow (returns AzureDeviceAuth.DeviceCodeChallenge)
+	// GET    /api/agateauth            => check device code flow status (QS dc=DEVICE_CODE)
 
 	// GET    /api/export/CTX/REP    => export repoertoire (QS fmt)
 
@@ -299,6 +304,13 @@ public class Server implements Closeable
 
 					if (request.Method.equals("POST")) {
 						handleAgateRequest(info);
+						handled = true;
+					}
+				}
+				else if (info.Scope.equals(cfg.AgateAuthScope)) {
+
+					if (request.Method.equals("GET") || request.Method.equals("POST")) {
+						handleAgateAuthRequest(info);
 						handled = true;
 					}
 				}
@@ -594,7 +606,7 @@ public class Server implements Closeable
 		public String AssumeUserId;
 		public Boolean CanUploadToAnyUserId;
 		public Boolean AgateEnabled;
-		public Boolean AgateUserPassAuth;
+		public String AgateAuthType;
 		public Boolean IsAdmin;
 		public String LogoutPath;
 	}
@@ -606,9 +618,10 @@ public class Server implements Closeable
 		ui.AssumeUserId = info.UserId;
 		ui.CanUploadToAnyUserId = getCanUploadToAny(info.Request);
 		ui.IsAdmin = isAdmin(info.Request);
-		
-		ui.AgateEnabled = (cfg.Agate != null && getAgateAuthType() != null);
-		ui.AgateUserPassAuth = (FactoryType.UserPass.equals(getAgateAuthType()));
+
+		FactoryType factoryType = getAgateAuthType();
+		ui.AgateEnabled = (cfg.Agate != null && factoryType != null);
+		ui.AgateAuthType = (factoryType == null ? null : factoryType.toString());
 
 		ui.LogoutPath = cfg.WebServer.LogoutPath;
 		
@@ -645,6 +658,7 @@ public class Server implements Closeable
 	{
 		public String User;
 		public String Password;
+		public String SessionToken; // for DeviceCode auth (see AgateAuthStatus)
 
 		// for searching
 		public String SearchString;
@@ -703,6 +717,11 @@ public class Server implements Closeable
 			return(AgateImport.createOnBehalfOf(cfg.Agate, secret, info.Request.User.Token));
 		}
 
+		// device code (token acquired externally via /api/agateauth flow)
+		if (FactoryType.DeviceCode.equals(authType)) {
+			return(AgateImport.createDeviceCode(cfg.Agate, params.SessionToken));
+		}
+
 		log.severe(String.format("WTF invalid factory type: %s", authType));
 		return(null);
 	}
@@ -726,6 +745,60 @@ public class Server implements Closeable
 		finally {
 			if (stm != null) stm.close();
 		}
+	}
+
+	// +----------------------+
+	// | handleAgateAuthRequest |
+	// +----------------------+
+
+	// Stateless OAuth2 device code flow. All logic lives in AzureDeviceAuth (vdjlib);
+	// this layer handles only HTTP plumbing. See AzureDeviceAuth for full details.
+	//
+	// POST /api/agateauth         => starts device code flow (returns DeviceCodeChallenge)
+	// GET  /api/agateauth?dc=...  => polls for completion (returns DeviceCodeStatus)
+	//
+	// On Ready, client stores AccessToken and passes it as SessionToken in
+	// subsequent AgateParams POST bodies.
+
+	private AzureDeviceAuth.Config agateDeviceAuthConfig() {
+		AzureDeviceAuth.Config authCfg = new AzureDeviceAuth.Config();
+		authCfg.TenantId = cfg.Agate.AgateTenantId;
+		authCfg.ClientId = cfg.Agate.AgateClientId;
+		authCfg.Scope = cfg.Agate.ApiResource;
+		authCfg.TimeoutMillis = cfg.Agate.TimeoutMillis;
+		return(authCfg);
+	}
+
+	private void handleAgateAuthRequest(ApiInfo info) throws Exception {
+
+		if (cfg.Agate == null || !FactoryType.DeviceCode.equals(getAgateAuthType())) {
+			throw new Exception("agateauth request received but DeviceCode not configured");
+		}
+
+		switch (info.Request.Method) {
+			case "POST": startDeviceCodeFlow(info); break;
+			case "GET":  checkDeviceCodeFlow(info); break;
+			default: info.Response.Status = 400; break;
+		}
+	}
+
+	private void startDeviceCodeFlow(ApiInfo info) throws Exception {
+		AzureDeviceAuth.DeviceCodeChallenge challenge = AzureDeviceAuth.start(agateDeviceAuthConfig());
+		if (challenge == null) {
+			info.Response.Status = 500;
+			return;
+		}
+		info.Response.setJson(Utility.getGson().toJson(challenge));
+	}
+
+	private void checkDeviceCodeFlow(ApiInfo info) throws Exception {
+		String deviceCode = info.Request.QueryParams.get("dc");
+		if (Easy.nullOrEmpty(deviceCode)) {
+			info.Response.Status = 400;
+			return;
+		}
+		AzureDeviceAuth.DeviceCodeStatus status = AzureDeviceAuth.check(agateDeviceAuthConfig(), deviceCode);
+		info.Response.setJson(Utility.getGson().toJson(status));
 	}
 
 	// +---------------------+

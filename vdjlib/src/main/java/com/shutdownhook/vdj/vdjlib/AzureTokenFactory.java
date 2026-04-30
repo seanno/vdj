@@ -10,6 +10,7 @@ import com.google.gson.Gson;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.AzureCliCredentialBuilder;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.identity.OnBehalfOfCredentialBuilder;
 import com.azure.identity.UsernamePasswordCredentialBuilder;
@@ -24,7 +25,9 @@ public class AzureTokenFactory
 	{
 		Default,
 		UserPass,
-		OnBehalfOf
+		OnBehalfOf,
+		DeviceCode,
+		CLI
 	}
 	
 	// +--------+
@@ -41,6 +44,7 @@ public class AzureTokenFactory
 		
 		switch (factoryType) {
 			case Default: cred = getCredential_Default((DefaultParams) params); break;
+			case CLI: cred = getCredential_CLI((DefaultParams) params); break;
 			case UserPass: cred = getCredential_UserPass((UserPassParams) params); break;
 			case OnBehalfOf: cred = getCredential_OBO((OnBehalfOfParams) params); break;
 			default: return(null);
@@ -55,9 +59,16 @@ public class AzureTokenFactory
 
 	private AzureTokenFactory(TokenCredential cred) {
 		this.cred = cred;
+		this.staticToken = null;
+	}
+
+	private AzureTokenFactory(String token) {
+		this.cred = null;
+		this.staticToken = token;
 	}
 
 	public String getToken(String scope) {
+		if (staticToken != null) return(staticToken);
 		TokenRequestContext ctx = new TokenRequestContext().addScopes(scope);
 		return(cred.getTokenSync(ctx).getToken());
 	}
@@ -66,8 +77,20 @@ public class AzureTokenFactory
 		return(cred);
 	}
 
+	// +-------------+
+	// | Device Code |
+	// +-------------+
+
+	// Creates a factory wrapping a pre-acquired token string, e.g. from
+	// an OAuth2 device code flow managed externally by the caller.
+
+	public static AzureTokenFactory createFromToken(String token) {
+		return(new AzureTokenFactory(token));
+	}
+
 	// +-----------------------+
 	// | getCredential_Default |
+	// | getCredential_CLI     |
 	// +-----------------------+
 
 	public static class DefaultParams
@@ -84,6 +107,12 @@ public class AzureTokenFactory
 
 	private static TokenCredential getCredential_Default(DefaultParams params) {
 		DefaultAzureCredentialBuilder builder = new DefaultAzureCredentialBuilder();
+		if (params.tenantId != null) builder.tenantId(params.tenantId);
+		return(builder.build());
+	}
+
+	private static TokenCredential getCredential_CLI(DefaultParams params) {
+		AzureCliCredentialBuilder builder = new AzureCliCredentialBuilder();
 		if (params.tenantId != null) builder.tenantId(params.tenantId);
 		return(builder.build());
 	}
@@ -184,7 +213,8 @@ public class AzureTokenFactory
 	// +---------+
 
 	private TokenCredential cred;
-	
+	private String staticToken;
+
 	private final static Logger log = Logger.getLogger(AzureTokenFactory.class.getName());
 }
 
