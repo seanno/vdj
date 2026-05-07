@@ -1,0 +1,27 @@
+{
+  "RepertoireStore": {
+	"BasePath": ""
+  },
+
+  "LoggingConfigPath": "",
+
+  "AgateAuthType": "DeviceCode",
+  "Agate": { },
+  
+  "WebServer": {
+
+	"Port": 8989,
+
+	"StaticPagesZip": "@clientSite.zip",
+	"StaticPagesRouteHtmlWithoutExtension": false,
+
+	"AuthenticationType": "force",
+
+	"ForceLoggedInUser": {
+	  "Id": "vdj",
+	  "Email": "vdj@example.com",
+	  "Token": "vdjtoken"
+	}
+	
+  }
+}
