@@ -23,7 +23,18 @@ public class DesktopConfig
 		if (!cfgFile.exists()) generateConfig(cfgFile);
 
 		String json = Easy.stringFromFile(cfgFile.getAbsolutePath());
-		return(Server.Config.fromJson(json));
+
+		// !!! Hackarama !!!
+		// UserPass auth for Agate is broken for all MFA accounts, which
+		// Agate is now configured for. The idea of this config caching
+		// thing is so that users can edit it later for themselves after
+		// bootstrapping from the defaults. However, this breaks the update
+		// to DeviceCode auth --- so we force the issue here. Ah well.
+
+		Server.Config cfg = Server.Config.fromJson(json);
+		if ("UserPass".equals(cfg.AgateAuthType)) cfg.AgateAuthType = "DeviceCode";
+		
+		return(cfg);
 	}
 
 	// +-------------------+
