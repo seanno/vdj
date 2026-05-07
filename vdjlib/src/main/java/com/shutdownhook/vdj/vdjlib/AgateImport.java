@@ -19,6 +19,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
@@ -55,6 +56,7 @@ public class AgateImport implements Closeable
 		public String StorageResource = "https://storage.azure.com/.default";
 		public String StorageVersion = "2017-11-09";
 		public Integer TimeoutMillis = (5 * 60 * 1000);
+		public Boolean DebugResponse = false;
 
 		public String AgateClientId = "fdcf242b-a25b-4b35-aff2-d91d8100225d";
 		public String AgateTenantId = "720cf133-4325-491c-b6a9-159d0497fc65";
@@ -329,22 +331,40 @@ public class AgateImport implements Closeable
 		}
 				
 		int status = conn.getResponseCode();
+
+		if (cfg.DebugResponse) {
+			
+			log.info(String.format("Response for %s (resource %s) = %d (%s)",
+								   url, resource, status, conn.getResponseMessage()));
+
+			Map<String,List<String>> responseHeaders = conn.getHeaderFields();
+			StringBuilder sbHeaders = new StringBuilder();
+			
+			for (String name : responseHeaders.keySet()) {
+				sbHeaders.append(name).append(":");
+				for (String val : responseHeaders.get(name)) sbHeaders.append("\t").append(val).append("\n");
+			}
+
+			log.info(sbHeaders.toString());
+		}
+		
 		if (status < 200 || status >= 300) {
 			
 			String errBody = "no body";
 			InputStream errStm = null;
 			
 			try {
-				errStm = conn.getInputStream();
+				errStm = conn.getErrorStream();
 				errBody = Utility.stringFromInputStream(errStm);
 			}
 			catch (Exception e) {
 				// eat it
+				errBody = "[Exception reading Error Stream]: " + e.toString();
 			}
 			finally {
 				Utility.safeClose(errStm);
 			}
-			
+
 			log.warning(String.format("Failed Agate req %s: %d %s", url, status, errBody));
 			return(null);
 		}
