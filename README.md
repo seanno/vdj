@@ -54,7 +54,7 @@ See the source code for optional use of custom app roles VDJ_UploadToAnyUserId, 
 
 If you would like to enable sample import from Adaptive's Agate system (Agate is an independent service provided by Adaptive Biotechnologies; contact Adaptive for more details), do the following:
 
-1. Add an environment variable "AgateAuthType" with the value "UserPass"
+1. Add an environment variable "AgateAuthType" with the value "DeviceCode"
 2. Under the client app API Permissions, add:
    * https://adaptiveagateuserfunctions.azurewebsites.net/user_impersonation
    * Your client app user_impersonation
