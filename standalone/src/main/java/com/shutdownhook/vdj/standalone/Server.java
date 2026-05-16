@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -118,6 +119,7 @@ public class Server implements Closeable
 		public String DxScope = "dxopt";
 		public String TrackingScope = "track";
 		public String GeneUseScope = "genes";
+		public String HealthScope = "health";
 
 		public String ClientSiteZip = "@clientSite.zip";
 		public Boolean StaticPagesRouteHtmlWithoutExtension = false;
@@ -210,6 +212,8 @@ public class Server implements Closeable
 	
 	// POST   /api/track/CTX/REPS    => return potential "dx" rearrangemnets from REPS in CTX
 	//                                  (JSON post body = array of Rearrangements to track)
+
+	// GET    /api/health            => return basic JVM info
 
 	private void registerApi() throws Exception {
 
@@ -346,6 +350,13 @@ public class Server implements Closeable
 
 					if (request.Method.equals("GET")) {
 						handleGeneUseRequest(info);
+						handled = true;
+					}
+				}
+				else if (info.Scope.equals(cfg.HealthScope)) {
+
+					if (request.Method.equals("GET")) {
+						handleHealthRequest(info);
 						handled = true;
 					}
 				}
@@ -890,6 +901,23 @@ public class Server implements Closeable
 	private Boolean queryBoolean(ApiInfo info, String param, Boolean defaultVal) {
 		String str = info.Request.QueryParams.get(param);
 		return(Easy.nullOrEmpty(str) ? defaultVal : Boolean.parseBoolean(str));
+	}
+
+	// +--------+
+	// | Health |
+	// +--------+
+
+	private void handleHealthRequest(ApiInfo info) throws Exception {
+
+		Runtime runtime = Runtime.getRuntime();
+		String msg = String.format("Service OK at %s\n%d; %d, %d, %d",
+								   Instant.now().toString(),
+								   runtime.availableProcessors(),
+								   runtime.freeMemory(),
+								   runtime.totalMemory(),
+								   runtime.maxMemory());
+								   
+		info.Response.setText(msg);
 	}
 
 	// +--------------------+
